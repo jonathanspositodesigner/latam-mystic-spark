@@ -1,6 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
 import { useUpscalerCredits } from '@/hooks/useUpscalerCredits';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface CreditsContextType {
   balance: number;
@@ -17,11 +16,9 @@ const CreditsContext = createContext<CreditsContextType | undefined>(undefined);
 
 export const CreditsProvider = ({ children, userId }: { children: ReactNode; userId?: string }) => {
   const creditsData = useUpscalerCredits(userId);
-  const { planos2Subscription } = useAuth();
-  const isUnlimited = !!(planos2Subscription?.plan_slug === 'unlimited' && planos2Subscription?.is_active);
 
   return (
-    <CreditsContext.Provider value={{ ...creditsData, isUnlimited }}>
+    <CreditsContext.Provider value={{ ...creditsData, isUnlimited: false }}>
       {children}
     </CreditsContext.Provider>
   );
