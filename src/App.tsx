@@ -8,16 +8,15 @@ import React, { Suspense } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CreditsProvider } from "./contexts/CreditsContext";
 
-import Index from "./pages/Index";
+import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
-const Login = React.lazy(() => import("./pages/Login"));
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const ProfileSettings = React.lazy(() => import("./pages/ProfileSettings"));
 
 const LoadingSpinner = () => (
-  <div className="min-h-screen bg-[#0D0221] flex items-center justify-center">
+  <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-fuchsia-500"></div>
   </div>
 );
@@ -41,12 +40,10 @@ const AppContent = () => {
       <Sonner />
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Home />} />
           <Route path="/olvide-contrasena" element={<ForgotPassword />} />
           <Route path="/restablecer-contrasena" element={<ResetPassword />} />
           <Route path="/configuracion" element={<ProfileSettings />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
