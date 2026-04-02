@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import logoArcano from "@/assets/logo-arcano.png";
 import { Button } from "@/components/ui/button";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import type { AuthState } from "@/hooks/useAuthFlow";
