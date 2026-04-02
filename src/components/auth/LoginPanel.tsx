@@ -57,10 +57,8 @@ const LoginPanel = ({
     <div className="w-full lg:w-1/3 min-h-screen flex flex-col justify-center px-6 sm:px-12 lg:px-10 xl:px-14 bg-[hsl(270,60%,4%)] animate-slide-in-left">
       {/* Logo */}
       <div className="mb-10 text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-600 mb-4 shadow-lg shadow-purple-500/25">
-          <span className="text-2xl font-black text-white">A</span>
-        </div>
-        <h1 className="text-2xl font-bold text-white">Arcano</h1>
+        <img src={logoArcano} alt="ArcanoApp" className="w-16 h-16 mx-auto mb-4" />
+        <h1 className="text-2xl font-bold text-white">ArcanoApp</h1>
         <p className="text-white/40 text-sm mt-1">Plataforma Premium</p>
       </div>
 
