@@ -29,7 +29,7 @@ const ResetPassword = () => {
         return;
       }
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast.error('Link de recuperación inválido'); navigate("/login"); return; }
+      if (!session) { toast.error('Link de recuperación inválido'); navigate("/"); return; }
       setIsVerifying(false);
     };
     verifyToken();
@@ -44,7 +44,9 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) await supabase.from('profiles').update({ password_changed: true }).eq('id', user.id);
+      if (user) {
+        await (supabase as any).from('profiles').update({ password_changed: true }).eq('id', user.id);
+      }
       toast.success('¡Contraseña restablecida exitosamente!');
       navigate('/');
     } catch (error: any) {
@@ -56,15 +58,15 @@ const ResetPassword = () => {
 
   if (isVerifying) {
     return (
-      <div className="min-h-screen bg-[#0D0221] flex items-center justify-center">
+      <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0221] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-8 bg-[#1A0A2E] border-purple-500/20">
+    <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md p-8 bg-[hsl(270,50%,8%)] border-purple-500/20">
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Lock className="h-8 w-8 text-purple-400" />
@@ -76,7 +78,7 @@ const ResetPassword = () => {
           <div>
             <Label htmlFor="newPassword" className="text-purple-200">Nueva Contraseña</Label>
             <div className="relative mt-2">
-              <Input id="newPassword" type={showPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="bg-[#0D0221] border-purple-500/30 text-white" />
+              <Input id="newPassword" type={showPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="bg-white/[0.06] border-white/[0.1] text-white" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-white">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -85,13 +87,13 @@ const ResetPassword = () => {
           <div>
             <Label htmlFor="confirmPassword" className="text-purple-200">Confirmar Contraseña</Label>
             <div className="relative mt-2">
-              <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="bg-[#0D0221] border-purple-500/30 text-white" />
+              <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="bg-white/[0.06] border-white/[0.1] text-white" />
               <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400 hover:text-white">
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
-          <Button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white">
+          <Button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:opacity-90 text-white">
             {isLoading ? 'Guardando...' : 'Guardar Nueva Contraseña'}
           </Button>
         </form>

@@ -17,7 +17,7 @@ const AppLayout = ({ children, fullScreen = false }: AppLayoutProps) => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('profiles')
         .select('name, phone')
         .eq('id', user.id)
@@ -28,7 +28,7 @@ const AppLayout = ({ children, fullScreen = false }: AppLayoutProps) => {
   }, [user]);
 
   return (
-    <div className={`${fullScreen ? 'lg:h-screen lg:overflow-hidden min-h-screen' : 'min-h-screen'} bg-[#0D0221]`}>
+    <div className={`${fullScreen ? 'lg:h-screen lg:overflow-hidden min-h-screen' : 'min-h-screen'} bg-[hsl(270,60%,4%)]`}>
       <AppTopBar
         user={user}
         isPremium={isPremium}
