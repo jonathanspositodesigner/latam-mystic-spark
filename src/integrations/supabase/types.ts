@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      blacklisted_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      device_signups: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_confirmation_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -55,6 +127,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_device_signup_limit: {
+        Args: { p_fingerprint: string }
+        Returns: boolean
+      }
       check_profile_exists: {
         Args: { check_email: string }
         Returns: {
@@ -62,6 +138,10 @@ export type Database = {
           has_logged_in: boolean
           password_changed: boolean
         }[]
+      }
+      register_device_signup: {
+        Args: { p_fingerprint: string; p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
