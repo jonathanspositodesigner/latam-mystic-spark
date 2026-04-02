@@ -18,10 +18,16 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-        redirectTo: `${window.location.origin}/restablecer-contrasena`,
+      // Use SendPulse via edge function for branded recovery email
+      const { data, error } = await supabase.functions.invoke('send-recovery-email', {
+        body: {
+          email: email.trim().toLowerCase(),
+          redirect_url: `${window.location.origin}/restablecer-contrasena`,
+        },
       });
-      if (error) throw error;
+      if (error || (data && !data.success)) {
+        throw new Error(data?.error || error?.message || 'Error al enviar');
+      }
       setEmailSent(true);
       toast.success('¡Email de recuperación enviado!');
     } catch (error: any) {
