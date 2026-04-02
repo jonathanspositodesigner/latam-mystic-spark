@@ -2,6 +2,8 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isDisposableEmail } from "@/utils/disposableEmailDomains";
+import { getSignupDeviceFingerprint } from "@/lib/deviceFingerprint";
 
 export type AuthStep = 'email' | 'password' | 'set-password' | 'signup' | 'waiting-confirmation';
 
@@ -59,6 +61,12 @@ export function useAuthFlow() {
       return;
     }
 
+    // Check disposable email
+    if (isDisposableEmail(emailToCheck)) {
+      setState(prev => ({ ...prev, error: 'Los correos temporales no están permitidos. Usa un correo real.' }));
+      return;
+    }
+
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -94,7 +102,6 @@ export function useAuthFlow() {
         });
 
         if (!autoLoginError) {
-          // Auto-login worked, show set-password form
           setState(prev => ({
             ...prev,
             step: 'set-password',
@@ -249,6 +256,13 @@ export function useAuthFlow() {
       setState(prev => ({ ...prev, error: 'Ingresa tu correo electrónico' }));
       return;
     }
+
+    // Check disposable email
+    if (isDisposableEmail(email)) {
+      setState(prev => ({ ...prev, error: 'Los correos temporales no están permitidos. Usa un correo real.' }));
+      return;
+    }
+
     if (password.length < 6) {
       setState(prev => ({ ...prev, error: 'La contraseña debe tener al menos 6 caracteres' }));
       return;
@@ -258,6 +272,26 @@ export function useAuthFlow() {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
+      // Check device fingerprint limit
+      const deviceFingerprint = getSignupDeviceFingerprint();
+      try {
+        const { data: alreadyUsed, error: deviceError } = await supabase
+          .rpc('check_device_signup_limit', { p_fingerprint: deviceFingerprint });
+
+        if (deviceError) {
+          console.error('[AuthFlow] Device check error:', deviceError);
+        } else if (alreadyUsed) {
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Este dispositivo ya tiene una cuenta registrada. Usa tu cuenta existente.',
+          }));
+          return;
+        }
+      } catch (fpErr) {
+        console.error('[AuthFlow] Fingerprint check error:', fpErr);
+      }
+
       const { data: authData, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
@@ -284,6 +318,32 @@ export function useAuthFlow() {
           email_verified: false,
         }, { onConflict: 'id' });
 
+        // Register device fingerprint
+        try {
+          await supabase.rpc('register_device_signup', {
+            p_fingerprint: deviceFingerprint,
+            p_user_id: authData.user.id,
+          });
+          console.log('[AuthFlow] Device fingerprint registered');
+        } catch (fpErr) {
+          console.error('[AuthFlow] Failed to register device fingerprint:', fpErr);
+        }
+
+        // Send confirmation email via SendPulse
+        try {
+          const { data: confirmData, error: confirmError } = await supabase.functions.invoke('send-confirmation-email', {
+            body: { email: normalizedEmail, user_id: authData.user.id }
+          });
+
+          if (confirmError || (confirmData && !confirmData.success)) {
+            console.error('[AuthFlow] Error sending confirmation email:', confirmError || confirmData?.error);
+          } else {
+            console.log('[AuthFlow] Confirmation email sent successfully');
+          }
+        } catch (emailErr) {
+          console.error('[AuthFlow] Confirmation email exception:', emailErr);
+        }
+
         setState(prev => ({
           ...prev,
           step: 'waiting-confirmation',
@@ -301,6 +361,9 @@ export function useAuthFlow() {
     const email = state.verifiedEmail || state.email;
     if (!email) return;
     try {
+      // Use our custom SendPulse email instead of Supabase default
+      // We need the user_id, but we might not have it in waiting-confirmation
+      // Fallback to Supabase's built-in resend
       await supabase.auth.resend({ type: 'signup', email });
       toast.success('¡Enlace reenviado! Revisa tu correo.');
     } catch {
