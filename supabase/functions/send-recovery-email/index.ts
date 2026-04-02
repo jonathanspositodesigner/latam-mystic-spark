@@ -171,7 +171,7 @@ serve(async (req) => {
         html: htmlBase64,
         text: "",
         subject: "🔐 Restablece tu contraseña - ArcanoApp",
-        from: { name: "ArcanoApp", email: "noreply@arcanoapp.com" },
+        from: { name: "Arcano App", email: "contato@voxvisual.com.br" },
         to: [{ name: normalizedEmail, email: normalizedEmail }],
       },
     };
