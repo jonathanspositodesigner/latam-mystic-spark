@@ -214,36 +214,37 @@ export function useUnifiedAuth(config: AuthConfig): UseUnifiedAuthReturn {
     const normalizedEmail = email.trim().toLowerCase();
 
     try {
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: { emailRedirectTo: `${window.location.origin}${config.defaultRedirect}` },
+      // Use custom signup edge function (does NOT send Supabase's built-in email)
+      const { data: signupData, error: signupError } = await supabase.functions.invoke('signup-user', {
+        body: { email: normalizedEmail, password, name, phone }
       });
 
-      if (error) {
-        if (error.message.includes("already registered")) {
+      if (signupError || (signupData && !signupData.success)) {
+        const errMsg = signupData?.error || signupError?.message || 'Error al crear cuenta';
+        if (errMsg === 'already_registered') {
           toast.error('Este email ya está registrado');
         } else {
-          toast.error(`Error al crear cuenta: ${error.message}`);
+          toast.error(`Error al crear cuenta: ${errMsg}`);
         }
         setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 
-      if (authData.user) {
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          email: normalizedEmail,
-          name: name?.trim() || null,
-          phone: phone?.trim() || null,
-          password_changed: true,
-          email_verified: false,
-        }, { onConflict: 'id' });
+      const userId = signupData.user_id;
 
-        toast.success('¡Cuenta creada! Revisa tu email para confirmar.');
-        setState(prev => ({ ...prev, step: 'waiting-link', isLoading: false }));
-        config.onSignupSuccess?.();
+      // Send confirmation email via SendPulse (only email sent)
+      try {
+        await supabase.functions.invoke('send-confirmation-email', {
+          body: { email: normalizedEmail, user_id: userId }
+        });
+        console.log('[UnifiedAuth] Confirmation email sent');
+      } catch (emailErr) {
+        console.error('[UnifiedAuth] Confirmation email error:', emailErr);
       }
+
+      toast.success('¡Cuenta creada! Revisa tu email para confirmar.');
+      setState(prev => ({ ...prev, step: 'waiting-link', verifiedEmail: normalizedEmail, isLoading: false }));
+      config.onSignupSuccess?.();
     } catch (error) {
       console.error('[UnifiedAuth] Signup error:', error);
       toast.error('Error al crear cuenta');
