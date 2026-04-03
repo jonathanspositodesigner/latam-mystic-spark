@@ -10,7 +10,7 @@ import { useCredits } from "@/contexts/CreditsContext";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import BannerCarousel from "@/components/dashboard/BannerCarousel";
+import VideoBanner from "@/components/dashboard/VideoBanner";
 import UpscalerArcanoCard from "@/components/dashboard/UpscalerArcanoCard";
 
 const Dashboard = () => {
@@ -99,7 +99,7 @@ const Dashboard = () => {
       {/* Content */}
       <div className="p-4 md:p-6 lg:p-8">
         <div className="max-w-5xl mx-auto space-y-6">
-          <BannerCarousel />
+          <VideoBanner />
 
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Tus Productos</h2>
