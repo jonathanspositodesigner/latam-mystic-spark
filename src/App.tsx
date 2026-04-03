@@ -106,10 +106,6 @@ const AppContent = () => {
           <Route path="/admin-artes-eventos/dashboard" element={<ArtesEventosDashboard />} />
           <Route path="/admin-artes-eventos/marketing" element={<ArtesEventosMarketing />} />
 
-          <Route path="/admin-artes-musicos" element={<ArtesMusicosFerramentas />} />
-          <Route path="/admin-artes-musicos/ferramentas" element={<Navigate to="/admin-artes-musicos" replace />} />
-          <Route path="/admin-artes-musicos/dashboard" element={<ArtesMusicosDashboard />} />
-          <Route path="/admin-artes-musicos/marketing" element={<ArtesMusicosMarketing />} />
 
           <Route path="/admin-prompts" element={<PromptsFerramentas />} />
           <Route path="/admin-prompts/ferramentas" element={<Navigate to="/admin-prompts" replace />} />
