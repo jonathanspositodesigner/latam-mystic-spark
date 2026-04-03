@@ -174,8 +174,9 @@ const AdminUpscalerVitalicio = () => {
           .single();
 
         if (createError) throw createError;
+        if (!createdPack) throw new Error("Pack não retornado após criação");
 
-        applyPackState(createdPack as Pack);
+        applyPackState(createdPack as unknown as Pack);
         toast.success("Pack criado com as versões V2.5 e V1.5.");
       }
     } catch (error: any) {
