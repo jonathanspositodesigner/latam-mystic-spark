@@ -131,12 +131,35 @@ serve(async (req) => {
 
     if (!customerEmail) {
       console.error("[stripe-webhook] No customer email in session");
-      await supabaseAdmin.from("webhook_logs").update({ status: "error", error_message: "no_customer_email", processed: true })
-        .eq("source", "stripe").eq("payload->>id", event.id);
       return json({ received: true, warning: "no_email" });
     }
 
-    console.log(`[stripe-webhook] Processing purchase for: ${customerEmail}`);
+    // ── Verify this is an Upscaler Arcano V3 purchase ──
+    const UPSCALER_V3_PRODUCT_ID = "prod_UG4a2X2zxwTUZX";
+
+    // Expand line_items to check product IDs
+    const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ["line_items.data.price.product"],
+    });
+
+    const lineItems = fullSession.line_items?.data || [];
+    const isUpscalerV3Purchase = lineItems.some((item: any) => {
+      const product = item.price?.product;
+      const productId = typeof product === "string" ? product : product?.id;
+      return productId === UPSCALER_V3_PRODUCT_ID;
+    });
+
+    if (!isUpscalerV3Purchase) {
+      console.log(`[stripe-webhook] Not an Upscaler V3 purchase, skipping. Products: ${lineItems.map((i: any) => typeof i.price?.product === "string" ? i.price.product : i.price?.product?.id).join(", ")}`);
+      await supabaseAdmin.from("webhook_logs")
+        .update({ status: "skipped_not_v3", processed: true })
+        .eq("source", "stripe")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      return json({ received: true, action: "skipped_not_upscaler_v3" });
+    }
+
+    console.log(`[stripe-webhook] ✅ Upscaler V3 purchase confirmed for: ${customerEmail}`);
 
     try {
       // 1. Check if user already exists
