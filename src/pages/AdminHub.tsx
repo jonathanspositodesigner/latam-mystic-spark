@@ -5,12 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Music, FileText, Menu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import AdminGoalsCard from "@/components/admin/AdminGoalsCard";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import AdminHubSidebar, { HubViewType } from "@/components/admin/AdminHubSidebar";
 import AdminSimpleMetrics from "@/components/admin/AdminSimpleMetrics";
 import PartnersManagementContent from "@/components/admin/PartnersManagementContent";
-import AbandonedCheckoutsContent from "@/components/admin/AbandonedCheckoutsContent";
 import AdminsManagementContent from "@/components/admin/AdminsManagementContent";
 
 const AdminHub = () => {
@@ -63,16 +61,11 @@ const AdminHub = () => {
                 </Card>
               ))}
             </div>
-            <AdminGoalsCard />
           </div>
         );
       case "dashboard": return <AdminSimpleMetrics />;
       case "partners": return <PartnersManagementContent />;
-      case "abandoned-checkouts": return <AbandonedCheckoutsContent />;
       case "admins": return <AdminsManagementContent />;
-      case "sales": return <PlaceholderView title="Vendas" />;
-      case "ads": return <PlaceholderView title="ADS" />;
-      case "pixel": return <PlaceholderView title="Pixel / CAPI" />;
       case "push-notifications": return <PlaceholderView title="Push Notifications" />;
       case "emails": return <PlaceholderView title="Emails de Boas-vindas" />;
       default: return null;

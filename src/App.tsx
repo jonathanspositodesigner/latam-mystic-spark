@@ -30,8 +30,6 @@ const AdminPartnersArtes = React.lazy(() => import("./pages/AdminPartnersArtes")
 const AdminManageAdmins = React.lazy(() => import("./pages/AdminManageAdmins"));
 const AdminWebhookLogs = React.lazy(() => import("./pages/AdminWebhookLogs"));
 const AdminPushNotifications = React.lazy(() => import("./pages/AdminPushNotifications"));
-const AdminAbandonedCheckouts = React.lazy(() => import("./pages/AdminAbandonedCheckouts"));
-const AdminLeads = React.lazy(() => import("./pages/AdminLeads"));
 const AdminManageBanners = React.lazy(() => import("./pages/AdminManageBanners"));
 const AdminManagePacks = React.lazy(() => import("./pages/AdminManagePacks"));
 const AdminManagePromotions = React.lazy(() => import("./pages/AdminManagePromotions"));
@@ -99,8 +97,6 @@ const AppContent = () => {
           <Route path="/admin-manage-admins" element={<AdminManageAdmins />} />
           <Route path="/admin-webhook-logs" element={<AdminWebhookLogs />} />
           <Route path="/admin-push-notifications" element={<AdminPushNotifications />} />
-          <Route path="/admin-abandoned-checkouts" element={<AdminAbandonedCheckouts />} />
-          <Route path="/admin-leads" element={<AdminLeads />} />
           <Route path="/admin-manage-banners" element={<AdminManageBanners />} />
           <Route path="/admin-manage-packs" element={<AdminManagePacks />} />
           <Route path="/admin-manage-promotions" element={<AdminManagePromotions />} />
