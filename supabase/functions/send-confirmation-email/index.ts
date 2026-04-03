@@ -155,10 +155,7 @@ serve(async (req) => {
       );
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    // supabaseAdmin already created above
 
     // Check blacklist
     const { data: blacklisted } = await supabaseAdmin
