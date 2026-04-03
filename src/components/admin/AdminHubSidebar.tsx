@@ -1,9 +1,9 @@
-import { Home, BarChart3, LogOut, ArrowLeft, Users, ShieldCheck, ShoppingCart, Mail, Receipt, Megaphone, Activity } from "lucide-react";
+import { Home, LogOut, ArrowLeft, Users, ShieldCheck, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-export type HubViewType = "home" | "dashboard" | "email-marketing" | "push-notifications" | "partners" | "abandoned-checkouts" | "admins" | "emails" | "sales" | "ads" | "pixel";
+export type HubViewType = "home" | "dashboard" | "email-marketing" | "push-notifications" | "partners" | "admins" | "emails";
 
 interface AdminHubSidebarProps {
   activeView: HubViewType;
@@ -16,11 +16,7 @@ const AdminHubSidebar = ({ activeView, onViewChange, onLogout }: AdminHubSidebar
 
   const menuItems = [
     { id: "home" as const, label: "HOME", icon: Home, description: "Selecionar plataforma" },
-    { id: "sales" as const, label: "VENDAS", icon: Receipt, description: "Listagem e gestão de vendas" },
-    { id: "ads" as const, label: "ADS", icon: Megaphone, description: "Campanhas Meta e atribuição" },
-    { id: "pixel" as const, label: "PIXEL / CAPI", icon: Activity, description: "Logs e monitoramento Meta" },
     { id: "partners" as const, label: "GERENCIAR PARCEIROS", icon: Users, description: "Cadastrar e gerenciar colaboradores" },
-    { id: "abandoned-checkouts" as const, label: "REMARKETING", icon: ShoppingCart, description: "Checkouts abandonados" },
     { id: "admins" as const, label: "ADMINISTRADORES", icon: ShieldCheck, description: "Gerenciar acessos de admin" },
     { id: "emails" as const, label: "EMAILS DE BOAS-VINDAS", icon: Mail, description: "Monitoramento de envios" },
   ];
