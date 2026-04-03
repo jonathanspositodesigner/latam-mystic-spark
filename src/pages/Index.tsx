@@ -75,6 +75,11 @@ const Index = () => {
             ))}
           </div>
 
+          {/* Upscaler Card */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8">
+            <UpscalerArcanoCard />
+          </div>
+
           {/* CTA */}
           <div className="text-center bg-gradient-to-r from-purple-900/50 to-fuchsia-900/50 rounded-xl border border-purple-500/20 p-8">
             <Star className="h-10 w-10 text-yellow-500 mx-auto mb-4" fill="currentColor" />

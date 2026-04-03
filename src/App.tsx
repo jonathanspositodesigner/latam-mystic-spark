@@ -129,6 +129,12 @@ const AppContent = () => {
           <Route path="/admin-prompts/rentabilidade" element={<PromptsRentabilidade />} />
           <Route path="/admin-prompts/top-indicadores" element={<PromptsTopIndicadores />} />
 
+          {/* Upscaler routes */}
+          <Route path="/upscaler-arcano" element={<UpscalerArcanoVersionSelect />} />
+          <Route path="/ferramenta-ia-artes/upscaller-arcano" element={<Navigate to="/upscaler-arcano" replace />} />
+          <Route path="/ferramenta-ia-artes/:toolSlug/:versionSlug" element={<ToolVersionLessons />} />
+          <Route path="/upgrade-upscaler-v3" element={<UpgradeUpscalerV3 />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
