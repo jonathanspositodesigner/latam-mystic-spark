@@ -3,7 +3,7 @@ import { Wrench, BarChart3, Megaphone, LogOut, Home, ArrowLeft, Sparkles, Music,
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export type AdminPlatform = "artes-eventos" | "artes-musicos" | "prompts";
+export type AdminPlatform = "artes-eventos" | "prompts";
 
 interface AdminSidebarPlatformProps {
   platform: AdminPlatform;
