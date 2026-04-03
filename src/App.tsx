@@ -41,6 +41,7 @@ const AdminCategoriesArtes = React.lazy(() => import("./pages/AdminCategoriesArt
 const AdminPackPurchases = React.lazy(() => import("./pages/AdminPackPurchases"));
 const AdminAbandonedCheckouts = React.lazy(() => import("./pages/AdminAbandonedCheckouts"));
 const AdminLeads = React.lazy(() => import("./pages/AdminLeads"));
+const AdminUpscalerVitalicio = React.lazy(() => import("./pages/AdminUpscalerVitalicio"));
 
 // Platform-specific admin pages
 const ArtesEventosDashboard = React.lazy(() => import("./pages/admin/ArtesEventosDashboard"));
@@ -116,6 +117,7 @@ const AppContent = () => {
           <Route path="/admin-pack-purchases" element={<AdminPackPurchases />} />
           <Route path="/admin-abandoned-checkouts" element={<AdminAbandonedCheckouts />} />
           <Route path="/admin-leads" element={<AdminLeads />} />
+          <Route path="/admin-upscaler-vitalicio" element={<AdminUpscalerVitalicio />} />
           <Route path="/admin-artes-eventos" element={<ArtesEventosFerramentas />} />
           <Route path="/admin-artes-eventos/ferramentas" element={<Navigate to="/admin-artes-eventos" replace />} />
           <Route path="/admin-artes-eventos/dashboard" element={<ArtesEventosDashboard />} />

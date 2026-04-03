@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, FileText, Menu } from "lucide-react";
+import { Sparkles, FileText, Menu, Cpu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -37,8 +37,8 @@ const AdminHub = () => {
 
   const platforms = [
     { id: "artes-eventos", title: "Biblioteca de Artes Arcanas", subtitle: "Eventos & Festas", description: "Gerenciar artes editáveis para festas, bares, eventos", icon: Sparkles, color: "from-amber-500 to-orange-500", borderColor: "border-amber-500/30", hoverBorder: "hover:border-amber-500/60", path: "/admin-artes-eventos" },
-    
     { id: "promptclub", title: "PromptClub", subtitle: "Biblioteca de Prompts", description: "Gerenciar prompts, categorias e assinaturas premium", icon: FileText, color: "from-primary to-purple-600", borderColor: "border-primary/30", hoverBorder: "hover:border-primary/60", path: "/admin-prompts" },
+    { id: "upscaler-vitalicio", title: "Upscaler Vitalício", subtitle: "Video Aulas & Versões", description: "Configurar versões, aulas, webhooks e links de venda", icon: Cpu, color: "from-fuchsia-500 to-pink-600", borderColor: "border-fuchsia-500/30", hoverBorder: "hover:border-fuchsia-500/60", path: "/admin-upscaler-vitalicio" },
   ];
 
   const renderContent = () => {
