@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Home, LogIn, Star, Lock, Settings, LogOut, User, Coins, Menu } from "lucide-react";
+import { LogIn, Star, Lock, Settings, LogOut, User, Coins } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCredits } from "@/contexts/CreditsContext";
 import {
@@ -14,10 +13,9 @@ interface AppTopBarProps {
   planType: string | null;
   userProfile?: { name?: string; phone?: string } | null;
   onLogout: () => void;
-  onToggleSidebar?: () => void;
 }
 
-const AppTopBar = ({ user, isPremium, planType, userProfile, onLogout, onToggleSidebar }: AppTopBarProps) => {
+const AppTopBar = ({ user, isPremium, planType, userProfile, onLogout }: AppTopBarProps) => {
   const navigate = useNavigate();
   const { balance: credits, isLoading: creditsLoading } = useCredits();
 
@@ -56,70 +54,28 @@ const AppTopBar = ({ user, isPremium, planType, userProfile, onLogout, onToggleS
   );
 
   return (
-    <>
-      {/* Desktop */}
-      <header className="hidden lg:flex bg-[#0D0221]/80 backdrop-blur-lg border-b border-purple-500/20 px-6 py-3 items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-bold text-white cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/')}>ArcanoAppes</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          {!user && (
-            <>
-              <Button onClick={() => navigate("/login")} variant="ghost" size="sm" className="text-purple-300 hover:text-white hover:bg-purple-500/20">
-                <LogIn className="h-4 w-4 mr-2" />Iniciar Sesión
-              </Button>
-              <Button onClick={() => navigate("/planes")} size="sm" className="bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 text-white">
-                <Star className="h-3 w-3 mr-2" fill="currentColor" />Ser Premium
-              </Button>
-            </>
-          )}
-          {user && !isPremium && (
-            <>
-              <Button onClick={() => navigate("/planes")} size="sm" className="bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 text-white">
-                <Star className="h-3 w-3 mr-2" fill="currentColor" />Ser Premium
-              </Button>
-              <ProfileDropdown />
-            </>
-          )}
-          {isPremium && (
-            <>
-              <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
-                <Star className="h-3 w-3 mr-1" fill="currentColor" />Premium Activo
-              </Badge>
-              <ProfileDropdown />
-            </>
-          )}
-        </div>
-      </header>
-
-      {/* Mobile */}
-      <header className="lg:hidden bg-[#0D0221]/95 backdrop-blur-lg px-4 py-3 flex items-center justify-between shadow-lg border-b border-purple-500/20 sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <button onClick={onToggleSidebar} className="text-purple-300 hover:text-white p-1"><Menu className="h-5 w-5" /></button>
-        </div>
+    <header className="bg-[hsl(270,60%,4%)]/80 backdrop-blur-lg border-b border-purple-500/20 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+      <h1 className="text-lg font-bold text-white cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate('/dashboard')}>
+        ArcanoAppes
+      </h1>
+      <div className="flex items-center gap-3">
         {!user && (
-          <div className="flex items-center gap-2">
-            <Button onClick={() => navigate("/login")} size="sm" variant="ghost" className="text-purple-300 hover:bg-purple-500/20 text-xs">
-              <LogIn className="h-4 w-4 mr-1" />Entrar
-            </Button>
-            <Button onClick={() => navigate("/planes")} size="sm" className="bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 text-white text-xs">
-              <Star className="h-3 w-3 mr-1" fill="currentColor" />Premium
-            </Button>
-          </div>
+          <Button onClick={() => navigate("/")} variant="ghost" size="sm" className="text-purple-300 hover:text-white hover:bg-purple-500/20">
+            <LogIn className="h-4 w-4 mr-2" />Iniciar Sesión
+          </Button>
         )}
-        {user && !isPremium && (
-          <div className="flex items-center gap-2"><ProfileDropdown isMobile /></div>
+        {user && (
+          <>
+            {isPremium && (
+              <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs">
+                <Star className="h-3 w-3 mr-1" fill="currentColor" />Premium
+              </Badge>
+            )}
+            <ProfileDropdown />
+          </>
         )}
-        {isPremium && (
-          <div className="flex items-center gap-2">
-            <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs">
-              <Star className="h-3 w-3 mr-1" fill="currentColor" />Premium
-            </Badge>
-            <ProfileDropdown isMobile />
-          </div>
-        )}
-      </header>
-    </>
+      </div>
+    </header>
   );
 };
 
