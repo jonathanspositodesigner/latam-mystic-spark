@@ -6,7 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TARGET_EMAIL = "jonathandesigner1993@gmail.com";
+const ALLOWED_EMAILS = [
+  "jonathandesigner1993@gmail.com",
+  "jonathan.lifecazy@gmail.com",
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
