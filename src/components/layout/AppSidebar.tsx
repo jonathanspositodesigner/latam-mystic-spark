@@ -33,7 +33,7 @@ const AppSidebar = ({ user, isPremium, sidebarOpen, setSidebarOpen }: AppSidebar
       {sidebarOpen && <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)} />}
       <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-72 min-h-screen bg-[#1A0A2E] border-r border-purple-500/20 p-5 flex flex-col transform transition-transform duration-300 ease-in-out lg:pt-4 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="mb-4 flex justify-center lg:hidden">
-          <h2 className="text-xl font-bold text-white cursor-pointer" onClick={() => navigate('/')}>ArcanoAppes</h2>
+          <h2 className="text-xl font-bold text-white cursor-pointer" onClick={() => navigate('/')}>ArcanoApp</h2>
         </div>
 
         <div className="space-y-2 flex-1 overflow-y-auto">
