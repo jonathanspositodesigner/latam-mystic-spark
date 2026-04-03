@@ -108,10 +108,10 @@ serve(async (req) => {
 
     // Check if already used
     if (tokenData.used_at) {
-      console.log("[confirm-email] Token already used, redirecting to home");
-      return new Response(null, {
-        status: 302,
-        headers: { "Location": `${APP_URL}/` },
+      console.log("[confirm-email] Token already used, showing success page");
+      return new Response(buildSuccessHtml(), {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
       });
     }
 
@@ -130,10 +130,25 @@ serve(async (req) => {
       .update({ used_at: new Date().toISOString() })
       .eq("id", tokenData.id);
 
-    // Update profile email_verified
+    // Confirm user in Supabase Auth (so signInWithPassword works)
+    const { error: authConfirmError } = await supabaseAdmin.auth.admin.updateUserById(
+      tokenData.user_id,
+      { email_confirm: true }
+    );
+
+    if (authConfirmError) {
+      console.error("[confirm-email] Auth confirm error:", authConfirmError);
+    } else {
+      console.log(`[confirm-email] Auth email confirmed for user: ${tokenData.user_id}`);
+    }
+
+    // Update profile: email_verified + password_changed
     const { error: updateError } = await supabaseAdmin
       .from("profiles")
-      .update({ email_verified: true })
+      .update({ 
+        email_verified: true,
+        password_changed: true,
+      })
       .eq("id", tokenData.user_id);
 
     if (updateError) {
@@ -146,10 +161,10 @@ serve(async (req) => {
 
     console.log(`[confirm-email] Email confirmed for user: ${tokenData.user_id}`);
 
-    // Redirect to app
-    return new Response(null, {
-      status: 302,
-      headers: { "Location": `${APP_URL}/` },
+    // Show success page instead of redirect
+    return new Response(buildSuccessHtml(), {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   } catch (error: any) {
     console.error("[confirm-email] Error:", error);
