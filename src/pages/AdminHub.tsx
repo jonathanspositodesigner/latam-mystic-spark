@@ -37,7 +37,7 @@ const AdminHub = () => {
 
   const platforms = [
     { id: "artes-eventos", title: "Biblioteca de Artes Arcanas", subtitle: "Eventos & Festas", description: "Gerenciar artes editáveis para festas, bares, eventos", icon: Sparkles, color: "from-amber-500 to-orange-500", borderColor: "border-amber-500/30", hoverBorder: "hover:border-amber-500/60", path: "/admin-artes-eventos" },
-    { id: "artes-musicos", title: "Biblioteca de Artes Arcanas", subtitle: "Músicos & Artistas", description: "Gerenciar artes para músicos, bandas e artistas", icon: Music, color: "from-violet-500 to-purple-500", borderColor: "border-violet-500/30", hoverBorder: "hover:border-violet-500/60", path: "/admin-artes-musicos" },
+    
     { id: "promptclub", title: "PromptClub", subtitle: "Biblioteca de Prompts", description: "Gerenciar prompts, categorias e assinaturas premium", icon: FileText, color: "from-primary to-purple-600", borderColor: "border-primary/30", hoverBorder: "hover:border-primary/60", path: "/admin-prompts" },
   ];
 
