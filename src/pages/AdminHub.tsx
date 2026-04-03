@@ -1,0 +1,111 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Sparkles, Music, FileText, Menu } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import AdminGoalsCard from "@/components/admin/AdminGoalsCard";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import AdminHubSidebar, { HubViewType } from "@/components/admin/AdminHubSidebar";
+import AdminSimpleMetrics from "@/components/admin/AdminSimpleMetrics";
+import PartnersManagementContent from "@/components/admin/PartnersManagementContent";
+import AbandonedCheckoutsContent from "@/components/admin/AbandonedCheckoutsContent";
+import AdminsManagementContent from "@/components/admin/AdminsManagementContent";
+
+const AdminHub = () => {
+  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeView, setActiveView] = useState<HubViewType>("home");
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate('/admin-login'); return; }
+      const { data: roleData } = await supabase
+        .from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
+      if (!roleData) { toast.error("Acesso negado."); navigate('/'); return; }
+      setIsAdmin(true); setIsLoading(false);
+    };
+    checkAdmin();
+  }, [navigate]);
+
+  const handleLogout = async () => { await supabase.auth.signOut(); navigate('/'); };
+  const handleViewChange = (view: HubViewType) => setActiveView(view);
+
+  if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Verificando acesso...</p></div>;
+  if (!isAdmin) return null;
+
+  const platforms = [
+    { id: "artes-eventos", title: "Biblioteca de Artes Arcanas", subtitle: "Eventos & Festas", description: "Gerenciar artes editáveis para festas, bares, eventos", icon: Sparkles, color: "from-amber-500 to-orange-500", borderColor: "border-amber-500/30", hoverBorder: "hover:border-amber-500/60", path: "/admin-artes-eventos" },
+    { id: "artes-musicos", title: "Biblioteca de Artes Arcanas", subtitle: "Músicos & Artistas", description: "Gerenciar artes para músicos, bandas e artistas", icon: Music, color: "from-violet-500 to-purple-500", borderColor: "border-violet-500/30", hoverBorder: "hover:border-violet-500/60", path: "/admin-artes-musicos" },
+    { id: "promptclub", title: "PromptClub", subtitle: "Biblioteca de Prompts", description: "Gerenciar prompts, categorias e assinaturas premium", icon: FileText, color: "from-primary to-purple-600", borderColor: "border-primary/30", hoverBorder: "hover:border-primary/60", path: "/admin-prompts" },
+  ];
+
+  const renderContent = () => {
+    switch (activeView) {
+      case "home":
+        return (
+          <div className="max-w-6xl mx-auto space-y-8">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Escolha uma Plataforma</h2>
+              <p className="text-muted-foreground">Cada plataforma possui seu próprio painel de gerenciamento</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+              {platforms.map((platform) => (
+                <Card key={platform.id} className={`p-4 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-105 border-2 ${platform.borderColor} ${platform.hoverBorder}`} onClick={() => navigate(platform.path)}>
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <div className={`p-2.5 bg-gradient-to-r ${platform.color} rounded-full`}><platform.icon className="h-6 w-6 text-white" /></div>
+                    <div><h3 className="text-sm font-bold text-foreground">{platform.title}</h3><p className="text-xs font-medium text-primary">{platform.subtitle}</p></div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{platform.description}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+            <AdminGoalsCard />
+          </div>
+        );
+      case "dashboard": return <AdminSimpleMetrics />;
+      case "partners": return <PartnersManagementContent />;
+      case "abandoned-checkouts": return <AbandonedCheckoutsContent />;
+      case "admins": return <AdminsManagementContent />;
+      case "sales": return <PlaceholderView title="Vendas" />;
+      case "ads": return <PlaceholderView title="ADS" />;
+      case "pixel": return <PlaceholderView title="Pixel / CAPI" />;
+      case "push-notifications": return <PlaceholderView title="Push Notifications" />;
+      case "emails": return <PlaceholderView title="Emails de Boas-vindas" />;
+      default: return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex w-full">
+      <div className="hidden md:block">
+        <AdminHubSidebar activeView={activeView} onViewChange={handleViewChange} onLogout={handleLogout} />
+      </div>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border p-4 flex items-center justify-between">
+        <h1 className="text-lg font-bold text-foreground">Painel Admin</h1>
+        <Sheet>
+          <SheetTrigger asChild><Button variant="ghost" size="icon"><Menu className="h-6 w-6" /></Button></SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64">
+            <AdminHubSidebar activeView={activeView} onViewChange={handleViewChange} onLogout={handleLogout} />
+          </SheetContent>
+        </Sheet>
+      </div>
+      <main className="flex-1 p-4 md:p-8 mt-16 md:mt-0">{renderContent()}</main>
+    </div>
+  );
+};
+
+const PlaceholderView = ({ title }: { title: string }) => (
+  <div className="max-w-4xl mx-auto">
+    <h2 className="text-2xl font-bold text-foreground mb-4">{title}</h2>
+    <Card className="p-12 text-center">
+      <p className="text-muted-foreground text-lg">🚧 Em breve</p>
+      <p className="text-muted-foreground text-sm mt-2">Esta funcionalidade será implementada em breve.</p>
+    </Card>
+  </div>
+);
+
+export default AdminHub;

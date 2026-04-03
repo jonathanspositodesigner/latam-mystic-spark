@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +14,44 @@ import NotFound from "./pages/NotFound";
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const ProfileSettings = React.lazy(() => import("./pages/ProfileSettings"));
+
+// Admin pages
+const AdminLogin = React.lazy(() => import("./pages/AdminLogin"));
+const AdminHub = React.lazy(() => import("./pages/AdminHub"));
+const AdminUpload = React.lazy(() => import("./pages/AdminUpload"));
+const AdminManageImages = React.lazy(() => import("./pages/AdminManageImages"));
+const AdminManageArtes = React.lazy(() => import("./pages/AdminManageArtes"));
+const AdminCommunityReview = React.lazy(() => import("./pages/AdminCommunityReview"));
+const AdminArtesReview = React.lazy(() => import("./pages/AdminArtesReview"));
+const AdminManagePremium = React.lazy(() => import("./pages/AdminManagePremium"));
+const AdminPremiumDashboard = React.lazy(() => import("./pages/AdminPremiumDashboard"));
+const AdminPartners = React.lazy(() => import("./pages/AdminPartners"));
+const AdminPartnersArtes = React.lazy(() => import("./pages/AdminPartnersArtes"));
+const AdminManageAdmins = React.lazy(() => import("./pages/AdminManageAdmins"));
+const AdminWebhookLogs = React.lazy(() => import("./pages/AdminWebhookLogs"));
+const AdminPushNotifications = React.lazy(() => import("./pages/AdminPushNotifications"));
+const AdminAbandonedCheckouts = React.lazy(() => import("./pages/AdminAbandonedCheckouts"));
+const AdminLeads = React.lazy(() => import("./pages/AdminLeads"));
+const AdminManageBanners = React.lazy(() => import("./pages/AdminManageBanners"));
+const AdminManagePacks = React.lazy(() => import("./pages/AdminManagePacks"));
+const AdminManagePromotions = React.lazy(() => import("./pages/AdminManagePromotions"));
+const AdminManageBlacklist = React.lazy(() => import("./pages/AdminManageBlacklist"));
+const AdminInstallStats = React.lazy(() => import("./pages/AdminInstallStats"));
+
+// Platform-specific admin pages
+const ArtesEventosDashboard = React.lazy(() => import("./pages/admin/ArtesEventosDashboard"));
+const ArtesEventosFerramentas = React.lazy(() => import("./pages/admin/ArtesEventosFerramentas"));
+const ArtesEventosMarketing = React.lazy(() => import("./pages/admin/ArtesEventosMarketing"));
+const ArtesMusicosDashboard = React.lazy(() => import("./pages/admin/ArtesMusicosDashboard"));
+const ArtesMusicosFerramentas = React.lazy(() => import("./pages/admin/ArtesMusicosFerramentas"));
+const ArtesMusicosMarketing = React.lazy(() => import("./pages/admin/ArtesMusicosMarketing"));
+const PromptsDashboard = React.lazy(() => import("./pages/admin/PromptsDashboard"));
+const PromptsFerramentas = React.lazy(() => import("./pages/admin/PromptsFerramentas"));
+const PromptsMarketing = React.lazy(() => import("./pages/admin/PromptsMarketing"));
+const PromptsCustosIA = React.lazy(() => import("./pages/admin/PromptsCustosIA"));
+const PromptsMotoresIA = React.lazy(() => import("./pages/admin/PromptsMotoresIA"));
+const PromptsRentabilidade = React.lazy(() => import("./pages/admin/PromptsRentabilidade"));
+const PromptsTopIndicadores = React.lazy(() => import("./pages/admin/PromptsTopIndicadores"));
 
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center">
@@ -44,6 +82,51 @@ const AppContent = () => {
           <Route path="/olvide-contrasena" element={<ForgotPassword />} />
           <Route path="/restablecer-contrasena" element={<ResetPassword />} />
           <Route path="/configuracion" element={<ProfileSettings />} />
+
+          {/* Admin routes */}
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/admin-hub" element={<AdminHub />} />
+          <Route path="/admin-dashboard" element={<Navigate to="/admin-hub" replace />} />
+          <Route path="/admin-upload" element={<AdminUpload />} />
+          <Route path="/admin-manage-images" element={<AdminManageImages />} />
+          <Route path="/admin-manage-artes" element={<AdminManageArtes />} />
+          <Route path="/admin-community-review" element={<AdminCommunityReview />} />
+          <Route path="/admin-artes-review" element={<AdminArtesReview />} />
+          <Route path="/admin-manage-premium" element={<AdminManagePremium />} />
+          <Route path="/admin-premium-dashboard" element={<AdminPremiumDashboard />} />
+          <Route path="/admin-partners" element={<AdminPartners />} />
+          <Route path="/admin-parceiros-artes" element={<AdminPartnersArtes />} />
+          <Route path="/admin-manage-admins" element={<AdminManageAdmins />} />
+          <Route path="/admin-webhook-logs" element={<AdminWebhookLogs />} />
+          <Route path="/admin-push-notifications" element={<AdminPushNotifications />} />
+          <Route path="/admin-abandoned-checkouts" element={<AdminAbandonedCheckouts />} />
+          <Route path="/admin-leads" element={<AdminLeads />} />
+          <Route path="/admin-manage-banners" element={<AdminManageBanners />} />
+          <Route path="/admin-manage-packs" element={<AdminManagePacks />} />
+          <Route path="/admin-manage-promotions" element={<AdminManagePromotions />} />
+          <Route path="/admin-blacklist" element={<AdminManageBlacklist />} />
+          <Route path="/admin-install-stats" element={<AdminInstallStats />} />
+
+          {/* Platform-specific admin routes */}
+          <Route path="/admin-artes-eventos" element={<ArtesEventosFerramentas />} />
+          <Route path="/admin-artes-eventos/ferramentas" element={<Navigate to="/admin-artes-eventos" replace />} />
+          <Route path="/admin-artes-eventos/dashboard" element={<ArtesEventosDashboard />} />
+          <Route path="/admin-artes-eventos/marketing" element={<ArtesEventosMarketing />} />
+
+          <Route path="/admin-artes-musicos" element={<ArtesMusicosFerramentas />} />
+          <Route path="/admin-artes-musicos/ferramentas" element={<Navigate to="/admin-artes-musicos" replace />} />
+          <Route path="/admin-artes-musicos/dashboard" element={<ArtesMusicosDashboard />} />
+          <Route path="/admin-artes-musicos/marketing" element={<ArtesMusicosMarketing />} />
+
+          <Route path="/admin-prompts" element={<PromptsFerramentas />} />
+          <Route path="/admin-prompts/ferramentas" element={<Navigate to="/admin-prompts" replace />} />
+          <Route path="/admin-prompts/dashboard" element={<PromptsDashboard />} />
+          <Route path="/admin-prompts/marketing" element={<PromptsMarketing />} />
+          <Route path="/admin-prompts/custos-ia" element={<PromptsCustosIA />} />
+          <Route path="/admin-prompts/motores-ia" element={<PromptsMotoresIA />} />
+          <Route path="/admin-prompts/rentabilidade" element={<PromptsRentabilidade />} />
+          <Route path="/admin-prompts/top-indicadores" element={<PromptsTopIndicadores />} />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

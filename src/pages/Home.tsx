@@ -1,16 +1,18 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthFlow } from "@/hooks/useAuthFlow";
 import LoginPanel from "@/components/auth/LoginPanel";
 import HeroPanel from "@/components/auth/HeroPanel";
 import RegisterModal from "@/components/auth/RegisterModal";
+import AdminLoginModal from "@/components/admin/AdminLoginModal";
+import { Shield } from "lucide-react";
 
 const Home = () => {
   const navigate = useNavigate();
   const auth = useAuthFlow();
+  const [showAdminModal, setShowAdminModal] = useState(false);
 
-  // If already logged in, redirect
   useEffect(() => {
     const checkLogin = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -23,6 +25,15 @@ const Home = () => {
 
   return (
     <div className="flex min-h-screen bg-[hsl(270,60%,4%)]">
+      {/* Discrete admin button */}
+      <button
+        onClick={() => setShowAdminModal(true)}
+        className="fixed top-3 right-3 z-50 p-2 rounded-lg opacity-40 hover:opacity-100 transition-opacity duration-300"
+        aria-label="Admin access"
+      >
+        <Shield className="h-4 w-4 text-white/50" />
+      </button>
+
       <LoginPanel
         state={auth.state}
         onEmailChange={auth.setEmail}
@@ -43,6 +54,7 @@ const Home = () => {
         onResend={auth.resendConfirmation}
         onClearError={auth.clearError}
       />
+      <AdminLoginModal open={showAdminModal} onClose={() => setShowAdminModal(false)} />
     </div>
   );
 };
