@@ -113,17 +113,39 @@ serve(async (req) => {
   }
 
   try {
-    const { email, user_id } = await req.json();
+    let { email, user_id } = await req.json();
 
-    if (!email || !user_id) {
+    if (!email) {
       return new Response(
-        JSON.stringify({ success: false, error: "email and user_id are required" }),
+        JSON.stringify({ success: false, error: "email is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const normalizedEmail = email.trim().toLowerCase();
     console.log(`[send-confirmation-email] Sending to: ${normalizedEmail}, user: ${user_id}`);
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // If user_id is "resend" or missing, look it up from profiles
+    if (!user_id || user_id === 'resend') {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+      
+      if (!profile) {
+        return new Response(
+          JSON.stringify({ success: false, error: "User not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      user_id = profile.id;
+    }
 
     if (isDisposableEmailServer(normalizedEmail)) {
       console.log(`[send-confirmation-email] Disposable email blocked: ${normalizedEmail}`);
