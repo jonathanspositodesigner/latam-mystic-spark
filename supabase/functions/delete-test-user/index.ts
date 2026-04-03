@@ -18,9 +18,9 @@ serve(async (req) => {
 
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const requestedEmail = String(body?.email || TARGET_EMAIL).trim().toLowerCase();
+    const requestedEmail = String(body?.email || "").trim().toLowerCase();
 
-    if (requestedEmail !== TARGET_EMAIL) {
+    if (!requestedEmail || !ALLOWED_EMAILS.includes(requestedEmail)) {
       return new Response(
         JSON.stringify({ success: false, error: "email_not_allowed" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
