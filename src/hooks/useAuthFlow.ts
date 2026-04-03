@@ -199,7 +199,7 @@ export function useAuthFlow() {
       await supabase.from('profiles').update({ has_logged_in: true }).eq('id', data.user.id);
 
       toast.success('¡Inicio de sesión exitoso!');
-      navigate('/');
+      navigate('/dashboard');
       setState(prev => ({ ...prev, isLoading: false }));
     } catch (error) {
       console.error('[AuthFlow] Login error:', error);
