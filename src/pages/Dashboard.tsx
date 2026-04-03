@@ -111,16 +111,30 @@ const Dashboard = () => {
         <div className="max-w-5xl mx-auto space-y-6">
           <VideoBanner />
 
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Tus Productos</h2>
-            <div className="grid grid-cols-1 gap-4">
-              <UpscalerArcanoCard
-                hasAccess={hasUpscalerAccess}
-                isLoading={premiumArtesLoading}
-                purchaseUrl="https://arcanoapp.voxvisual.com.br/upscalerarcanov3-es"
-              />
+          {hasUpscalerAccess && (
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
+              <div className="grid grid-cols-1 gap-4">
+                <UpscalerArcanoCard
+                  hasAccess={true}
+                  isLoading={premiumArtesLoading}
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {!hasUpscalerAccess && (
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Nuestros Productos</h2>
+              <div className="grid grid-cols-1 gap-4">
+                <UpscalerArcanoCard
+                  hasAccess={false}
+                  isLoading={premiumArtesLoading}
+                  purchaseUrl="https://arcanoapp.voxvisual.com.br/upscalerarcanov3-es"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
