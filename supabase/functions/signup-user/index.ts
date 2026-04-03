@@ -12,8 +12,11 @@ Deno.serve(async (req) => {
 
   try {
     const { email, password, name, phone } = await req.json();
+    const normalizedEmail = email?.trim().toLowerCase();
+    const normalizedName = name?.trim() || null;
+    const normalizedPhone = phone?.trim() || null;
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return new Response(
         JSON.stringify({ success: false, error: "email and password are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -27,9 +30,13 @@ Deno.serve(async (req) => {
 
     // Create user via admin API — this does NOT send any confirmation email
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       password,
       email_confirm: false, // Don't auto-confirm — our custom flow handles this
+      user_metadata: {
+        name: normalizedName,
+        phone: normalizedPhone,
+      },
     });
 
     if (createError) {
@@ -49,15 +56,29 @@ Deno.serve(async (req) => {
 
     const userId = userData.user.id;
 
-    // Update profile with name/phone and mark password as set
-    await supabaseAdmin.from("profiles").update({
-      name: name?.trim() || null,
-      phone: phone?.trim() || null,
-      password_changed: true,
-      email_verified: false,
-    }).eq("id", userId);
+    const { error: profileError } = await supabaseAdmin.from("profiles").upsert(
+      {
+        id: userId,
+        email: normalizedEmail,
+        name: normalizedName,
+        phone: normalizedPhone,
+        password_changed: true,
+        email_verified: false,
+      },
+      { onConflict: "id" }
+    );
 
-    console.log(`[signup-user] User created: ${userId} (${email})`);
+    if (profileError) {
+      console.error("[signup-user] Profile upsert error:", profileError);
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+
+      return new Response(
+        JSON.stringify({ success: false, error: "profile_setup_failed" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[signup-user] User created: ${userId} (${normalizedEmail})`);
 
     return new Response(
       JSON.stringify({ success: true, user_id: userId }),

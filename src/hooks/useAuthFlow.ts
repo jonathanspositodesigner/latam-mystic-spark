@@ -54,8 +54,8 @@ export function useAuthFlow() {
    * B) Exists but no password (webhook) → show set-password
    * C) Not found → open signup modal
    */
-  const checkEmail = useCallback(async () => {
-    const emailToCheck = state.email.trim().toLowerCase();
+  const checkEmail = useCallback(async (emailParam?: string) => {
+    const emailToCheck = (emailParam ?? state.email).trim().toLowerCase();
     if (!emailToCheck) {
       setState(prev => ({ ...prev, error: 'Ingresa tu correo electrónico' }));
       return;
@@ -67,7 +67,7 @@ export function useAuthFlow() {
       return;
     }
 
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    setState(prev => ({ ...prev, email: emailToCheck, isLoading: true, error: null }));
 
     try {
       const { data: profileCheck, error } = await supabase
