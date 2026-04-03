@@ -85,6 +85,7 @@ const AppContent = () => {
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/olvide-contrasena" element={<ForgotPassword />} />
           <Route path="/restablecer-contrasena" element={<ResetPassword />} />
           <Route path="/configuracion" element={<ProfileSettings />} />
