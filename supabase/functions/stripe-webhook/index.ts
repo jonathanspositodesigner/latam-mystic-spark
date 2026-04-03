@@ -175,8 +175,8 @@ serve(async (req) => {
         userId = existingProfile.id;
         console.log(`[stripe-webhook] Existing user found: ${userId}`);
       } else {
-        // 2. Create new user (auto-confirmed, no password yet)
-        const tempPassword = crypto.randomUUID() + "Aa1!";
+        // 2. Create new user (auto-confirmed, temp password = email for auto-login in set-password flow)
+        const tempPassword = customerEmail;
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: customerEmail,
           password: tempPassword,
