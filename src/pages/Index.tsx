@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Star, Zap, ImagePlus, Video, BookOpen, ArrowRight } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import UpscalerArcanoCard from "@/components/dashboard/UpscalerArcanoCard";
 
 const Index = () => {
   const navigate = useNavigate();
