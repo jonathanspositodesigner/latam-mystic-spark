@@ -97,8 +97,6 @@ const AppContent = () => {
           <Route path="/admin-manage-admins" element={<AdminManageAdmins />} />
           <Route path="/admin-webhook-logs" element={<AdminWebhookLogs />} />
           <Route path="/admin-push-notifications" element={<AdminPushNotifications />} />
-          <Route path="/admin-abandoned-checkouts" element={<AdminAbandonedCheckouts />} />
-          <Route path="/admin-leads" element={<AdminLeads />} />
           <Route path="/admin-manage-banners" element={<AdminManageBanners />} />
           <Route path="/admin-manage-packs" element={<AdminManagePacks />} />
           <Route path="/admin-manage-promotions" element={<AdminManagePromotions />} />
