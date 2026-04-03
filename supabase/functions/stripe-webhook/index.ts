@@ -244,7 +244,7 @@ serve(async (req) => {
 
       // 5. Send welcome email
       try {
-        const APP_URL = "https://id-preview--ac4446a0-f9d0-4d56-89ef-84dbe9ac5211.lovable.app";
+        const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
         const htmlContent = buildWelcomeEmailHtml(APP_URL);
         const sendPulseToken = await getSendPulseToken();
         const htmlBase64 = btoa(unescape(encodeURIComponent(htmlContent)));
