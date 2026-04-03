@@ -104,8 +104,11 @@ const AppContent = () => {
           <Route path="/admin-manage-promotions" element={<AdminManagePromotions />} />
           <Route path="/admin-blacklist" element={<AdminManageBlacklist />} />
           <Route path="/admin-install-stats" element={<AdminInstallStats />} />
-
-          {/* Platform-specific admin routes */}
+          <Route path="/admin-upload-artes" element={<AdminUploadArtes />} />
+          <Route path="/admin-categories-artes" element={<AdminCategoriesArtes />} />
+          <Route path="/admin-pack-purchases" element={<AdminPackPurchases />} />
+          <Route path="/admin-abandoned-checkouts" element={<AdminAbandonedCheckouts />} />
+          <Route path="/admin-leads" element={<AdminLeads />} />
           <Route path="/admin-artes-eventos" element={<ArtesEventosFerramentas />} />
           <Route path="/admin-artes-eventos/ferramentas" element={<Navigate to="/admin-artes-eventos" replace />} />
           <Route path="/admin-artes-eventos/dashboard" element={<ArtesEventosDashboard />} />
