@@ -29,7 +29,7 @@ const VideoBanner = () => {
 
   return (
     <div className="relative w-full rounded-2xl overflow-hidden border border-purple-500/20">
-      <div className="relative aspect-[21/9] md:aspect-[3/1] overflow-hidden bg-black">
+      <div className="relative aspect-[21/9] md:aspect-[3/2] overflow-hidden bg-black">
         <video
           ref={videoRef}
           src={VIDEO_SRC}
