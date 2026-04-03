@@ -133,11 +133,11 @@ const Home = () => {
         <DialogContent className="max-w-md border-0 bg-[hsl(270,60%,6%)] p-8 rounded-2xl animate-scale-fade-in">
           {confirmationDialog && (
             <div className="text-center space-y-4">
-              <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${confirmationDialog.tone === 'success' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+              <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${confirmationDialog.tone === 'success' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
                 {confirmationDialog.tone === 'success' ? (
-                  <CheckCircle2 className="h-8 w-8 text-green-400" />
+                  <CheckCircle2 className="h-8 w-8 text-primary" />
                 ) : (
-                  <AlertCircle className="h-8 w-8 text-red-400" />
+                  <AlertCircle className="h-8 w-8 text-destructive" />
                 )}
               </div>
 
@@ -148,7 +148,7 @@ const Home = () => {
 
               <Button
                 onClick={() => void handleConfirmationAction()}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-medium"
+                className="w-full h-12 rounded-xl"
               >
                 {confirmationDialog.actionLabel}
               </Button>
