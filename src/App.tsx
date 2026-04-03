@@ -30,8 +30,6 @@ const AdminPartnersArtes = React.lazy(() => import("./pages/AdminPartnersArtes")
 const AdminManageAdmins = React.lazy(() => import("./pages/AdminManageAdmins"));
 const AdminWebhookLogs = React.lazy(() => import("./pages/AdminWebhookLogs"));
 const AdminPushNotifications = React.lazy(() => import("./pages/AdminPushNotifications"));
-const AdminAbandonedCheckouts = React.lazy(() => import("./pages/AdminAbandonedCheckouts"));
-const AdminLeads = React.lazy(() => import("./pages/AdminLeads"));
 const AdminManageBanners = React.lazy(() => import("./pages/AdminManageBanners"));
 const AdminManagePacks = React.lazy(() => import("./pages/AdminManagePacks"));
 const AdminManagePromotions = React.lazy(() => import("./pages/AdminManagePromotions"));
