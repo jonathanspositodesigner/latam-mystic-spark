@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, ReactNode } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Play, ExternalLink, Lock, AlertTriangle, ChevronRight, CheckCircle2, Circle, Trophy, ArrowLeft } from "lucide-react";
+import { Play, ExternalLink, Lock, AlertTriangle, ChevronRight, CheckCircle2, Circle, Trophy, ArrowLeft, MessageCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -249,7 +249,15 @@ const ToolVersionLessons = () => {
               <h1 className="text-sm md:text-base font-bold text-foreground absolute left-1/2 -translate-x-1/2">
                 {toolName || "Upscaler Arcano"}
               </h1>
-              <div />
+              <a
+                href="https://api.whatsapp.com/send/?phone=5533988819891&text&type=phone_number&app_absent=0"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                title="Soporte"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </a>
             </div>
           </header>
           {children}
