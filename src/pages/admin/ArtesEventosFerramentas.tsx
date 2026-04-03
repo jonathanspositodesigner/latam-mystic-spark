@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import {
-  Upload, CheckCircle, Settings, Users, Package,
-  Image, Gift, FileSearch, Tag, Handshake, ShoppingCart
-} from "lucide-react";
+import { Upload, CheckCircle, Settings, Users, Package, Image, Gift, FileSearch, Tag, Handshake, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayoutPlatform from "@/components/admin/AdminLayoutPlatform";
 
@@ -61,13 +58,5 @@ const ArtesEventosFerramentas = () => {
     </AdminLayoutPlatform>
   );
 };
-
-export default ArtesEventosFerramentas;
-const ArtesEventosFerramentas = () => (
-  <AdminLayoutPlatform platform="artes-eventos">
-    <h1 className="text-3xl font-bold text-foreground mb-6">Ferramentas - Artes Eventos</h1>
-    <Card className="p-12 text-center"><p className="text-muted-foreground">🚧 Em breve</p></Card>
-  </AdminLayoutPlatform>
-);
 
 export default ArtesEventosFerramentas;
