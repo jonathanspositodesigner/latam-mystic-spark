@@ -11,6 +11,7 @@ import { CreditsProvider } from "./contexts/CreditsContext";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const ProfileSettings = React.lazy(() => import("./pages/ProfileSettings"));
@@ -84,6 +85,7 @@ const AppContent = () => {
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/olvide-contrasena" element={<ForgotPassword />} />
           <Route path="/restablecer-contrasena" element={<ResetPassword />} />
           <Route path="/configuracion" element={<ProfileSettings />} />
