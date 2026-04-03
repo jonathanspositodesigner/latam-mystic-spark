@@ -310,13 +310,17 @@ export function useAuthFlow() {
       }
 
       if (authData.user) {
-        await supabase.from('profiles').upsert({
-          id: authData.user.id,
-          email: normalizedEmail,
+        // Update profile - use update instead of upsert since trigger creates the row
+        // The handle_new_user trigger creates the profile, so we just update it
+        const { error: profileError } = await supabase.from('profiles').update({
           name: name?.trim() || null,
           password_changed: true,
           email_verified: false,
-        }, { onConflict: 'id' });
+        }).eq('id', authData.user.id);
+        
+        if (profileError) {
+          console.warn('[AuthFlow] Profile update after signup failed (will be fixed on confirmation):', profileError.message);
+        }
 
         // Register device fingerprint
         try {
