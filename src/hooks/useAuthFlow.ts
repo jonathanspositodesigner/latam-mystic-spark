@@ -292,69 +292,55 @@ export function useAuthFlow() {
         console.error('[AuthFlow] Fingerprint check error:', fpErr);
       }
 
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        },
+      // Use custom signup edge function (does NOT send Supabase's built-in email)
+      const { data: signupData, error: signupError } = await supabase.functions.invoke('signup-user', {
+        body: { email: normalizedEmail, password, name }
       });
 
-      if (error) {
-        if (error.message.includes("already registered")) {
+      if (signupError || (signupData && !signupData.success)) {
+        const errMsg = signupData?.error || signupError?.message || 'Error al crear cuenta';
+        if (errMsg === 'already_registered') {
           setState(prev => ({ ...prev, isLoading: false, error: 'Este correo ya está registrado' }));
         } else {
-          setState(prev => ({ ...prev, isLoading: false, error: `Error al crear cuenta: ${error.message}` }));
+          setState(prev => ({ ...prev, isLoading: false, error: `Error al crear cuenta: ${errMsg}` }));
         }
         return;
       }
 
-      if (authData.user) {
-        // Update profile - use update instead of upsert since trigger creates the row
-        // The handle_new_user trigger creates the profile, so we just update it
-        const { error: profileError } = await supabase.from('profiles').update({
-          name: name?.trim() || null,
-          password_changed: true,
-          email_verified: false,
-        }).eq('id', authData.user.id);
-        
-        if (profileError) {
-          console.warn('[AuthFlow] Profile update after signup failed (will be fixed on confirmation):', profileError.message);
-        }
+      const userId = signupData.user_id;
 
-        // Register device fingerprint
-        try {
-          await supabase.rpc('register_device_signup', {
-            p_fingerprint: deviceFingerprint,
-            p_user_id: authData.user.id,
-          });
-          console.log('[AuthFlow] Device fingerprint registered');
-        } catch (fpErr) {
-          console.error('[AuthFlow] Failed to register device fingerprint:', fpErr);
-        }
-
-        // Send confirmation email via SendPulse
-        try {
-          const { data: confirmData, error: confirmError } = await supabase.functions.invoke('send-confirmation-email', {
-            body: { email: normalizedEmail, user_id: authData.user.id }
-          });
-
-          if (confirmError || (confirmData && !confirmData.success)) {
-            console.error('[AuthFlow] Error sending confirmation email:', confirmError || confirmData?.error);
-          } else {
-            console.log('[AuthFlow] Confirmation email sent successfully');
-          }
-        } catch (emailErr) {
-          console.error('[AuthFlow] Confirmation email exception:', emailErr);
-        }
-
-        setState(prev => ({
-          ...prev,
-          step: 'waiting-confirmation',
-          verifiedEmail: normalizedEmail,
-          isLoading: false,
-        }));
+      // Register device fingerprint
+      try {
+        await supabase.rpc('register_device_signup', {
+          p_fingerprint: deviceFingerprint,
+          p_user_id: userId,
+        });
+        console.log('[AuthFlow] Device fingerprint registered');
+      } catch (fpErr) {
+        console.error('[AuthFlow] Failed to register device fingerprint:', fpErr);
       }
+
+      // Send confirmation email via SendPulse (only email sent)
+      try {
+        const { data: confirmData, error: confirmError } = await supabase.functions.invoke('send-confirmation-email', {
+          body: { email: normalizedEmail, user_id: userId }
+        });
+
+        if (confirmError || (confirmData && !confirmData.success)) {
+          console.error('[AuthFlow] Error sending confirmation email:', confirmError || confirmData?.error);
+        } else {
+          console.log('[AuthFlow] Confirmation email sent successfully');
+        }
+      } catch (emailErr) {
+        console.error('[AuthFlow] Confirmation email exception:', emailErr);
+      }
+
+      setState(prev => ({
+        ...prev,
+        step: 'waiting-confirmation',
+        verifiedEmail: normalizedEmail,
+        isLoading: false,
+      }));
     } catch (error) {
       console.error('[AuthFlow] Signup error:', error);
       setState(prev => ({ ...prev, isLoading: false, error: 'Error al crear la cuenta' }));
@@ -365,10 +351,15 @@ export function useAuthFlow() {
     const email = state.verifiedEmail || state.email;
     if (!email) return;
     try {
-      // Use our custom SendPulse email instead of Supabase default
-      // We need the user_id, but we might not have it in waiting-confirmation
-      // Fallback to Supabase's built-in resend
-      await supabase.auth.resend({ type: 'signup', email });
+      // First get user_id from profile
+      const { data: profileCheck } = await supabase
+        .rpc('check_profile_exists', { check_email: email }) as { data: any[] | null; error: any };
+      
+      // Re-send via our custom SendPulse function
+      // We need user_id — get it from the profiles via a lookup edge function
+      await supabase.functions.invoke('send-confirmation-email', {
+        body: { email, user_id: 'resend' }
+      });
       toast.success('¡Enlace reenviado! Revisa tu correo.');
     } catch {
       toast.error('Error al reenviar el enlace');
