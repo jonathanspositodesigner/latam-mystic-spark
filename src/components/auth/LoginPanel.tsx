@@ -189,7 +189,7 @@ const LoginPanel = ({
           ¿Olvidaste tu contraseña?
         </a>
         <span>·</span>
-        <a href="mailto:soporte@arcano.app" className="hover:text-white/40 transition-colors">
+        <a href="https://api.whatsapp.com/send/?phone=5533988819891&text&type=phone_number&app_absent=0" target="_blank" rel="noopener noreferrer" className="hover:text-white/40 transition-colors">
           Soporte
         </a>
       </div>
