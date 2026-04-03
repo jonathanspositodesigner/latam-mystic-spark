@@ -5,7 +5,7 @@ import { usePremiumArtesStatus } from "@/hooks/usePremiumArtesStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Lock, Settings, LogOut, Coins, Star } from "lucide-react";
+import { User, Lock, Settings, LogOut, Coins, Star, MessageCircle } from "lucide-react";
 import { useCredits } from "@/contexts/CreditsContext";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -54,6 +54,16 @@ const Dashboard = () => {
           ArcanoApp
         </h1>
         <div className="flex items-center gap-3">
+          <a
+            href="https://api.whatsapp.com/send/?phone=5533988819891&text&type=phone_number&app_absent=0"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Soporte"
+          >
+            <Button variant="ghost" size="icon" className="text-purple-300 hover:text-white hover:bg-purple-500/20 rounded-full">
+              <MessageCircle className="w-5 h-5" />
+            </Button>
+          </a>
           {isPremium && (
             <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs">
               <Star className="h-3 w-3 mr-1" fill="currentColor" />
