@@ -55,9 +55,9 @@ function buildWelcomeEmailHtml(appUrl: string): string {
         <tr><td style="padding-bottom:8px;">
           <p style="color:#c4b5fd;font-size:14px;line-height:1.6;margin:0;text-align:center;">
             <strong style="color:#ffffff;">Paso 1:</strong> Haz clic en el botón de abajo<br/>
-            <strong style="color:#ffffff;">Paso 2:</strong> Usa la opción "¿Olvidaste tu contraseña?"<br/>
-            <strong style="color:#ffffff;">Paso 3:</strong> Ingresa tu correo de compra y crea tu contraseña<br/>
-            <strong style="color:#ffffff;">Paso 4:</strong> ¡Inicia sesión y disfruta!
+            <strong style="color:#ffffff;">Paso 2:</strong> Ingresa tu correo de compra<br/>
+            <strong style="color:#ffffff;">Paso 3:</strong> Crea tu contraseña personal<br/>
+            <strong style="color:#ffffff;">Paso 4:</strong> ¡Listo! Disfruta del Upscaler Arcano V3
           </p>
         </td></tr>
         <tr><td align="center" style="padding:24px 0;">
@@ -175,8 +175,8 @@ serve(async (req) => {
         userId = existingProfile.id;
         console.log(`[stripe-webhook] Existing user found: ${userId}`);
       } else {
-        // 2. Create new user (auto-confirmed, no password yet)
-        const tempPassword = crypto.randomUUID() + "Aa1!";
+        // 2. Create new user (auto-confirmed, temp password = email for auto-login in set-password flow)
+        const tempPassword = customerEmail;
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: customerEmail,
           password: tempPassword,

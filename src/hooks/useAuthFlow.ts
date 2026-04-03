@@ -235,7 +235,7 @@ export function useAuthFlow() {
       }
 
       toast.success('¡Contraseña creada! Bienvenido.');
-      navigate('/');
+      navigate('/dashboard');
       setState(prev => ({ ...prev, isLoading: false }));
     } catch (error: any) {
       console.error('[AuthFlow] Set password error:', error);
