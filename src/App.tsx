@@ -117,6 +117,7 @@ const AppContent = () => {
           <Route path="/admin-pack-purchases" element={<AdminPackPurchases />} />
           <Route path="/admin-abandoned-checkouts" element={<AdminAbandonedCheckouts />} />
           <Route path="/admin-leads" element={<AdminLeads />} />
+          <Route path="/admin-upscaler-vitalicio" element={<AdminUpscalerVitalicio />} />
           <Route path="/admin-artes-eventos" element={<ArtesEventosFerramentas />} />
           <Route path="/admin-artes-eventos/ferramentas" element={<Navigate to="/admin-artes-eventos" replace />} />
           <Route path="/admin-artes-eventos/dashboard" element={<ArtesEventosDashboard />} />
