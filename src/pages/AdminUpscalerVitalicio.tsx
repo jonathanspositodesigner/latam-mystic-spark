@@ -25,6 +25,86 @@ interface Pack {
   tutorial_lessons: any[] | null;
 }
 
+const createVersionTemplate = ({
+  id,
+  name,
+  slug,
+  displayOrder,
+  badges = [],
+}: {
+  id: string;
+  name: string;
+  slug: string;
+  displayOrder: number;
+  badges?: ToolVersion["badges"];
+}): ToolVersion => ({
+  id,
+  name,
+  slug,
+  cover_url: null,
+  display_order: displayOrder,
+  is_visible: true,
+  unlock_days: 0,
+  badges: badges.map((badge) => ({ ...badge })),
+  lessons: [],
+  webhook: {
+    greenn_product_id_6_meses: null,
+    greenn_product_id_1_ano: null,
+    greenn_product_id_order_bump: null,
+    greenn_product_id_vitalicio: null,
+  },
+  sales: {
+    price_6_meses: null,
+    price_1_ano: null,
+    price_vitalicio: null,
+    enabled_6_meses: true,
+    enabled_1_ano: true,
+    enabled_vitalicio: true,
+    checkout_link_6_meses: null,
+    checkout_link_1_ano: null,
+    checkout_link_vitalicio: null,
+    checkout_link_renovacao_6_meses: null,
+    checkout_link_renovacao_1_ano: null,
+    checkout_link_renovacao_vitalicio: null,
+    checkout_link_membro_6_meses: null,
+    checkout_link_membro_1_ano: null,
+    checkout_link_membro_vitalicio: null,
+  },
+});
+
+const cloneVersion = (version: ToolVersion): ToolVersion => ({
+  ...version,
+  badges: version.badges.map((badge) => ({ ...badge })),
+  lessons: version.lessons.map((lesson) => ({
+    ...lesson,
+    buttons: (lesson.buttons ?? []).map((button) => ({ ...button })),
+  })),
+  webhook: { ...version.webhook },
+  sales: { ...version.sales },
+});
+
+const DEFAULT_TOOL_VERSIONS: ToolVersion[] = [
+  createVersionTemplate({
+    id: "v2",
+    name: "V2.5",
+    slug: "v2",
+    displayOrder: 0,
+    badges: [
+      { text: "NUEVO", icon: "sparkles", color: "yellow" },
+      { text: "MÁS RÁPIDO", icon: "zap", color: "blue" },
+      { text: "MAYOR FIDELIDAD", icon: "target", color: "purple" },
+    ],
+  }),
+  createVersionTemplate({
+    id: "v1",
+    name: "V1.5",
+    slug: "v1",
+    displayOrder: 1,
+  }),
+];
+
+const getDefaultToolVersions = () => DEFAULT_TOOL_VERSIONS.map(cloneVersion);
+
 const AdminUpscalerVitalicio = () => {
   const navigate = useNavigate();
   const [pack, setPack] = useState<Pack | null>(null);
@@ -59,8 +139,7 @@ const AdminUpscalerVitalicio = () => {
 
   const fetchPack = async () => {
     setLoading(true);
-    // Try to find existing pack by slug
-    const { data, error } = await (supabase as any)
+    const { data } = await (supabase as any)
       .from("artes_packs")
       .select("id, name, slug, cover_url, is_visible, tool_versions, tutorial_lessons")
       .eq("slug", PACK_SLUG)
@@ -72,64 +151,36 @@ const AdminUpscalerVitalicio = () => {
       setPackSlug(data.slug);
       setCoverPreview(data.cover_url);
       const versions = data.tool_versions as ToolVersion[] | null;
-      if (versions && versions.length > 0) {
-        setToolVersions(versions);
-      } else {
-        setToolVersions([createEmptyVersion(1)]);
-      }
+      setToolVersions(versions?.length ? versions.map(cloneVersion) : getDefaultToolVersions());
+    } else {
+      setPackName("Upscaler Arcano Vitalício");
+      setPackSlug(PACK_SLUG);
+      setCoverPreview(null);
+      setToolVersions(getDefaultToolVersions());
     }
+
     setLoading(false);
   };
 
-  const createEmptyVersion = (versionNumber: number): ToolVersion => ({
+  const createEmptyVersion = (versionNumber: number): ToolVersion => createVersionTemplate({
     id: `v${versionNumber}`,
     name: `V${versionNumber}`,
     slug: `v${versionNumber}`,
-    cover_url: null,
-    display_order: versionNumber - 1,
-    is_visible: true,
-    unlock_days: 0,
-    badges: [],
-    lessons: [],
-    webhook: {
-      greenn_product_id_6_meses: null,
-      greenn_product_id_1_ano: null,
-      greenn_product_id_order_bump: null,
-      greenn_product_id_vitalicio: null,
-    },
-    sales: {
-      price_6_meses: null,
-      price_1_ano: null,
-      price_vitalicio: null,
-      enabled_6_meses: true,
-      enabled_1_ano: true,
-      enabled_vitalicio: true,
-      checkout_link_6_meses: null,
-      checkout_link_1_ano: null,
-      checkout_link_vitalicio: null,
-      checkout_link_renovacao_6_meses: null,
-      checkout_link_renovacao_1_ano: null,
-      checkout_link_renovacao_vitalicio: null,
-      checkout_link_membro_6_meses: null,
-      checkout_link_membro_1_ano: null,
-      checkout_link_membro_vitalicio: null,
-    }
+    displayOrder: versionNumber - 1,
   });
 
   const handleCreatePack = async () => {
     setSaving(true);
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("artes_packs")
         .insert({
           name: "Upscaler Arcano Vitalício",
           slug: PACK_SLUG,
           type: "ferramenta",
           is_visible: true,
-          tool_versions: [createEmptyVersion(1)] as any
-        })
-        .select()
-        .single();
+          tool_versions: getDefaultToolVersions() as any,
+        });
 
       if (error) throw error;
       toast.success("Pack criado com sucesso!");
