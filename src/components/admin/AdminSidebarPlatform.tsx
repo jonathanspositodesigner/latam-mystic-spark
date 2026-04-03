@@ -35,18 +35,6 @@ const AdminSidebarPlatform = ({ platform, onLogout }: AdminSidebarPlatformProps)
     { label: "FERRAMENTAS", path: config.basePath, icon: Wrench, description: "Painel principal" },
     { label: "MARKETING", path: `${config.basePath}/marketing`, icon: Megaphone, description: "Campanhas e divulgação" },
     { label: "DASHBOARD", path: `${config.basePath}/dashboard`, icon: BarChart3, description: "Métricas e analytics" },
-    { label: "UPLOAD ARTES", path: "/admin-upload-artes", icon: Upload, description: "Enviar novas artes" },
-    { label: "GERENCIAR ARTES", path: "/admin-manage-artes", icon: Wrench, description: "Editar artes publicadas" },
-    { label: "BANNERS", path: "/admin-manage-banners", icon: Image, description: "Banners promocionais" },
-    { label: "PACKS", path: "/admin-manage-packs", icon: Package, description: "Gerenciar packs" },
-    { label: "CATEGORIAS", path: "/admin-categories-artes", icon: Tag, description: "Categorias de artes" },
-    { label: "CLIENTES PREMIUM", path: "/admin-manage-premium", icon: Crown, description: "Gerenciar premium" },
-    { label: "PARCEIROS", path: "/admin-parceiros-artes", icon: Users, description: "Gerenciar parceiros" },
-    { label: "REMARKETING", path: "/admin-abandoned-checkouts", icon: ShoppingCart, description: "Checkouts abandonados" },
-    { label: "WEBHOOK LOGS", path: "/admin-webhook-logs", icon: FileSearch, description: "Logs de webhooks" },
-    { label: "PROMOÇÕES", path: "/admin-manage-promotions", icon: Gift, description: "Promoções e combos" },
-    { label: "BLACKLIST", path: "/admin-blacklist", icon: Ban, description: "Emails bloqueados" },
-    { label: "LEADS", path: "/admin-leads", icon: UserPlus, description: "Captura de leads" },
   ];
 
   const promptsItems = [
