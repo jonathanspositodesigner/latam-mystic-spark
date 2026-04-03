@@ -40,9 +40,6 @@ const AdminInstallStats = React.lazy(() => import("./pages/AdminInstallStats"));
 const ArtesEventosDashboard = React.lazy(() => import("./pages/admin/ArtesEventosDashboard"));
 const ArtesEventosFerramentas = React.lazy(() => import("./pages/admin/ArtesEventosFerramentas"));
 const ArtesEventosMarketing = React.lazy(() => import("./pages/admin/ArtesEventosMarketing"));
-const ArtesMusicosDashboard = React.lazy(() => import("./pages/admin/ArtesMusicosDashboard"));
-const ArtesMusicosFerramentas = React.lazy(() => import("./pages/admin/ArtesMusicosFerramentas"));
-const ArtesMusicosMarketing = React.lazy(() => import("./pages/admin/ArtesMusicosMarketing"));
 const PromptsDashboard = React.lazy(() => import("./pages/admin/PromptsDashboard"));
 const PromptsFerramentas = React.lazy(() => import("./pages/admin/PromptsFerramentas"));
 const PromptsMarketing = React.lazy(() => import("./pages/admin/PromptsMarketing"));
@@ -109,10 +106,6 @@ const AppContent = () => {
           <Route path="/admin-artes-eventos/dashboard" element={<ArtesEventosDashboard />} />
           <Route path="/admin-artes-eventos/marketing" element={<ArtesEventosMarketing />} />
 
-          <Route path="/admin-artes-musicos" element={<ArtesMusicosFerramentas />} />
-          <Route path="/admin-artes-musicos/ferramentas" element={<Navigate to="/admin-artes-musicos" replace />} />
-          <Route path="/admin-artes-musicos/dashboard" element={<ArtesMusicosDashboard />} />
-          <Route path="/admin-artes-musicos/marketing" element={<ArtesMusicosMarketing />} />
 
           <Route path="/admin-prompts" element={<PromptsFerramentas />} />
           <Route path="/admin-prompts/ferramentas" element={<Navigate to="/admin-prompts" replace />} />
