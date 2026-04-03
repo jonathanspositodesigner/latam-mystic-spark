@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Wrench, BarChart3, Megaphone, LogOut, Home, ArrowLeft, Sparkles, Music, FileText, Cpu, TrendingUp, Users } from "lucide-react";
+import { Wrench, BarChart3, Megaphone, LogOut, Home, ArrowLeft, Sparkles, FileText, Cpu, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
