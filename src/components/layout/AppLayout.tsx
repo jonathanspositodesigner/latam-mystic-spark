@@ -1,7 +1,6 @@
 import { useState, useEffect, ReactNode } from "react";
 import { usePremiumStatus } from "@/hooks/usePremiumStatus";
 import { supabase } from "@/integrations/supabase/client";
-import AppSidebar from "./AppSidebar";
 import AppTopBar from "./AppTopBar";
 
 interface AppLayoutProps {
@@ -11,7 +10,6 @@ interface AppLayoutProps {
 
 const AppLayout = ({ children, fullScreen = false }: AppLayoutProps) => {
   const { user, isPremium, planType, logout } = usePremiumStatus();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name?: string; phone?: string } | null>(null);
 
   useEffect(() => {
@@ -35,19 +33,10 @@ const AppLayout = ({ children, fullScreen = false }: AppLayoutProps) => {
         planType={planType}
         userProfile={userProfile}
         onLogout={logout}
-        onToggleSidebar={() => setSidebarOpen(prev => !prev)}
       />
-      <div className="flex">
-        <AppSidebar
-          user={user}
-          isPremium={isPremium}
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-        />
-        <main className={`flex-1 ${fullScreen ? 'lg:h-[calc(100vh-57px)] lg:overflow-hidden' : ''}`}>
-          {children}
-        </main>
-      </div>
+      <main className={`flex-1 ${fullScreen ? 'lg:h-[calc(100vh-57px)] lg:overflow-hidden' : ''}`}>
+        {children}
+      </main>
     </div>
   );
 };
