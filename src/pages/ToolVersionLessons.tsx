@@ -234,7 +234,7 @@ const ToolVersionLessons = () => {
   }
 
   const currentLesson = lessons[selectedLesson];
-  const isStandalone = toolSlug === "upscaller-arcano";
+  const isStandalone = toolSlug === "upscaller-arcano" || toolSlug === "upscaller-arcano-vitalicio";
 
   const Wrapper = ({ children }: { children: ReactNode }) => {
     if (isStandalone) {
