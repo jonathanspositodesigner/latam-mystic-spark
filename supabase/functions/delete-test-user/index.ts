@@ -6,7 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TARGET_EMAIL = "jonathandesigner1993@gmail.com";
+const ALLOWED_EMAILS = [
+  "jonathandesigner1993@gmail.com",
+  "jonathan.lifecazy@gmail.com",
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -15,9 +18,9 @@ serve(async (req) => {
 
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const requestedEmail = String(body?.email || TARGET_EMAIL).trim().toLowerCase();
+    const requestedEmail = String(body?.email || "").trim().toLowerCase();
 
-    if (requestedEmail !== TARGET_EMAIL) {
+    if (!requestedEmail || !ALLOWED_EMAILS.includes(requestedEmail)) {
       return new Response(
         JSON.stringify({ success: false, error: "email_not_allowed" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
