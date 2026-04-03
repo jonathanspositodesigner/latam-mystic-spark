@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const APP_URL = "https://id-preview--ac4446a0-f9d0-4d56-89ef-84dbe9ac5211.lovable.app";
+const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
 
 type ConfirmationToken = {
   id: string;

@@ -149,7 +149,7 @@ serve(async (req) => {
     const tokenHash = actionUrl.searchParams.get("token") || actionUrl.searchParams.get("token_hash");
     const type = actionUrl.searchParams.get("type") || "recovery";
 
-    const APP_URL = "https://id-preview--ac4446a0-f9d0-4d56-89ef-84dbe9ac5211.lovable.app";
+    const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
     const baseRedirectUrl = redirect_url || `${APP_URL}/restablecer-contrasena`;
     const safeUrl = new URL(baseRedirectUrl);
     if (tokenHash) {
