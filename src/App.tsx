@@ -35,6 +35,11 @@ const AdminManagePacks = React.lazy(() => import("./pages/AdminManagePacks"));
 const AdminManagePromotions = React.lazy(() => import("./pages/AdminManagePromotions"));
 const AdminManageBlacklist = React.lazy(() => import("./pages/AdminManageBlacklist"));
 const AdminInstallStats = React.lazy(() => import("./pages/AdminInstallStats"));
+const AdminUploadArtes = React.lazy(() => import("./pages/AdminUploadArtes"));
+const AdminCategoriesArtes = React.lazy(() => import("./pages/AdminCategoriesArtes"));
+const AdminPackPurchases = React.lazy(() => import("./pages/AdminPackPurchases"));
+const AdminAbandonedCheckouts = React.lazy(() => import("./pages/AdminAbandonedCheckouts"));
+const AdminLeads = React.lazy(() => import("./pages/AdminLeads"));
 
 // Platform-specific admin pages
 const ArtesEventosDashboard = React.lazy(() => import("./pages/admin/ArtesEventosDashboard"));
