@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePremiumStatus } from "@/hooks/usePremiumStatus";
+import { usePremiumArtesStatus } from "@/hooks/usePremiumArtesStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +16,15 @@ import UpscalerArcanoCard from "@/components/dashboard/UpscalerArcanoCard";
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isPremium, planType, logout } = usePremiumStatus();
+  const { hasAccessToPack, isLoading: premiumArtesLoading } = usePremiumArtesStatus();
   const { balance: credits, isLoading: creditsLoading } = useCredits();
   const [userProfile, setUserProfile] = useState<{ name?: string; phone?: string } | null>(null);
+
+  const hasUpscalerAccess =
+    planType === "arcano_unlimited" ||
+    hasAccessToPack("upscaller-arcano") ||
+    hasAccessToPack("upscaller-arcano-vitalicio") ||
+    hasAccessToPack("upscaller-arcano-v3");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -96,7 +104,11 @@ const Dashboard = () => {
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Tus Productos</h2>
             <div className="grid grid-cols-1 gap-4">
-              <UpscalerArcanoCard />
+              <UpscalerArcanoCard
+                hasAccess={hasUpscalerAccess}
+                isLoading={premiumArtesLoading}
+                purchaseUrl="https://arcanoapp.voxvisual.com.br/upscalerarcanov3-es"
+              />
             </div>
           </div>
         </div>

@@ -4,13 +4,35 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import coverImage from "@/assets/upscaler-cover.webp";
 
-const UpscalerArcanoCard = () => {
+interface UpscalerArcanoCardProps {
+  hasAccess?: boolean;
+  isLoading?: boolean;
+  purchaseUrl?: string;
+}
+
+const UpscalerArcanoCard = ({
+  hasAccess = true,
+  isLoading = false,
+  purchaseUrl,
+}: UpscalerArcanoCardProps) => {
   const navigate = useNavigate();
+  const ctaLabel = isLoading ? "Verificando" : hasAccess ? "Acceder" : "Adquirir";
+
+  const handleAction = () => {
+    if (isLoading) return;
+
+    if (!hasAccess && purchaseUrl) {
+      window.location.assign(purchaseUrl);
+      return;
+    }
+
+    navigate("/upscaler-arcano");
+  };
 
   return (
     <div
-      onClick={() => navigate("/upscaler-arcano")}
-      className="group relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-b from-[hsl(var(--card))] to-[hsl(270,50%,8%)] cursor-pointer transition-all duration-500 hover:border-purple-400/40 hover:shadow-2xl hover:shadow-purple-500/15 hover:scale-[1.02] animate-fade-in w-full max-w-[280px]"
+      onClick={handleAction}
+      className={`group relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-b from-[hsl(var(--card))] to-[hsl(270,50%,8%)] transition-all duration-500 hover:border-purple-400/40 hover:shadow-2xl hover:shadow-purple-500/15 hover:scale-[1.02] animate-fade-in w-full max-w-[280px] ${isLoading ? "cursor-wait" : "cursor-pointer"}`}
       style={{ aspectRatio: "3/4" }}
     >
       {/* Cover image */}
@@ -47,10 +69,14 @@ const UpscalerArcanoCard = () => {
         </div>
         <Button
           size="sm"
+          disabled={isLoading}
           className="w-full bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-semibold shadow-lg shadow-purple-500/25 transition-all"
-          onClick={(e) => { e.stopPropagation(); navigate("/upscaler-arcano"); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAction();
+          }}
         >
-          Acceder
+          {ctaLabel}
           <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Button>
       </div>
