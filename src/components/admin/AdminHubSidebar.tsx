@@ -1,0 +1,72 @@
+import { Home, BarChart3, LogOut, ArrowLeft, Users, ShieldCheck, ShoppingCart, Mail, Receipt, Megaphone, Activity } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+
+export type HubViewType = "home" | "dashboard" | "email-marketing" | "push-notifications" | "partners" | "abandoned-checkouts" | "admins" | "emails" | "sales" | "ads" | "pixel";
+
+interface AdminHubSidebarProps {
+  activeView: HubViewType;
+  onViewChange: (view: HubViewType) => void;
+  onLogout: () => void;
+}
+
+const AdminHubSidebar = ({ activeView, onViewChange, onLogout }: AdminHubSidebarProps) => {
+  const navigate = useNavigate();
+
+  const menuItems = [
+    { id: "home" as const, label: "HOME", icon: Home, description: "Selecionar plataforma" },
+    { id: "sales" as const, label: "VENDAS", icon: Receipt, description: "Listagem e gestão de vendas" },
+    { id: "ads" as const, label: "ADS", icon: Megaphone, description: "Campanhas Meta e atribuição" },
+    { id: "pixel" as const, label: "PIXEL / CAPI", icon: Activity, description: "Logs e monitoramento Meta" },
+    { id: "partners" as const, label: "GERENCIAR PARCEIROS", icon: Users, description: "Cadastrar e gerenciar colaboradores" },
+    { id: "abandoned-checkouts" as const, label: "REMARKETING", icon: ShoppingCart, description: "Checkouts abandonados" },
+    { id: "admins" as const, label: "ADMINISTRADORES", icon: ShieldCheck, description: "Gerenciar acessos de admin" },
+    { id: "emails" as const, label: "EMAILS DE BOAS-VINDAS", icon: Mail, description: "Monitoramento de envios" },
+  ];
+
+  return (
+    <aside className="w-64 min-h-screen bg-card border-r border-border flex flex-col">
+      <div className="p-6 border-b border-border">
+        <h1 className="text-xl font-bold text-foreground">Painel Admin</h1>
+        <p className="text-sm text-muted-foreground mt-1">Hub Central</p>
+      </div>
+      <nav className="flex-1 p-4 space-y-2">
+        {menuItems.map((item) => {
+          const isActive = activeView === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onViewChange(item.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left",
+                "hover:bg-accent hover:text-accent-foreground",
+                isActive ? "bg-primary text-primary-foreground shadow-md" : "text-foreground"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              <div>
+                <p className="font-semibold text-sm">{item.label}</p>
+                <p className={cn("text-xs", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                  {item.description}
+                </p>
+              </div>
+            </button>
+          );
+        })}
+      </nav>
+      <div className="p-4 border-t border-border space-y-2">
+        <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate('/')}>
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao Site
+        </Button>
+        <Button variant="ghost" className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={onLogout}>
+          <LogOut className="h-4 w-4" />
+          Sair
+        </Button>
+      </div>
+    </aside>
+  );
+};
+
+export default AdminHubSidebar;
