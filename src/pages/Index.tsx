@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Star, Zap, ImagePlus, Video, BookOpen, ArrowRight } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import UpscalerArcanoCard from "@/components/dashboard/UpscalerArcanoCard";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -72,6 +73,11 @@ const Index = () => {
                 </div>
               </button>
             ))}
+          </div>
+
+          {/* Upscaler Card */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8">
+            <UpscalerArcanoCard />
           </div>
 
           {/* CTA */}

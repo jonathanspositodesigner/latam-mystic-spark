@@ -1,0 +1,1 @@
+ALTER TABLE public.artes_packs ADD COLUMN IF NOT EXISTS tool_versions jsonb;

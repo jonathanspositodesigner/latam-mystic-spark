@@ -53,6 +53,11 @@ const PromptsMotoresIA = React.lazy(() => import("./pages/admin/PromptsMotoresIA
 const PromptsRentabilidade = React.lazy(() => import("./pages/admin/PromptsRentabilidade"));
 const PromptsTopIndicadores = React.lazy(() => import("./pages/admin/PromptsTopIndicadores"));
 
+// Upscaler pages
+const UpscalerArcanoVersionSelect = React.lazy(() => import("./pages/UpscalerArcanoVersionSelect"));
+const ToolVersionLessons = React.lazy(() => import("./pages/ToolVersionLessons"));
+const UpgradeUpscalerV3 = React.lazy(() => import("./pages/UpgradeUpscalerV3"));
+
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-fuchsia-500"></div>
@@ -123,6 +128,12 @@ const AppContent = () => {
           <Route path="/admin-prompts/motores-ia" element={<PromptsMotoresIA />} />
           <Route path="/admin-prompts/rentabilidade" element={<PromptsRentabilidade />} />
           <Route path="/admin-prompts/top-indicadores" element={<PromptsTopIndicadores />} />
+
+          {/* Upscaler routes */}
+          <Route path="/upscaler-arcano" element={<UpscalerArcanoVersionSelect />} />
+          <Route path="/ferramenta-ia-artes/upscaller-arcano" element={<Navigate to="/upscaler-arcano" replace />} />
+          <Route path="/ferramenta-ia-artes/:toolSlug/:versionSlug" element={<ToolVersionLessons />} />
+          <Route path="/upgrade-upscaler-v3" element={<UpgradeUpscalerV3 />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
