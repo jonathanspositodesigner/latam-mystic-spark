@@ -43,7 +43,7 @@ const Dashboard = () => {
           className="text-lg font-bold text-white cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate("/dashboard")}
         >
-          ArcanoAppes
+          ArcanoApp
         </h1>
         <div className="flex items-center gap-3">
           {isPremium && (

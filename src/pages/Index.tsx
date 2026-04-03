@@ -45,7 +45,7 @@ const Index = () => {
           {/* Hero */}
           <div className="text-center mb-8 md:mb-12">
             <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
-              Bienvenido a <span className="bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent">ArcanoAppes</span>
+              Bienvenido a <span className="bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent">ArcanoApp</span>
             </h1>
             <p className="text-purple-300 text-lg md:text-xl max-w-2xl mx-auto">
               La plataforma de herramientas de IA más completa para creativos en Latinoamérica
