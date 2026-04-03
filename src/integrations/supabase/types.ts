@@ -77,6 +77,63 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_artes: {
+        Row: {
+          bonus_clicks: number | null
+          canva_link: string | null
+          category: string
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          download_url: string | null
+          drive_link: string | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          is_premium: boolean | null
+          motion_type: string | null
+          pack: string | null
+          title: string
+          tutorial_url: string | null
+        }
+        Insert: {
+          bonus_clicks?: number | null
+          canva_link?: string | null
+          category: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          download_url?: string | null
+          drive_link?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          motion_type?: string | null
+          pack?: string | null
+          title: string
+          tutorial_url?: string | null
+        }
+        Update: {
+          bonus_clicks?: number | null
+          canva_link?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          download_url?: string | null
+          drive_link?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          is_premium?: boolean | null
+          motion_type?: string | null
+          pack?: string | null
+          title?: string
+          tutorial_url?: string | null
+        }
+        Relationships: []
+      }
       admin_goals: {
         Row: {
           completed_at: string | null
@@ -125,6 +182,171 @@ export type Database = {
           device_type?: string
           id?: string
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      artes_banners: {
+        Row: {
+          button_link: string
+          button_text: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          mobile_image_url: string | null
+          title: string
+        }
+        Insert: {
+          button_link: string
+          button_text?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          mobile_image_url?: string | null
+          title: string
+        }
+        Update: {
+          button_link?: string
+          button_text?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          mobile_image_url?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      artes_categories: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          platform: string | null
+          slug: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          platform?: string | null
+          slug?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          platform?: string | null
+          slug?: string | null
+        }
+        Relationships: []
+      }
+      artes_packs: {
+        Row: {
+          checkout_link_1_ano: string | null
+          checkout_link_6_meses: string | null
+          checkout_link_membro_1_ano: string | null
+          checkout_link_membro_6_meses: string | null
+          checkout_link_membro_vitalicio: string | null
+          checkout_link_renovacao_1_ano: string | null
+          checkout_link_renovacao_6_meses: string | null
+          checkout_link_renovacao_vitalicio: string | null
+          checkout_link_vitalicio: string | null
+          cover_url: string | null
+          created_at: string | null
+          display_order: number | null
+          download_url: string | null
+          enabled_1_ano: boolean | null
+          enabled_6_meses: boolean | null
+          enabled_vitalicio: boolean | null
+          greenn_product_id_1_ano: number | null
+          greenn_product_id_6_meses: number | null
+          greenn_product_id_order_bump: number | null
+          greenn_product_id_vitalicio: number | null
+          id: string
+          is_visible: boolean | null
+          name: string
+          price_1_ano: number | null
+          price_6_meses: number | null
+          price_vitalicio: number | null
+          slug: string | null
+          tutorial_lessons: Json | null
+          type: string | null
+        }
+        Insert: {
+          checkout_link_1_ano?: string | null
+          checkout_link_6_meses?: string | null
+          checkout_link_membro_1_ano?: string | null
+          checkout_link_membro_6_meses?: string | null
+          checkout_link_membro_vitalicio?: string | null
+          checkout_link_renovacao_1_ano?: string | null
+          checkout_link_renovacao_6_meses?: string | null
+          checkout_link_renovacao_vitalicio?: string | null
+          checkout_link_vitalicio?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          download_url?: string | null
+          enabled_1_ano?: boolean | null
+          enabled_6_meses?: boolean | null
+          enabled_vitalicio?: boolean | null
+          greenn_product_id_1_ano?: number | null
+          greenn_product_id_6_meses?: number | null
+          greenn_product_id_order_bump?: number | null
+          greenn_product_id_vitalicio?: number | null
+          id?: string
+          is_visible?: boolean | null
+          name: string
+          price_1_ano?: number | null
+          price_6_meses?: number | null
+          price_vitalicio?: number | null
+          slug?: string | null
+          tutorial_lessons?: Json | null
+          type?: string | null
+        }
+        Update: {
+          checkout_link_1_ano?: string | null
+          checkout_link_6_meses?: string | null
+          checkout_link_membro_1_ano?: string | null
+          checkout_link_membro_6_meses?: string | null
+          checkout_link_membro_vitalicio?: string | null
+          checkout_link_renovacao_1_ano?: string | null
+          checkout_link_renovacao_6_meses?: string | null
+          checkout_link_renovacao_vitalicio?: string | null
+          checkout_link_vitalicio?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          download_url?: string | null
+          enabled_1_ano?: boolean | null
+          enabled_6_meses?: boolean | null
+          enabled_vitalicio?: boolean | null
+          greenn_product_id_1_ano?: number | null
+          greenn_product_id_6_meses?: number | null
+          greenn_product_id_order_bump?: number | null
+          greenn_product_id_vitalicio?: number | null
+          id?: string
+          is_visible?: boolean | null
+          name?: string
+          price_1_ano?: number | null
+          price_6_meses?: number | null
+          price_vitalicio?: number | null
+          slug?: string | null
+          tutorial_lessons?: Json | null
+          type?: string | null
         }
         Relationships: []
       }
@@ -233,6 +455,125 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          name: string | null
+          notes: string | null
+          phone: string | null
+          source: string | null
+          status: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
+      partner_artes: {
+        Row: {
+          approved: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          bonus_clicks: number | null
+          canva_link: string | null
+          category: string
+          created_at: string | null
+          deletion_requested: boolean | null
+          description: string | null
+          drive_link: string | null
+          id: string
+          image_url: string
+          is_premium: boolean | null
+          pack: string | null
+          partner_id: string | null
+          rejected: boolean | null
+          rejected_at: string | null
+          rejected_by: string | null
+          title: string
+          tutorial_url: string | null
+        }
+        Insert: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bonus_clicks?: number | null
+          canva_link?: string | null
+          category: string
+          created_at?: string | null
+          deletion_requested?: boolean | null
+          description?: string | null
+          drive_link?: string | null
+          id?: string
+          image_url: string
+          is_premium?: boolean | null
+          pack?: string | null
+          partner_id?: string | null
+          rejected?: boolean | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          title: string
+          tutorial_url?: string | null
+        }
+        Update: {
+          approved?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bonus_clicks?: number | null
+          canva_link?: string | null
+          category?: string
+          created_at?: string | null
+          deletion_requested?: boolean | null
+          description?: string | null
+          drive_link?: string | null
+          id?: string
+          image_url?: string
+          is_premium?: boolean | null
+          pack?: string | null
+          partner_id?: string | null
+          rejected?: boolean | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          title?: string
+          tutorial_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_artes_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       partner_platforms: {
         Row: {
           created_at: string | null
@@ -297,6 +638,42 @@ export type Database = {
           name?: string
           phone?: string | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      premium_artes_users: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          external_id: string | null
+          id: string
+          is_active: boolean | null
+          pack_slug: string | null
+          payment_gateway: string | null
+          plan_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          pack_slug?: string | null
+          payment_gateway?: string | null
+          plan_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          pack_slug?: string | null
+          payment_gateway?: string | null
+          plan_type?: string | null
           user_id?: string
         }
         Relationships: []
@@ -394,6 +771,56 @@ export type Database = {
         }
         Relationships: []
       }
+      user_pack_purchases: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          expires_at: string | null
+          external_id: string | null
+          gateway: string | null
+          id: string
+          pack_id: string | null
+          pack_slug: string | null
+          payment_status: string | null
+          plan_type: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          gateway?: string | null
+          id?: string
+          pack_id?: string | null
+          pack_slug?: string | null
+          payment_status?: string | null
+          plan_type?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          external_id?: string | null
+          gateway?: string | null
+          id?: string
+          pack_id?: string | null
+          pack_slug?: string | null
+          payment_status?: string | null
+          plan_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_pack_purchases_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "artes_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -409,6 +836,39 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string | null
+          id: string
+          payload: Json | null
+          processed: boolean | null
+          source: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+          source?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+          source?: string | null
+          status?: string | null
         }
         Relationships: []
       }

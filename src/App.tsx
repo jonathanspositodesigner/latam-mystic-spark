@@ -35,6 +35,11 @@ const AdminManagePacks = React.lazy(() => import("./pages/AdminManagePacks"));
 const AdminManagePromotions = React.lazy(() => import("./pages/AdminManagePromotions"));
 const AdminManageBlacklist = React.lazy(() => import("./pages/AdminManageBlacklist"));
 const AdminInstallStats = React.lazy(() => import("./pages/AdminInstallStats"));
+const AdminUploadArtes = React.lazy(() => import("./pages/AdminUploadArtes"));
+const AdminCategoriesArtes = React.lazy(() => import("./pages/AdminCategoriesArtes"));
+const AdminPackPurchases = React.lazy(() => import("./pages/AdminPackPurchases"));
+const AdminAbandonedCheckouts = React.lazy(() => import("./pages/AdminAbandonedCheckouts"));
+const AdminLeads = React.lazy(() => import("./pages/AdminLeads"));
 
 // Platform-specific admin pages
 const ArtesEventosDashboard = React.lazy(() => import("./pages/admin/ArtesEventosDashboard"));
@@ -99,8 +104,11 @@ const AppContent = () => {
           <Route path="/admin-manage-promotions" element={<AdminManagePromotions />} />
           <Route path="/admin-blacklist" element={<AdminManageBlacklist />} />
           <Route path="/admin-install-stats" element={<AdminInstallStats />} />
-
-          {/* Platform-specific admin routes */}
+          <Route path="/admin-upload-artes" element={<AdminUploadArtes />} />
+          <Route path="/admin-categories-artes" element={<AdminCategoriesArtes />} />
+          <Route path="/admin-pack-purchases" element={<AdminPackPurchases />} />
+          <Route path="/admin-abandoned-checkouts" element={<AdminAbandonedCheckouts />} />
+          <Route path="/admin-leads" element={<AdminLeads />} />
           <Route path="/admin-artes-eventos" element={<ArtesEventosFerramentas />} />
           <Route path="/admin-artes-eventos/ferramentas" element={<Navigate to="/admin-artes-eventos" replace />} />
           <Route path="/admin-artes-eventos/dashboard" element={<ArtesEventosDashboard />} />

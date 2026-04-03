@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Wrench, BarChart3, Megaphone, LogOut, Home, ArrowLeft, Sparkles, FileText, Cpu, TrendingUp, Users } from "lucide-react";
+import { Wrench, BarChart3, Megaphone, LogOut, Home, ArrowLeft, Sparkles, FileText, Cpu, TrendingUp, Users, Upload, Tag, Image, Package, Crown, ShoppingCart, FileSearch, Gift, Ban, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -31,23 +31,35 @@ const AdminSidebarPlatform = ({ platform, onLogout }: AdminSidebarPlatformProps)
   const location = useLocation();
   const config = platformConfig[platform];
 
-  const baseMenuItems = [
-    { label: "FERRAMENTAS", path: config.basePath, icon: Wrench, description: "Gerenciar conteúdos" },
+  const artesEventosItems = [
+    { label: "FERRAMENTAS", path: config.basePath, icon: Wrench, description: "Painel principal" },
     { label: "MARKETING", path: `${config.basePath}/marketing`, icon: Megaphone, description: "Campanhas e divulgação" },
-    { label: "DASHBOARD", path: `${config.basePath}/dashboard`, icon: BarChart3, description: "Métricas e analytics" }
+    { label: "DASHBOARD", path: `${config.basePath}/dashboard`, icon: BarChart3, description: "Métricas e analytics" },
+    { label: "UPLOAD ARTES", path: "/admin-upload-artes", icon: Upload, description: "Enviar novas artes" },
+    { label: "GERENCIAR ARTES", path: "/admin-manage-artes", icon: Wrench, description: "Editar artes publicadas" },
+    { label: "BANNERS", path: "/admin-manage-banners", icon: Image, description: "Banners promocionais" },
+    { label: "PACKS", path: "/admin-manage-packs", icon: Package, description: "Gerenciar packs" },
+    { label: "CATEGORIAS", path: "/admin-categories-artes", icon: Tag, description: "Categorias de artes" },
+    { label: "CLIENTES PREMIUM", path: "/admin-manage-premium", icon: Crown, description: "Gerenciar premium" },
+    { label: "PARCEIROS", path: "/admin-parceiros-artes", icon: Users, description: "Gerenciar parceiros" },
+    { label: "REMARKETING", path: "/admin-abandoned-checkouts", icon: ShoppingCart, description: "Checkouts abandonados" },
+    { label: "WEBHOOK LOGS", path: "/admin-webhook-logs", icon: FileSearch, description: "Logs de webhooks" },
+    { label: "PROMOÇÕES", path: "/admin-manage-promotions", icon: Gift, description: "Promoções e combos" },
+    { label: "BLACKLIST", path: "/admin-blacklist", icon: Ban, description: "Emails bloqueados" },
+    { label: "LEADS", path: "/admin-leads", icon: UserPlus, description: "Captura de leads" },
   ];
 
-  const promptsExtraItems = platform === "prompts" ? [
+  const promptsItems = [
+    { label: "FERRAMENTAS", path: config.basePath, icon: Wrench, description: "Gerenciar conteúdos" },
+    { label: "MARKETING", path: `${config.basePath}/marketing`, icon: Megaphone, description: "Campanhas e divulgação" },
     { label: "CUSTOS IA", path: `${config.basePath}/custos-ia`, icon: Cpu, description: "Uso das ferramentas de IA" },
     { label: "MOTORES IA", path: `${config.basePath}/motores-ia`, icon: Cpu, description: "Custos de motores de IA" },
-    { label: "RENTABILIDADE", path: `${config.basePath}/rentabilidade`, icon: TrendingUp, description: "Análise de lucro por ferramenta" }
-  ] : [];
+    { label: "RENTABILIDADE", path: `${config.basePath}/rentabilidade`, icon: TrendingUp, description: "Análise de lucro" },
+    { label: "DASHBOARD", path: `${config.basePath}/dashboard`, icon: BarChart3, description: "Métricas e analytics" },
+    { label: "TOP INDICADORES", path: `${config.basePath}/top-indicadores`, icon: Users, description: "Ranking de indicações" },
+  ];
 
-  const topIndicadoresItem = platform === "prompts" ? [
-    { label: "TOP INDICADORES", path: `${config.basePath}/top-indicadores`, icon: Users, description: "Ranking de indicações" }
-  ] : [];
-
-  const menuItems = [...baseMenuItems.slice(0, 2), ...promptsExtraItems, ...baseMenuItems.slice(2), ...topIndicadoresItem];
+  const menuItems = platform === "artes-eventos" ? artesEventosItems : promptsItems;
 
   return (
     <aside className="w-64 min-h-screen bg-card border-r border-border flex flex-col">
@@ -60,7 +72,7 @@ const AdminSidebarPlatform = ({ platform, onLogout }: AdminSidebarPlatformProps)
           </div>
         </div>
       </div>
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -68,17 +80,15 @@ const AdminSidebarPlatform = ({ platform, onLogout }: AdminSidebarPlatformProps)
               key={item.path}
               to={item.path}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-all",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all",
                 "hover:bg-accent hover:text-accent-foreground",
                 isActive ? "bg-primary text-primary-foreground shadow-md" : "text-foreground"
               )}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className="h-4 w-4 shrink-0" />
               <div>
-                <p className="font-semibold text-sm">{item.label}</p>
-                <p className={cn("text-xs", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                  {item.description}
-                </p>
+                <p className="font-semibold text-xs">{item.label}</p>
+                <p className={cn("text-[10px]", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>{item.description}</p>
               </div>
             </NavLink>
           );
@@ -86,20 +96,13 @@ const AdminSidebarPlatform = ({ platform, onLogout }: AdminSidebarPlatformProps)
       </nav>
       <div className="p-4 border-t border-border space-y-2">
         <NavLink to="/admin-hub">
-          <Button variant="outline" className="w-full justify-start gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Trocar Plataforma
-          </Button>
+          <Button variant="outline" className="w-full justify-start gap-2"><ArrowLeft className="h-4 w-4" />Trocar Plataforma</Button>
         </NavLink>
         <NavLink to="/">
-          <Button variant="ghost" className="w-full justify-start gap-2">
-            <Home className="h-4 w-4" />
-            Voltar ao Site
-          </Button>
+          <Button variant="ghost" className="w-full justify-start gap-2"><Home className="h-4 w-4" />Voltar ao Site</Button>
         </NavLink>
         <Button variant="ghost" className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={onLogout}>
-          <LogOut className="h-4 w-4" />
-          Sair
+          <LogOut className="h-4 w-4" />Sair
         </Button>
       </div>
     </aside>
