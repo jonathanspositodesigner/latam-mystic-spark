@@ -198,9 +198,9 @@ const ToolVersionLessons = () => {
   const hasUnlimitedAccess = planType === "arcano_unlimited";
   const hasAccess = (() => {
     if (hasUnlimitedAccess) return true;
-    if (toolSlug === "upscaller-arcano") {
+    if (toolSlug === "upscaller-arcano" || toolSlug === "upscaller-arcano-vitalicio") {
       if (versionSlug === "v3") return hasAccessToPack("upscaller-arcano-v3");
-      return hasAccessToPack("upscaller-arcano") || hasAccessToPack("upscaller-arcano-v3");
+      return hasAccessToPack("upscaller-arcano") || hasAccessToPack("upscaller-arcano-v3") || hasAccessToPack("upscaller-arcano-vitalicio");
     }
     return toolSlug ? hasAccessToPack(toolSlug) : false;
   })();
