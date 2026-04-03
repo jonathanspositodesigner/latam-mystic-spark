@@ -137,29 +137,57 @@ const AdminUpscalerVitalicio = () => {
     await fetchPack();
   };
 
+  const applyPackState = (packData: Pack) => {
+    setPack(packData);
+    setPackName(packData.name);
+    setPackSlug(packData.slug);
+    setCoverPreview(packData.cover_url);
+    const versions = packData.tool_versions as ToolVersion[] | null;
+    setToolVersions(versions?.length ? versions.map(cloneVersion) : getDefaultToolVersions());
+    setSelectedVersionIndex(0);
+    setVersionCoverFile(null);
+    setVersionCoverPreview(null);
+  };
+
   const fetchPack = async () => {
     setLoading(true);
-    const { data } = await (supabase as any)
-      .from("artes_packs")
-      .select("id, name, slug, cover_url, is_visible, tool_versions, tutorial_lessons")
-      .eq("slug", PACK_SLUG)
-      .maybeSingle();
+    try {
+      const { data } = await (supabase as any)
+        .from("artes_packs")
+        .select("id, name, slug, cover_url, is_visible, tool_versions, tutorial_lessons")
+        .eq("slug", PACK_SLUG)
+        .maybeSingle();
 
-    if (data) {
-      setPack(data);
-      setPackName(data.name);
-      setPackSlug(data.slug);
-      setCoverPreview(data.cover_url);
-      const versions = data.tool_versions as ToolVersion[] | null;
-      setToolVersions(versions?.length ? versions.map(cloneVersion) : getDefaultToolVersions());
-    } else {
+      if (data) {
+        applyPackState(data);
+      } else {
+        const { data: createdPack, error: createError } = await supabase
+          .from("artes_packs")
+          .insert({
+            name: "Upscaler Arcano Vitalício",
+            slug: PACK_SLUG,
+            type: "ferramenta",
+            is_visible: true,
+            tool_versions: getDefaultToolVersions() as any,
+          })
+          .select("id, name, slug, cover_url, is_visible, tool_versions, tutorial_lessons")
+          .single();
+
+        if (createError) throw createError;
+
+        applyPackState(createdPack as Pack);
+        toast.success("Pack criado com as versões V2.5 e V1.5.");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao carregar o pack");
+      setPack(null);
       setPackName("Upscaler Arcano Vitalício");
       setPackSlug(PACK_SLUG);
       setCoverPreview(null);
       setToolVersions(getDefaultToolVersions());
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const createEmptyVersion = (versionNumber: number): ToolVersion => createVersionTemplate({
