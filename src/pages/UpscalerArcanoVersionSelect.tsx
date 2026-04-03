@@ -229,7 +229,7 @@ const UpscalerArcanoVersionSelect = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!hasVersionAccess) return;
-                      navigate(`/ferramenta-ia-artes/upscaller-arcano/${version.slug}`);
+                      navigate(`/ferramenta-ia-artes/upscaller-arcano-vitalicio/${version.slug}`);
                     }}
                   >
                     {hasVersionAccess ? (
