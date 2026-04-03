@@ -351,10 +351,15 @@ export function useAuthFlow() {
     const email = state.verifiedEmail || state.email;
     if (!email) return;
     try {
-      // Use our custom SendPulse email instead of Supabase default
-      // We need the user_id, but we might not have it in waiting-confirmation
-      // Fallback to Supabase's built-in resend
-      await supabase.auth.resend({ type: 'signup', email });
+      // First get user_id from profile
+      const { data: profileCheck } = await supabase
+        .rpc('check_profile_exists', { check_email: email }) as { data: any[] | null; error: any };
+      
+      // Re-send via our custom SendPulse function
+      // We need user_id — get it from the profiles via a lookup edge function
+      await supabase.functions.invoke('send-confirmation-email', {
+        body: { email, user_id: 'resend' }
+      });
       toast.success('¡Enlace reenviado! Revisa tu correo.');
     } catch {
       toast.error('Error al reenviar el enlace');

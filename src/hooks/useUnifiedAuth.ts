@@ -256,7 +256,9 @@ export function useUnifiedAuth(config: AuthConfig): UseUnifiedAuthReturn {
     const email = state.verifiedEmail || state.email;
     if (!email) return;
     try {
-      await supabase.auth.resend({ type: 'signup', email });
+      await supabase.functions.invoke('send-confirmation-email', {
+        body: { email, user_id: 'resend' }
+      });
       toast.success('¡Link reenviado a tu email!');
     } catch {
       toast.error('Error al reenviar link');
