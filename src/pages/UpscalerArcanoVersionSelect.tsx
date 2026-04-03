@@ -81,16 +81,19 @@ const UpscalerArcanoVersionSelect = () => {
   useEffect(() => {
     const fetchVersions = async () => {
       try {
+        // Try the admin-configured pack first, then fallback to legacy slug
         const { data, error } = await supabase
           .from("artes_packs")
-          .select("tool_versions")
-          .eq("slug", "upscaller-arcano")
-          .single();
+          .select("slug, tool_versions")
+          .in("slug", ["upscaller-arcano-vitalicio", "upscaller-arcano"])
+          .order("slug", { ascending: false });
 
-        if (!error && data?.tool_versions) {
-          const dbVersions = data.tool_versions as unknown as ToolVersion[];
+        const pack = data?.find(p => p.tool_versions) || data?.[0];
+
+        if (!error && pack?.tool_versions) {
+          const dbVersions = pack.tool_versions as unknown as ToolVersion[];
           if (dbVersions && dbVersions.length > 0) {
-            setVersions(dbVersions.sort((a, b) => a.display_order - b.display_order));
+            setVersions(dbVersions.filter(v => v.is_visible).sort((a, b) => a.display_order - b.display_order));
           } else {
             setVersions(FALLBACK_VERSIONS);
           }
