@@ -140,6 +140,7 @@ const AppContent = () => {
           <Route path="/ferramenta-ia-artes/upscaller-arcano" element={<Navigate to="/upscaler-arcano" replace />} />
           <Route path="/ferramenta-ia-artes/:toolSlug/:versionSlug" element={<ToolVersionLessons />} />
           <Route path="/upgrade-upscaler-v3" element={<UpgradeUpscalerV3 />} />
+          <Route path="/upscaler-arcano-tool" element={<UpscalerArcanoTool />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
