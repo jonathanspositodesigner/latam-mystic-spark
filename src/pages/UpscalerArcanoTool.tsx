@@ -227,6 +227,9 @@ const UpscalerArcanoTool: React.FC = () => {
         setIsWaitingInQueue(false);
         toast.error(friendlyError.message);
         endSubmit();
+        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('❌ Upscaler Arcano — Error', { body: friendlyError.message, icon: '/favicon.ico' });
+        }
       } else if (update.status === 'running') {
         setStatus('processing');
         setIsWaitingInQueue(false);
