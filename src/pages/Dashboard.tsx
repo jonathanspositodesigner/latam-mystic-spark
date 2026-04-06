@@ -142,24 +142,12 @@ const Dashboard = () => {
 
           {/* ── STATE: creditos (sem vitalício) ── */}
           {purchaseState === "creditos" && (
-            <>
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <UpscalerCreditosCard hasAccess={true} isLoading={false} />
-                </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <UpscalerCreditosCard hasAccess={true} isLoading={false} />
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Conoce Nuestros Otros Productos</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <UpscalerArcanoCard
-                    hasAccess={false}
-                    isLoading={false}
-                    purchaseUrl="https://arcanoapp.voxvisual.com.br/upscalerarcanov3-es"
-                  />
-                </div>
-              </div>
-            </>
+            </div>
           )}
 
           {/* ── STATE: none (sem compra) ── */}
@@ -167,11 +155,6 @@ const Dashboard = () => {
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Nuestros Productos</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpscalerArcanoCard
-                  hasAccess={false}
-                  isLoading={false}
-                  purchaseUrl="https://arcanoapp.voxvisual.com.br/upscalerarcanov3-es"
-                />
                 <UpscalerCreditosCard
                   hasAccess={true}
                   isLoading={false}
