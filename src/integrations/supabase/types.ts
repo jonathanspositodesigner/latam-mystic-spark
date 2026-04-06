@@ -808,20 +808,30 @@ export type Database = {
         Row: {
           api_account: string | null
           cancelled_at: string | null
+          category: string | null
           completed_at: string | null
           created_at: string | null
           credits_charged: boolean | null
           credits_refunded: boolean | null
           current_step: string | null
+          detail_denoise: number | null
+          editing_level: number | null
           error_message: string | null
           failed_at_step: string | null
+          fallback_attempted: boolean | null
+          framing_mode: string | null
           id: string
+          input_file_name: string | null
           input_url: string | null
+          job_payload: Json | null
+          original_task_id: string | null
           output_url: string | null
           position: number | null
+          prompt: string | null
           queue_wait_seconds: number | null
           raw_api_response: Json | null
           raw_webhook_payload: Json | null
+          resolution: number | null
           rh_cost: number | null
           session_id: string | null
           started_at: string | null
@@ -831,24 +841,36 @@ export type Database = {
           thumbnail_url: string | null
           user_credit_cost: number | null
           user_id: string
+          version: string | null
+          waited_in_queue: boolean | null
         }
         Insert: {
           api_account?: string | null
           cancelled_at?: string | null
+          category?: string | null
           completed_at?: string | null
           created_at?: string | null
           credits_charged?: boolean | null
           credits_refunded?: boolean | null
           current_step?: string | null
+          detail_denoise?: number | null
+          editing_level?: number | null
           error_message?: string | null
           failed_at_step?: string | null
+          fallback_attempted?: boolean | null
+          framing_mode?: string | null
           id?: string
+          input_file_name?: string | null
           input_url?: string | null
+          job_payload?: Json | null
+          original_task_id?: string | null
           output_url?: string | null
           position?: number | null
+          prompt?: string | null
           queue_wait_seconds?: number | null
           raw_api_response?: Json | null
           raw_webhook_payload?: Json | null
+          resolution?: number | null
           rh_cost?: number | null
           session_id?: string | null
           started_at?: string | null
@@ -858,24 +880,36 @@ export type Database = {
           thumbnail_url?: string | null
           user_credit_cost?: number | null
           user_id: string
+          version?: string | null
+          waited_in_queue?: boolean | null
         }
         Update: {
           api_account?: string | null
           cancelled_at?: string | null
+          category?: string | null
           completed_at?: string | null
           created_at?: string | null
           credits_charged?: boolean | null
           credits_refunded?: boolean | null
           current_step?: string | null
+          detail_denoise?: number | null
+          editing_level?: number | null
           error_message?: string | null
           failed_at_step?: string | null
+          fallback_attempted?: boolean | null
+          framing_mode?: string | null
           id?: string
+          input_file_name?: string | null
           input_url?: string | null
+          job_payload?: Json | null
+          original_task_id?: string | null
           output_url?: string | null
           position?: number | null
+          prompt?: string | null
           queue_wait_seconds?: number | null
           raw_api_response?: Json | null
           raw_webhook_payload?: Json | null
+          resolution?: number | null
           rh_cost?: number | null
           session_id?: string | null
           started_at?: string | null
@@ -885,6 +919,8 @@ export type Database = {
           thumbnail_url?: string | null
           user_credit_cost?: number | null
           user_id?: string
+          version?: string | null
+          waited_in_queue?: boolean | null
         }
         Relationships: []
       }
