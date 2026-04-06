@@ -81,6 +81,7 @@ export function useAuthFlow() {
       const result = profileCheck?.[0];
       const profileExists = result?.exists_in_db || false;
       const passwordChanged = result?.password_changed || false;
+      const hasLoggedIn = result?.has_logged_in || false;
 
       // Case C: Not found → signup
       if (!profileExists) {
@@ -93,8 +94,9 @@ export function useAuthFlow() {
         return;
       }
 
-      // Case B: Exists but no password → set password flow
-      if (profileExists && !passwordChanged) {
+      // Case B: Only treat as first-access when the profile says the user
+      // never changed the password AND never logged in before.
+      if (profileExists && !passwordChanged && !hasLoggedIn) {
         // Try auto-login with email as password (webhook-created accounts)
         const { error: autoLoginError } = await supabase.auth.signInWithPassword({
           email: emailToCheck,
@@ -111,10 +113,12 @@ export function useAuthFlow() {
           return;
         }
 
-        // Auto-login failed, still show set-password
+        // If auto-login fails, the profile flags are stale and the user
+        // should enter the existing password instead of being forced to
+        // create a new one again.
         setState(prev => ({
           ...prev,
-          step: 'set-password',
+          step: 'password',
           verifiedEmail: emailToCheck,
           isLoading: false,
         }));
