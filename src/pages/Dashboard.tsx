@@ -12,19 +12,32 @@ import {
 } from "@/components/ui/dropdown-menu";
 import VideoBanner from "@/components/dashboard/VideoBanner";
 import UpscalerArcanoCard from "@/components/dashboard/UpscalerArcanoCard";
+import UpscalerCreditosCard from "@/components/dashboard/UpscalerCreditosCard";
+
+const VITALICIO_SLUGS = [
+  "upscaller-arcano-v3",
+  "upscaller-arcano",
+  "upscaller-arcano-vitalicio",
+];
+
+const CREDITOS_SLUGS = [
+  "upscaler-creditos-starter",
+  "upscaler-creditos-pro",
+  "upscaler-creditos-ultimate",
+];
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isPremium, planType, logout } = usePremiumStatus();
-  const { hasAccessToPack, isLoading: premiumArtesLoading } = usePremiumArtesStatus();
+  const { hasAccessToPack, isLoading: premiumArtesLoading, packSlugs } = usePremiumArtesStatus();
   const { balance: credits, isLoading: creditsLoading } = useCredits();
   const [userProfile, setUserProfile] = useState<{ name?: string; phone?: string } | null>(null);
 
-  const hasUpscalerAccess =
+  const hasVitalicio =
     planType === "arcano_unlimited" ||
-    hasAccessToPack("upscaller-arcano") ||
-    hasAccessToPack("upscaller-arcano-vitalicio") ||
-    hasAccessToPack("upscaller-arcano-v3");
+    VITALICIO_SLUGS.some((slug) => hasAccessToPack(slug));
+
+  const hasCreditos = CREDITOS_SLUGS.some((slug) => hasAccessToPack(slug));
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -43,9 +56,18 @@ const Dashboard = () => {
     if (!user) navigate("/");
   }, [user, navigate]);
 
+  // Determine what to show
+  const showVitalicioAsCompra = hasVitalicio;
+  const showCreditosAsCompra = hasCreditos && !hasVitalicio;
+  const showVitalicioAsProducto = hasCreditos && !hasVitalicio;
+  const showBothAsProductos = !hasVitalicio && !hasCreditos;
+
+  const hasCompras = showVitalicioAsCompra || showCreditosAsCompra;
+  const hasOtrosProductos = showVitalicioAsProducto;
+
   return (
     <div className="min-h-screen bg-[hsl(270,60%,4%)]">
-      {/* Top bar — no sidebar, no "Ser Premium" */}
+      {/* Top bar */}
       <header className="bg-[hsl(270,60%,4%)]/80 backdrop-blur-lg border-b border-purple-500/20 px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-50">
         <h1
           className="text-lg font-bold text-white cursor-pointer hover:opacity-80 transition-opacity"
@@ -111,26 +133,49 @@ const Dashboard = () => {
         <div className="max-w-5xl mx-auto space-y-6">
           <VideoBanner />
 
-          {hasUpscalerAccess && (
+          {/* Tus Compras */}
+          {hasCompras && (
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {showVitalicioAsCompra && (
+                  <UpscalerArcanoCard hasAccess={true} isLoading={premiumArtesLoading} />
+                )}
+                {showCreditosAsCompra && (
+                  <UpscalerCreditosCard hasAccess={true} isLoading={premiumArtesLoading} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Otros Productos (for credit buyers who don't have vitalicio) */}
+          {hasOtrosProductos && (
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Conoce Nuestros Otros Productos</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <UpscalerArcanoCard
-                  hasAccess={true}
+                  hasAccess={false}
                   isLoading={premiumArtesLoading}
+                  purchaseUrl="https://arcanoapp.voxvisual.com.br/upscalerarcanov3-es"
                 />
               </div>
             </div>
           )}
 
-          {!hasUpscalerAccess && (
+          {/* Nuestros Productos (for users with nothing) */}
+          {showBothAsProductos && (
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Nuestros Productos</h2>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <UpscalerArcanoCard
                   hasAccess={false}
                   isLoading={premiumArtesLoading}
                   purchaseUrl="https://arcanoapp.voxvisual.com.br/upscalerarcanov3-es"
+                />
+                <UpscalerCreditosCard
+                  hasAccess={false}
+                  isLoading={premiumArtesLoading}
+                  purchaseUrl="/creditos-upscaler"
                 />
               </div>
             </div>

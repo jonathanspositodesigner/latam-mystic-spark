@@ -8,6 +8,17 @@ const json = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json" },
   });
 
+// ── Product mapping ──
+const UPSCALER_V3_PRODUCT_ID = "prod_UG4a2X2zxwTUZX";
+
+const CREDIT_PRODUCTS: Record<string, { slug: string; credits: number; label: string }> = {
+  "prod_UHs9C4eDymNUY6": { slug: "upscaler-creditos-starter", credits: 1500, label: "Starter" },
+  "prod_UHs9JyYOd9A2b2": { slug: "upscaler-creditos-pro", credits: 4200, label: "Pro" },
+  "prod_UHs9ywC7aP3EVI": { slug: "upscaler-creditos-ultimate", credits: 14000, label: "Ultimate" },
+};
+
+const ALL_KNOWN_PRODUCT_IDS = [UPSCALER_V3_PRODUCT_ID, ...Object.keys(CREDIT_PRODUCTS)];
+
 // ── SendPulse token cache ──
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
@@ -31,7 +42,13 @@ async function getSendPulseToken(): Promise<string> {
 }
 
 // ── Welcome email HTML ──
-function buildWelcomeEmailHtml(appUrl: string): string {
+function buildWelcomeEmailHtml(appUrl: string, productType: "vitalicio" | "creditos", creditLabel?: string): string {
+  const isCreditos = productType === "creditos";
+  const productName = isCreditos ? `Upscaler Arcano ${creditLabel}` : "Upscaler Arcano V3";
+  const description = isCreditos
+    ? `Tu compra del pack <strong style="color:#ffffff;">${productName}</strong> fue confirmada. Tus créditos ya están disponibles.`
+    : `Tu compra del <strong style="color:#ffffff;">Upscaler Arcano V3</strong> fue confirmada exitosamente.`;
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -44,7 +61,7 @@ function buildWelcomeEmailHtml(appUrl: string): string {
         </td></tr>
         <tr><td style="padding-bottom:24px;">
           <p style="color:#c4b5fd;font-size:16px;line-height:1.6;margin:0;text-align:center;">
-            Tu compra del <strong style="color:#ffffff;">Upscaler Arcano V3</strong> fue confirmada exitosamente.
+            ${description}
           </p>
         </td></tr>
         <tr><td style="padding-bottom:24px;">
@@ -57,7 +74,7 @@ function buildWelcomeEmailHtml(appUrl: string): string {
             <strong style="color:#ffffff;">Paso 1:</strong> Haz clic en el botón de abajo<br/>
             <strong style="color:#ffffff;">Paso 2:</strong> Ingresa tu correo de compra<br/>
             <strong style="color:#ffffff;">Paso 3:</strong> Crea tu contraseña personal<br/>
-            <strong style="color:#ffffff;">Paso 4:</strong> ¡Listo! Disfruta del Upscaler Arcano V3
+            <strong style="color:#ffffff;">Paso 4:</strong> ¡Listo! Disfruta del ${productName}
           </p>
         </td></tr>
         <tr><td align="center" style="padding:24px 0;">
@@ -75,6 +92,65 @@ function buildWelcomeEmailHtml(appUrl: string): string {
   </table>
 </body>
 </html>`;
+}
+
+// ── Ensure user exists, return userId ──
+async function ensureUser(supabaseAdmin: any, customerEmail: string): Promise<string> {
+  const { data: existingProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("email", customerEmail)
+    .maybeSingle();
+
+  if (existingProfile) {
+    console.log(`[stripe-webhook] Existing user found: ${existingProfile.id}`);
+    return existingProfile.id;
+  }
+
+  // Create new user
+  const tempPassword = customerEmail;
+  const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    email: customerEmail,
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: { source: "stripe_purchase" },
+  });
+
+  let userId: string;
+
+  if (createError) {
+    if (createError.message?.includes("already") || createError.message?.includes("exists")) {
+      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const found = authUsers?.users?.find(
+        (u: any) => u.email?.toLowerCase() === customerEmail
+      );
+      if (found) {
+        userId = found.id;
+        console.log(`[stripe-webhook] Found in auth: ${userId}`);
+      } else {
+        throw createError;
+      }
+    } else {
+      throw createError;
+    }
+  } else {
+    userId = newUser.user.id;
+    console.log(`[stripe-webhook] New user created: ${userId}`);
+  }
+
+  // Upsert profile for new users only
+  await supabaseAdmin.from("profiles").upsert(
+    {
+      id: userId,
+      email: customerEmail,
+      email_verified: true,
+      password_changed: false,
+      has_logged_in: false,
+    },
+    { onConflict: "id" }
+  );
+
+  return userId;
 }
 
 // ── Main handler ──
@@ -134,124 +210,91 @@ serve(async (req) => {
       return json({ received: true, warning: "no_email" });
     }
 
-    // ── Verify this is an Upscaler Arcano V3 purchase ──
-    const UPSCALER_V3_PRODUCT_ID = "prod_UG4a2X2zxwTUZX";
-
     // Expand line_items to check product IDs
     const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
       expand: ["line_items.data.price.product"],
     });
 
     const lineItems = fullSession.line_items?.data || [];
-    const isUpscalerV3Purchase = lineItems.some((item: any) => {
+    const purchasedProductIds = lineItems.map((item: any) => {
       const product = item.price?.product;
-      const productId = typeof product === "string" ? product : product?.id;
-      return productId === UPSCALER_V3_PRODUCT_ID;
-    });
+      return typeof product === "string" ? product : product?.id;
+    }).filter(Boolean) as string[];
 
-    if (!isUpscalerV3Purchase) {
-      console.log(`[stripe-webhook] Not an Upscaler V3 purchase, skipping. Products: ${lineItems.map((i: any) => typeof i.price?.product === "string" ? i.price.product : i.price?.product?.id).join(", ")}`);
+    const isV3Purchase = purchasedProductIds.includes(UPSCALER_V3_PRODUCT_ID);
+    const creditProduct = purchasedProductIds
+      .map((pid) => CREDIT_PRODUCTS[pid] ? { ...CREDIT_PRODUCTS[pid], productId: pid } : null)
+      .find(Boolean);
+
+    if (!isV3Purchase && !creditProduct) {
+      console.log(`[stripe-webhook] Unknown products, skipping: ${purchasedProductIds.join(", ")}`);
       await supabaseAdmin.from("webhook_logs")
-        .update({ status: "skipped_not_v3", processed: true })
+        .update({ status: "skipped_unknown_product", processed: true })
         .eq("source", "stripe")
         .order("created_at", { ascending: false })
         .limit(1);
-      return json({ received: true, action: "skipped_not_upscaler_v3" });
+      return json({ received: true, action: "skipped_unknown_product" });
     }
 
-    console.log(`[stripe-webhook] ✅ Upscaler V3 purchase confirmed for: ${customerEmail}`);
-
     try {
-      // 1. Check if user already exists
-      const { data: existingProfile } = await supabaseAdmin
-        .from("profiles")
-        .select("id")
-        .eq("email", customerEmail)
-        .maybeSingle();
+      const userId = await ensureUser(supabaseAdmin, customerEmail);
+      const actions: string[] = [];
 
-      let userId: string;
+      // ── Handle Vitalício V3 ──
+      if (isV3Purchase) {
+        const { data: existingPurchase } = await supabaseAdmin
+          .from("user_pack_purchases")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("pack_slug", "upscaller-arcano-v3")
+          .eq("payment_status", "active")
+          .limit(1);
 
-      if (existingProfile) {
-        userId = existingProfile.id;
-        console.log(`[stripe-webhook] Existing user found: ${userId}`);
-      } else {
-        // 2. Create new user (auto-confirmed, temp password = email for auto-login in set-password flow)
-        const tempPassword = customerEmail;
-        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-          email: customerEmail,
-          password: tempPassword,
-          email_confirm: true, // Already confirmed — they paid
-          user_metadata: { source: "stripe_purchase" },
-        });
-
-        if (createError) {
-          // User might exist in auth but not in profiles
-          if (createError.message?.includes("already") || createError.message?.includes("exists")) {
-            const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
-            const found = authUsers?.users?.find(
-              (u) => u.email?.toLowerCase() === customerEmail
-            );
-            if (found) {
-              userId = found.id;
-              console.log(`[stripe-webhook] Found in auth: ${userId}`);
-            } else {
-              throw createError;
-            }
-          } else {
-            throw createError;
-          }
+        if (!existingPurchase || existingPurchase.length === 0) {
+          await supabaseAdmin.from("user_pack_purchases").insert({
+            user_id: userId,
+            pack_slug: "upscaller-arcano-v3",
+            payment_status: "active",
+            gateway: "stripe",
+            plan_type: "v3",
+            external_id: session.id,
+            amount: session.amount_total ? session.amount_total / 100 : null,
+          });
+          actions.push("v3_access_granted");
         } else {
-          userId = newUser.user.id;
-          console.log(`[stripe-webhook] New user created: ${userId}`);
+          actions.push("v3_already_active");
         }
-
-        // 3. Upsert profile
-        await supabaseAdmin.from("profiles").upsert(
-          {
-            id: userId,
-            email: customerEmail,
-            email_verified: true,
-            password_changed: false,
-            has_logged_in: false,
-          },
-          { onConflict: "id" }
-        );
-
-        console.log(`[stripe-webhook] Profile created for new user: ${userId}`);
       }
 
-      // IMPORTANT: If user already existed (existingProfile), do NOT touch
-      // password_changed or has_logged_in — those flags belong to the auth flow
-      // and must not be reset on repeat purchases.
+      // ── Handle Credit Products ──
+      if (creditProduct) {
+        // 1. Grant credits
+        await supabaseAdmin.from("upscaler_credit_transactions").insert({
+          user_id: userId,
+          amount: creditProduct.credits,
+          transaction_type: "purchase",
+          description: `Compra pack ${creditProduct.label} (${creditProduct.credits} créditos)`,
+        });
+        console.log(`[stripe-webhook] ${creditProduct.credits} credits granted to ${userId}`);
 
-      // 4. Grant access to Upscaler Arcano V3
-      const { data: existingPurchase } = await supabaseAdmin
-        .from("user_pack_purchases")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("pack_slug", "upscaller-arcano-v3")
-        .eq("payment_status", "active")
-        .limit(1);
-
-      if (!existingPurchase || existingPurchase.length === 0) {
+        // 2. Register purchase
         await supabaseAdmin.from("user_pack_purchases").insert({
           user_id: userId,
-          pack_slug: "upscaller-arcano-v3",
+          pack_slug: creditProduct.slug,
           payment_status: "active",
           gateway: "stripe",
-          plan_type: "v3",
+          plan_type: creditProduct.slug,
           external_id: session.id,
           amount: session.amount_total ? session.amount_total / 100 : null,
         });
-        console.log(`[stripe-webhook] Access granted: upscaller-arcano-v3 for ${userId}`);
-      } else {
-        console.log(`[stripe-webhook] User already has v3 access: ${userId}`);
+        actions.push(`credits_granted_${creditProduct.label.toLowerCase()}`);
       }
 
-      // 5. Send welcome email
+      // ── Send welcome email ──
       try {
         const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
-        const htmlContent = buildWelcomeEmailHtml(APP_URL);
+        const emailType = creditProduct ? "creditos" : "vitalicio";
+        const htmlContent = buildWelcomeEmailHtml(APP_URL, emailType as any, creditProduct?.label);
         const sendPulseToken = await getSendPulseToken();
         const htmlBase64 = btoa(unescape(encodeURIComponent(htmlContent)));
 
@@ -265,7 +308,7 @@ serve(async (req) => {
             email: {
               html: htmlBase64,
               text: "",
-              subject: "🎉 ¡Bienvenido a Arcano App! Tu Upscaler Arcano V3 está listo",
+              subject: `🎉 ¡Bienvenido a Arcano App! Tu ${creditProduct ? `pack ${creditProduct.label}` : "Upscaler Arcano V3"} está listo`,
               from: { name: "Arcano App", email: "contato@voxvisual.com.br" },
               to: [{ name: customerEmail, email: customerEmail }],
             },
@@ -274,10 +317,9 @@ serve(async (req) => {
         console.log(`[stripe-webhook] Welcome email sent to: ${customerEmail}`);
       } catch (emailErr: any) {
         console.error(`[stripe-webhook] Welcome email failed:`, emailErr.message);
-        // Don't fail the webhook just because email failed
       }
 
-      // 6. Mark webhook as processed
+      // Mark webhook as processed
       await supabaseAdmin.from("webhook_logs")
         .update({ status: "processed", processed: true })
         .eq("source", "stripe")
@@ -285,7 +327,7 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(1);
 
-      return json({ received: true, user_id: userId, access_granted: true });
+      return json({ received: true, user_id: userId, actions });
 
     } catch (err: any) {
       console.error("[stripe-webhook] Processing error:", err);
@@ -299,6 +341,5 @@ serve(async (req) => {
     }
   }
 
-  // Other events — just acknowledge
   return json({ received: true });
 });
