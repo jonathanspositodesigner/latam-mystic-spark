@@ -94,7 +94,7 @@ export function useUnifiedAuth(config: AuthConfig): UseUnifiedAuthReturn {
       if (error) throw error;
 
       const profileExists = profileCheck?.[0]?.exists_in_db || false;
-      let passwordChanged = profileCheck?.[0]?.password_changed || false;
+      const passwordChanged = profileCheck?.[0]?.password_changed || false;
       const hasLoggedIn = profileCheck?.[0]?.has_logged_in || false;
 
       if (!profileExists) {
@@ -103,7 +103,7 @@ export function useUnifiedAuth(config: AuthConfig): UseUnifiedAuthReturn {
         return;
       }
 
-      if (profileExists && !passwordChanged) {
+      if (profileExists && !passwordChanged && !hasLoggedIn) {
         const { error: autoLoginError } = await supabase.auth.signInWithPassword({
           email: normalizedEmail, password: normalizedEmail,
         });
@@ -114,10 +114,9 @@ export function useUnifiedAuth(config: AuthConfig): UseUnifiedAuthReturn {
           setState(prev => ({ ...prev, isLoading: false }));
           return;
         }
-        const waitingUrl = `${config.changePasswordRoute}?redirect=${encodeURIComponent(config.defaultRedirect)}&sent=1&email=${encodeURIComponent(normalizedEmail)}`;
-        navigate(waitingUrl);
-        config.onClose?.();
-        setState(prev => ({ ...prev, isLoading: false }));
+
+        // Fallback for stale profile flags: ask for the current password.
+        setState(prev => ({ ...prev, step: 'password', verifiedEmail: normalizedEmail, isLoading: false }));
         return;
       }
 
@@ -181,18 +180,11 @@ export function useUnifiedAuth(config: AuthConfig): UseUnifiedAuthReturn {
         return;
       }
 
-      if (!profile || !profile.password_changed) {
-        if (!profile) {
-          await supabase.from('profiles').upsert({
-            id: data.user.id, email: data.user.email, password_changed: false,
-          }, { onConflict: 'id' });
-        }
-        toast.success('¡Primer acceso! Establece tu contraseña.');
-        config.onNeedPasswordChange?.();
-        navigate(`${config.changePasswordRoute}?redirect=${encodeURIComponent(config.defaultRedirect)}`);
-        setState(prev => ({ ...prev, isLoading: false }));
-        return;
-      }
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        email: data.user.email,
+        has_logged_in: true,
+      }, { onConflict: 'id' });
 
       toast.success('¡Inicio de sesión exitoso!');
       config.onLoginSuccess?.();
