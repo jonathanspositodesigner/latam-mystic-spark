@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Coins, ArrowRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import coverImage from "@/assets/upscaler-creditos-cover.webp";
+import coverImage from "@/assets/upscaler-cover.webp";
 
 interface UpscalerCreditosCardProps {
   hasAccess?: boolean;
