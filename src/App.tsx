@@ -61,6 +61,8 @@ const UpscalerArcanoVersionSelect = React.lazy(() => import("./pages/UpscalerArc
 const ToolVersionLessons = React.lazy(() => import("./pages/ToolVersionLessons"));
 const UpgradeUpscalerV3 = React.lazy(() => import("./pages/UpgradeUpscalerV3"));
 const UpscalerArcanoTool = React.lazy(() => import("./pages/UpscalerArcanoTool"));
+const PlanesCreditos = React.lazy(() => import("./pages/PlanesCreditos"));
+const CreditosUpscaler = React.lazy(() => import("./pages/CreditosUpscaler"));
 
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center">
