@@ -211,12 +211,18 @@ serve(async (req) => {
             id: userId,
             email: customerEmail,
             email_verified: true,
-            password_changed: false, // They need to set their own password
+            password_changed: false,
             has_logged_in: false,
           },
           { onConflict: "id" }
         );
+
+        console.log(`[stripe-webhook] Profile created for new user: ${userId}`);
       }
+
+      // IMPORTANT: If user already existed (existingProfile), do NOT touch
+      // password_changed or has_logged_in — those flags belong to the auth flow
+      // and must not be reset on repeat purchases.
 
       // 4. Grant access to Upscaler Arcano V3
       const { data: existingPurchase } = await supabaseAdmin

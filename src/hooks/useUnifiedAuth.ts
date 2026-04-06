@@ -115,8 +115,11 @@ export function useUnifiedAuth(config: AuthConfig): UseUnifiedAuthReturn {
           return;
         }
 
-        // Fallback for stale profile flags: ask for the current password.
-        setState(prev => ({ ...prev, step: 'password', verifiedEmail: normalizedEmail, isLoading: false }));
+        // Auto-login failed — still need to set password
+        toast.success('¡Primer acceso! Establece tu contraseña.');
+        config.onNeedPasswordChange?.();
+        navigate(`${config.changePasswordRoute}?redirect=${encodeURIComponent(config.defaultRedirect)}`);
+        setState(prev => ({ ...prev, isLoading: false }));
         return;
       }
 

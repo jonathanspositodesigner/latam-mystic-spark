@@ -113,12 +113,10 @@ export function useAuthFlow() {
           return;
         }
 
-        // If auto-login fails, the profile flags are stale and the user
-        // should enter the existing password instead of being forced to
-        // create a new one again.
+        // Auto-login failed — user may need to set password manually
         setState(prev => ({
           ...prev,
-          step: 'password',
+          step: 'set-password',
           verifiedEmail: emailToCheck,
           isLoading: false,
         }));
@@ -232,10 +230,24 @@ export function useAuthFlow() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from('profiles').update({
+        const { error: profileError } = await supabase.from('profiles').update({
           password_changed: true,
           has_logged_in: true,
         }).eq('id', user.id);
+
+        if (profileError) {
+          console.error('[AuthFlow] Failed to update profile flags:', profileError);
+          // Retry once with upsert as fallback
+          const { error: retryError } = await supabase.from('profiles').upsert({
+            id: user.id,
+            email: user.email,
+            password_changed: true,
+            has_logged_in: true,
+          }, { onConflict: 'id' });
+          if (retryError) {
+            console.error('[AuthFlow] Retry profile update also failed:', retryError);
+          }
+        }
       }
 
       toast.success('¡Contraseña creada! Bienvenido.');
