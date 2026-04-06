@@ -460,6 +460,13 @@ async function handleFinish(req: Request): Promise<Response> {
   await supabase.from(table).update(updateData).eq('id', jobId);
   await logStep(table, jobId, status, { outputUrl: outputUrl ? 'received' : null, error: errorMessage, refundedAmount });
 
+  // ========== PUSH NOTIFICATION ==========
+  if (job.user_id && (status === 'completed' || status === 'failed')) {
+    sendPushNotification(job.user_id, status, TOOL_NAMES[table as JobTable] || 'Herramienta IA', refundedAmount).catch(e =>
+      console.error('[QueueManager] Push notification error:', e)
+    );
+  }
+
   // Process next (fire-and-forget)
   fetch(`${SUPABASE_URL}/functions/v1/runninghub-queue-manager/process-next`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` }, body: '{}',

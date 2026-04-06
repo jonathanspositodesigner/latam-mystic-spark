@@ -219,6 +219,24 @@ async function handleRun(req: Request) {
     return new Response(JSON.stringify({ error: 'Invalid credit cost', code: 'INVALID_CREDIT_COST' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
+  // ========== RATE LIMITING (1 job per 60s per user) ==========
+  const RATE_LIMIT_SECONDS = 60;
+  const rateLimitCutoff = new Date(Date.now() - RATE_LIMIT_SECONDS * 1000).toISOString();
+  const { count: recentJobCount } = await supabase
+    .from('upscaler_jobs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', effectiveUserId)
+    .in('status', ['pending', 'starting', 'running', 'queued'])
+    .gt('created_at', rateLimitCutoff);
+
+  if ((recentJobCount || 0) > 1) {
+    console.log(`[RunningHub] Rate limit hit for user ${effectiveUserId}: ${recentJobCount} recent jobs`);
+    return new Response(JSON.stringify({
+      error: 'Demasiadas solicitudes. Espera 1 minuto entre cada trabajo.',
+      code: 'RATE_LIMIT_EXCEEDED',
+    }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
   await logStep(jobId, 'validating', { category, version, framingMode });
 
   // ========== TRANSFER IMAGE TO RUNNINGHUB ==========
