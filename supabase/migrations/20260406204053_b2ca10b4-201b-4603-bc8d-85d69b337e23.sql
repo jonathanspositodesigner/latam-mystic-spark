@@ -1,0 +1,1 @@
+UPDATE public.profiles SET password_changed = true, has_logged_in = true, updated_at = now() WHERE id = 'a78dfff1-0e4a-4b46-ae83-c033296019a4';
