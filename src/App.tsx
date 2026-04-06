@@ -61,6 +61,8 @@ const UpscalerArcanoVersionSelect = React.lazy(() => import("./pages/UpscalerArc
 const ToolVersionLessons = React.lazy(() => import("./pages/ToolVersionLessons"));
 const UpgradeUpscalerV3 = React.lazy(() => import("./pages/UpgradeUpscalerV3"));
 const UpscalerArcanoTool = React.lazy(() => import("./pages/UpscalerArcanoTool"));
+const PlanesCreditos = React.lazy(() => import("./pages/PlanesCreditos"));
+const CreditosUpscaler = React.lazy(() => import("./pages/CreditosUpscaler"));
 
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center">
@@ -141,6 +143,8 @@ const AppContent = () => {
           <Route path="/ferramenta-ia-artes/:toolSlug/:versionSlug" element={<ToolVersionLessons />} />
           <Route path="/upgrade-upscaler-v3" element={<UpgradeUpscalerV3 />} />
           <Route path="/upscaler-arcano-tool" element={<UpscalerArcanoTool />} />
+          <Route path="/planes" element={<PlanesCreditos />} />
+          <Route path="/creditos-upscaler" element={<CreditosUpscaler />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
