@@ -216,6 +216,10 @@ const UpscalerArcanoTool: React.FC = () => {
         setQueuePosition(0);
         toast.success('¡Listo! Tu imagen fue procesada.');
         if (isMobile && inputImage) optimizeImagesForSlider(inputImage, update.outputUrl);
+        // Browser notification when tab is not focused
+        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('✅ Upscaler Arcano — ¡Listo!', { body: 'Tu imagen fue procesada con éxito. Toca para ver.', icon: '/favicon.ico' });
+        }
       } else if (update.status === 'failed') {
         setStatus('error');
         const friendlyError = getAIErrorMessage(update.errorMessage);
