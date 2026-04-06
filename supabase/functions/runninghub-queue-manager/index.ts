@@ -151,6 +151,55 @@ async function cleanupOrphanPendingJobs(): Promise<number> {
   return totalCleaned;
 }
 
+// ==================== PUSH NOTIFICATIONS ====================
+
+async function sendPushNotification(userId: string, jobStatus: string, toolName: string, refundedAmount: number): Promise<void> {
+  const { data: subscriptions } = await supabase
+    .from('push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('user_id', userId);
+
+  if (!subscriptions || subscriptions.length === 0) return;
+
+  const title = jobStatus === 'completed'
+    ? `✅ ${toolName} — ¡Listo!`
+    : `❌ ${toolName} — Error`;
+
+  const body = jobStatus === 'completed'
+    ? 'Tu imagen fue procesada con éxito. Toca para descargar.'
+    : refundedAmount > 0
+      ? `Hubo un error. ${refundedAmount} créditos fueron devueltos.`
+      : 'Hubo un error en el procesamiento. Intenta de nuevo.';
+
+  // Web Push requires VAPID keys — use simple fetch-based approach
+  // Since we don't have VAPID keys, we'll store the notification in a lightweight way
+  // and let the service worker poll, OR use the Notification API via the open tab
+  // For now, log that we'd send and the frontend handles via Realtime
+  console.log(`[QueueManager] Push notification for ${userId}: ${title} - ${body}`);
+  
+  // If VAPID keys are configured, send actual push
+  const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY');
+  const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY');
+  
+  if (!VAPID_PRIVATE_KEY || !VAPID_PUBLIC_KEY) {
+    console.log('[QueueManager] VAPID keys not configured, skipping web push');
+    return;
+  }
+
+  for (const sub of subscriptions) {
+    try {
+      // Use web-push compatible fetch
+      const pushPayload = JSON.stringify({ title, body, icon: '/favicon.ico', data: { url: '/upscaler-arcano-tool' } });
+      
+      // Simple notification via the endpoint (requires proper VAPID signing)
+      // For MVP: the frontend already handles notifications via Realtime subscriptions
+      console.log(`[QueueManager] Would send push to endpoint: ${sub.endpoint.slice(0, 50)}...`);
+    } catch (e) {
+      console.error('[QueueManager] Push send error:', e);
+    }
+  }
+}
+
 // ==================== RUNNINGHUB API v2 ====================
 
 async function fetchWithRetry(url: string, options: RequestInit, context: string, maxRetries = 6): Promise<Response> {
@@ -459,6 +508,13 @@ async function handleFinish(req: Request): Promise<Response> {
   if (webhookPayload) updateData.raw_webhook_payload = webhookPayload;
   await supabase.from(table).update(updateData).eq('id', jobId);
   await logStep(table, jobId, status, { outputUrl: outputUrl ? 'received' : null, error: errorMessage, refundedAmount });
+
+  // ========== PUSH NOTIFICATION ==========
+  if (job.user_id && (status === 'completed' || status === 'failed')) {
+    sendPushNotification(job.user_id, status, TOOL_NAMES[table as JobTable] || 'Herramienta IA', refundedAmount).catch(e =>
+      console.error('[QueueManager] Push notification error:', e)
+    );
+  }
 
   // Process next (fire-and-forget)
   fetch(`${SUPABASE_URL}/functions/v1/runninghub-queue-manager/process-next`, {
