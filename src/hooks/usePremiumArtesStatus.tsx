@@ -9,9 +9,14 @@ export const usePremiumArtesStatus = () => {
 
   useEffect(() => {
     if (!user) {
+      setPackSlugs([]);
       setIsLoading(false);
       return;
     }
+
+    // Reset state when user changes
+    setIsLoading(true);
+    setPackSlugs([]);
 
     const fetchAccess = async () => {
       try {
@@ -41,7 +46,7 @@ export const usePremiumArtesStatus = () => {
     };
 
     fetchAccess();
-  }, [user]);
+  }, [user?.id]);
 
   const hasAccessToPack = (slug: string) => packSlugs.includes(slug);
 
