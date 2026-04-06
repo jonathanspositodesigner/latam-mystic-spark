@@ -7,6 +7,7 @@ import React, { Suspense } from "react";
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CreditsProvider } from "./contexts/CreditsContext";
+import { AIJobProvider } from "./contexts/AIJobContext";
 
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
