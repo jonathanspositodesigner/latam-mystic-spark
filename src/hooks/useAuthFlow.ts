@@ -113,12 +113,10 @@ export function useAuthFlow() {
           return;
         }
 
-        // If auto-login fails, the profile flags are stale and the user
-        // should enter the existing password instead of being forced to
-        // create a new one again.
+        // Auto-login failed — user may need to set password manually
         setState(prev => ({
           ...prev,
-          step: 'password',
+          step: 'set-password',
           verifiedEmail: emailToCheck,
           isLoading: false,
         }));
