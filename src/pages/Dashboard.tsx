@@ -36,14 +36,12 @@ const Dashboard = () => {
   // Centralised purchase state — single source of truth
   const purchaseState = useMemo(() => {
     if (premiumArtesLoading) return "loading" as const;
-    const hasVitalicio =
-      planType === "arcano_unlimited" ||
-      VITALICIO_SLUGS.some((slug) => hasAccessToPack(slug));
+    const hasVitalicio = VITALICIO_SLUGS.some((slug) => hasAccessToPack(slug));
     const hasCreditos = CREDITOS_SLUGS.some((slug) => hasAccessToPack(slug));
     if (hasVitalicio) return "vitalicio" as const;
     if (hasCreditos) return "creditos" as const;
     return "none" as const;
-  }, [premiumArtesLoading, planType, hasAccessToPack, packSlugs]);
+  }, [premiumArtesLoading, hasAccessToPack, packSlugs]);
 
   useEffect(() => {
     const fetchProfile = async () => {
