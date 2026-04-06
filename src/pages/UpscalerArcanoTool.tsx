@@ -51,7 +51,7 @@ const UpscalerArcanoTool: React.FC = () => {
   const [queueComboIdx] = useState(() => Math.floor(Math.random() * QUEUE_MESSAGES.length));
 
   const handleFileSelect = useCallback((file: File) => {
-    if (!toolConfig.acceptedTypes.includes(file.type)) {
+    if (!(toolConfig.acceptedTypes as readonly string[]).includes(file.type)) {
       toast.error('Formato no soportado. Usa JPG, PNG o WebP.');
       return;
     }
