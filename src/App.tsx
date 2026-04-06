@@ -7,6 +7,7 @@ import React, { Suspense } from "react";
 
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CreditsProvider } from "./contexts/CreditsContext";
+import { AIJobProvider } from "./contexts/AIJobContext";
 
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
@@ -59,6 +60,7 @@ const PromptsTopIndicadores = React.lazy(() => import("./pages/admin/PromptsTopI
 const UpscalerArcanoVersionSelect = React.lazy(() => import("./pages/UpscalerArcanoVersionSelect"));
 const ToolVersionLessons = React.lazy(() => import("./pages/ToolVersionLessons"));
 const UpgradeUpscalerV3 = React.lazy(() => import("./pages/UpgradeUpscalerV3"));
+const UpscalerArcanoTool = React.lazy(() => import("./pages/UpscalerArcanoTool"));
 
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center">
@@ -138,6 +140,7 @@ const AppContent = () => {
           <Route path="/ferramenta-ia-artes/upscaller-arcano" element={<Navigate to="/upscaler-arcano" replace />} />
           <Route path="/ferramenta-ia-artes/:toolSlug/:versionSlug" element={<ToolVersionLessons />} />
           <Route path="/upgrade-upscaler-v3" element={<UpgradeUpscalerV3 />} />
+          <Route path="/upscaler-arcano-tool" element={<UpscalerArcanoTool />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
@@ -155,9 +158,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <CreditsWrapper>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
+        <AIJobProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </AIJobProvider>
       </CreditsWrapper>
     </AuthProvider>
   </QueryClientProvider>
