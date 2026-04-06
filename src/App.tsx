@@ -158,9 +158,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <CreditsWrapper>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
+        <AIJobProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </AIJobProvider>
       </CreditsWrapper>
     </AuthProvider>
   </QueryClientProvider>
