@@ -173,7 +173,7 @@ const Dashboard = () => {
                   purchaseUrl="https://arcanoapp.voxvisual.com.br/upscalerarcanov3-es"
                 />
                 <UpscalerCreditosCard
-                  hasAccess={false}
+                  hasAccess={true}
                   isLoading={premiumArtesLoading}
                   purchaseUrl="/creditos-upscaler"
                 />
