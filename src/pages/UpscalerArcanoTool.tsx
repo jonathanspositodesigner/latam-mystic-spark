@@ -205,21 +205,56 @@ const UpscalerArcanoTool: React.FC = () => {
     jobId,
     toolId: 'upscaler',
     enabled: status === 'processing' || isWaitingInQueue || status === 'uploading',
-    onStatusChange: (update) => {
+    onStatusChange: useCallback(async (update) => {
       setCurrentStep(update.currentStep || update.status);
       
-      if (update.status === 'completed' && update.outputUrl) {
-        setOutputImage(update.outputUrl);
-        setStatus('completed');
-        setProgress(100);
-        setIsWaitingInQueue(false);
-        setQueuePosition(0);
-        toast.success('¡Listo! Tu imagen fue procesada.');
-        if (isMobile && inputImage) optimizeImagesForSlider(inputImage, update.outputUrl);
-        // Browser notification when tab is not focused
-        if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification('✅ Upscaler Arcano — ¡Listo!', { body: 'Tu imagen fue procesada con éxito. Toca para ver.', icon: '/favicon.ico' });
+      if (update.status === 'completed') {
+        let finalOutputUrl = update.outputUrl;
+        
+        // Fallback: if completed but no outputUrl, fetch directly from DB
+        if (!finalOutputUrl && jobId) {
+          console.warn('[Upscaler] Completed event without outputUrl, fetching from DB...');
+          const { data: freshJob } = await supabase
+            .from('upscaler_jobs')
+            .select('output_url')
+            .eq('id', jobId)
+            .maybeSingle();
+          finalOutputUrl = freshJob?.output_url || null;
+          
+          // Retry once after 2s if still missing
+          if (!finalOutputUrl) {
+            await new Promise(r => setTimeout(r, 2000));
+            const { data: retryJob } = await supabase
+              .from('upscaler_jobs')
+              .select('output_url')
+              .eq('id', jobId)
+              .maybeSingle();
+            finalOutputUrl = retryJob?.output_url || null;
+          }
         }
+        
+        if (finalOutputUrl) {
+          setOutputImage(finalOutputUrl);
+          setStatus('completed');
+          setProgress(100);
+          setIsWaitingInQueue(false);
+          setQueuePosition(0);
+          endSubmit();
+          toast.success('¡Listo! Tu imagen fue procesada.');
+          if (isMobile && inputImage) optimizeImagesForSlider(inputImage, finalOutputUrl);
+          if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('✅ Upscaler Arcano — ¡Listo!', { body: 'Tu imagen fue procesada con éxito. Toca para ver.', icon: '/favicon.ico' });
+          }
+        } else {
+          // Completed but truly no output — treat as error
+          console.error('[Upscaler] Job completed but no output URL found');
+          setStatus('error');
+          setLastError({ message: 'Procesamiento completado pero no se recibió la imagen. Intenta de nuevo.', code: 'NO_OUTPUT', solution: 'Los créditos serán reembolsados automáticamente.' });
+          setIsWaitingInQueue(false);
+          endSubmit();
+          toast.error('Error: no se recibió la imagen procesada');
+        }
+        refetchCredits();
       } else if (update.status === 'failed') {
         setStatus('error');
         const friendlyError = getAIErrorMessage(update.errorMessage);
@@ -227,6 +262,7 @@ const UpscalerArcanoTool: React.FC = () => {
         setIsWaitingInQueue(false);
         toast.error(friendlyError.message);
         endSubmit();
+        refetchCredits();
         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
           new Notification('❌ Upscaler Arcano — Error', { body: friendlyError.message, icon: '/favicon.ico' });
         }
@@ -239,7 +275,7 @@ const UpscalerArcanoTool: React.FC = () => {
         setIsWaitingInQueue(true);
         setQueuePosition(update.position || 1);
       }
-    },
+    }, [jobId, endSubmit, isMobile, inputImage, optimizeImagesForSlider, refetchCredits]),
     onGlobalStatusChange: updateJobStatus,
   });
 
