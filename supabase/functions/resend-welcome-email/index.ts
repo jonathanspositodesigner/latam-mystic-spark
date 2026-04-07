@@ -114,7 +114,10 @@ serve(async (req) => {
     const creditLabel = isCreditos ? creditLabels[pack_slug] || "" : undefined;
     const htmlContent = buildWelcomeEmailHtml(APP_URL, emailType as any, creditLabel);
 
+    console.log(`[resend-welcome] Getting SendPulse token...`);
     const sendPulseToken = await getSendPulseToken();
+    console.log(`[resend-welcome] Token obtained, sending to: ${customer_email}`);
+    
     const htmlBase64 = btoa(unescape(encodeURIComponent(htmlContent)));
 
     const emailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
@@ -134,15 +137,17 @@ serve(async (req) => {
       }),
     });
 
+    const emailResBody = await emailRes.text();
+    console.log(`[resend-welcome] SendPulse response: status=${emailRes.status} body=${emailResBody}`);
+
     if (emailRes.ok) {
       await supabaseAdmin.from("user_pack_purchases")
         .update({ welcome_email_sent: true, welcome_email_sent_at: new Date().toISOString() })
         .eq("id", purchase_id);
       return json({ success: true });
     } else {
-      const errBody = await emailRes.text();
-      console.error("[resend-welcome] SendPulse error:", errBody);
-      return json({ error: "email_send_failed", detail: errBody }, 500);
+      console.error("[resend-welcome] SendPulse FAILED:", emailResBody);
+      return json({ error: "email_send_failed", detail: emailResBody }, 500);
     }
   } catch (err: any) {
     console.error("[resend-welcome] Error:", err.message);
