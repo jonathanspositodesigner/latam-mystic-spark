@@ -296,8 +296,22 @@ serve(async (req) => {
         const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
         const emailType = creditProduct ? "creditos" : "vitalicio";
         const htmlContent = buildWelcomeEmailHtml(APP_URL, emailType as any, creditProduct?.label);
+        
+        console.log(`[stripe-webhook] Getting SendPulse token...`);
         const sendPulseToken = await getSendPulseToken();
+        console.log(`[stripe-webhook] SendPulse token obtained, sending email to: ${customerEmail}`);
+        
         const htmlBase64 = btoa(unescape(encodeURIComponent(htmlContent)));
+
+        const emailPayload = {
+          email: {
+            html: htmlBase64,
+            text: "",
+            subject: `🎉 ¡Bienvenido a Arcano App! Tu ${creditProduct ? `pack ${creditProduct.label}` : "Upscaler Arcano V3"} está listo`,
+            from: { name: "Arcano App", email: "contato@voxvisual.com.br" },
+            to: [{ name: customerEmail, email: customerEmail }],
+          },
+        };
 
         const emailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
           method: "POST",
@@ -305,20 +319,18 @@ serve(async (req) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${sendPulseToken}`,
           },
-          body: JSON.stringify({
-            email: {
-              html: htmlBase64,
-              text: "",
-              subject: `🎉 ¡Bienvenido a Arcano App! Tu ${creditProduct ? `pack ${creditProduct.label}` : "Upscaler Arcano V3"} está listo`,
-              from: { name: "Arcano App", email: "contato@voxvisual.com.br" },
-              to: [{ name: customerEmail, email: customerEmail }],
-            },
-          }),
+          body: JSON.stringify(emailPayload),
         });
+        
+        const emailResBody = await emailRes.text();
         emailSent = emailRes.ok;
-        console.log(`[stripe-webhook] Welcome email ${emailSent ? 'sent' : 'failed'} to: ${customerEmail}`);
+        console.log(`[stripe-webhook] SendPulse response: status=${emailRes.status} ok=${emailSent} body=${emailResBody}`);
+        
+        if (!emailSent) {
+          console.error(`[stripe-webhook] SendPulse FAILED: ${emailRes.status} - ${emailResBody}`);
+        }
       } catch (emailErr: any) {
-        console.error(`[stripe-webhook] Welcome email failed:`, emailErr.message);
+        console.error(`[stripe-webhook] Welcome email exception:`, emailErr.message, emailErr.stack);
       }
 
       // ── Update email tracking on the purchase ──
