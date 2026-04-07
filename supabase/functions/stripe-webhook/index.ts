@@ -291,6 +291,7 @@ serve(async (req) => {
       }
 
       // ── Send welcome email ──
+      let emailSent = false;
       try {
         const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
         const emailType = creditProduct ? "creditos" : "vitalicio";
@@ -298,7 +299,7 @@ serve(async (req) => {
         const sendPulseToken = await getSendPulseToken();
         const htmlBase64 = btoa(unescape(encodeURIComponent(htmlContent)));
 
-        await fetch("https://api.sendpulse.com/smtp/emails", {
+        const emailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -314,9 +315,18 @@ serve(async (req) => {
             },
           }),
         });
-        console.log(`[stripe-webhook] Welcome email sent to: ${customerEmail}`);
+        emailSent = emailRes.ok;
+        console.log(`[stripe-webhook] Welcome email ${emailSent ? 'sent' : 'failed'} to: ${customerEmail}`);
       } catch (emailErr: any) {
         console.error(`[stripe-webhook] Welcome email failed:`, emailErr.message);
+      }
+
+      // ── Update email tracking on the purchase ──
+      if (emailSent) {
+        await supabaseAdmin.from("user_pack_purchases")
+          .update({ welcome_email_sent: true, welcome_email_sent_at: new Date().toISOString() })
+          .eq("user_id", userId)
+          .eq("external_id", session.id);
       }
 
       // Mark webhook as processed
