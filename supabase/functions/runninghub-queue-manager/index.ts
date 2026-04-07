@@ -51,6 +51,18 @@ interface ApiAccount { name: string; apiKey: string; maxSlots: number; }
 
 // ==================== HELPERS ====================
 
+function normalizeUpscalerCategory(category?: string | null): string {
+  if (!category) return 'pessoas_perto';
+
+  const normalized = category.trim();
+
+  if (normalized === 'personas_cerca' || normalized === 'personas_perto') return 'pessoas_perto';
+  if (normalized === 'personas_lejos' || normalized === 'personas_longe') return 'pessoas_longe';
+  if (normalized === 'fotoAntigua') return 'fotoAntiga';
+
+  return normalized;
+}
+
 function getAvailableApiAccounts(): ApiAccount[] {
   const accounts: ApiAccount[] = [];
   const key1 = (Deno.env.get('RUNNINGHUB_API_KEY') || '').trim();
@@ -237,7 +249,7 @@ async function startJobOnRunningHub(table: JobTable, job: any, account: ApiAccou
   let nodeInfoList: any[];
 
   if (table === 'upscaler_jobs') {
-    const category = p.category || job.category || 'personas_cerca';
+    const category = normalizeUpscalerCategory(p.category || job.category || 'pessoas_perto');
     const inputFile = p.inputFileName || job.input_file_name;
     const detailDenoise = p.detailDenoise ?? job.detail_denoise;
     let resolution = p.resolution || job.resolution;
@@ -249,7 +261,7 @@ async function startJobOnRunningHub(table: JobTable, job: any, account: ApiAccou
       resolution = 2048;
     }
 
-    if (category === 'fotoAntigua' || category === 'fotoAntiga') {
+    if (category === 'fotoAntiga') {
       webappId = WEBAPP_IDS.upscaler_jobs.fotoAntigua;
       nodeInfoList = [{ nodeId: "139", fieldName: "image", fieldValue: inputFile }];
     } else if (category === 'comida') {
@@ -264,15 +276,15 @@ async function startJobOnRunningHub(table: JobTable, job: any, account: ApiAccou
       webappId = WEBAPP_IDS.upscaler_jobs.render3d;
       nodeInfoList = [{ nodeId: "301", fieldName: "image", fieldValue: inputFile }];
       if (detailDenoise !== undefined) nodeInfoList.push({ nodeId: "300", fieldName: "value", fieldValue: String(detailDenoise) });
-    } else if (category?.includes('persona') && (!detailDenoise || detailDenoise <= 0)) {
-      // Personas SIN detallar rostro
+    } else if (category.startsWith('pessoas') && (!detailDenoise || detailDenoise <= 0)) {
+      // Pessoas sem detalhar rosto
       webappId = WEBAPP_IDS.upscaler_jobs.personas_sin_rostro;
       nodeInfoList = [
         { nodeId: "1", fieldName: "image", fieldValue: inputFile },
         { nodeId: "548", fieldName: "value", fieldValue: String(resolution || 4096) },
       ];
     } else {
-      // Personas CON detallar rostro
+      // Pessoas com detalhar rosto
       webappId = WEBAPP_IDS.upscaler_jobs.personas_con_rostro;
       nodeInfoList = [
         { nodeId: "1", fieldName: "image", fieldValue: inputFile },

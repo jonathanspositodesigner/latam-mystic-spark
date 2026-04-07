@@ -34,6 +34,10 @@ async function logStep(table: string, jobId: string, step: string, details?: Rec
   }
 }
 
+function isLongDistancePeopleCategory(category?: string | null): boolean {
+  return category === 'pessoas_longe' || category === 'personas_lejos' || category === 'personas_longe';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -216,7 +220,7 @@ serve(async (req) => {
     if (
       jobTable === 'upscaler_jobs' &&
       newStatus === 'failed' &&
-      jobData.category === 'personas_lejos' &&
+      isLongDistancePeopleCategory(jobData.category) &&
       !jobData.fallback_attempted &&
       jobData.input_file_name
     ) {
