@@ -109,6 +109,18 @@ async function fetchWithRetry(url: string, options: RequestInit, context: string
   throw new Error(`${context} failed - unexpected retry loop exit`);
 }
 
+function normalizeUpscalerCategory(category?: string | null): string {
+  if (!category) return 'pessoas_perto';
+
+  const normalized = category.trim();
+
+  if (normalized === 'personas_cerca' || normalized === 'personas_perto') return 'pessoas_perto';
+  if (normalized === 'personas_lejos' || normalized === 'personas_longe') return 'pessoas_longe';
+  if (normalized === 'fotoAntigua') return 'fotoAntiga';
+
+  return normalized;
+}
+
 // ========== MAIN HANDLER ==========
 
 serve(async (req) => {
@@ -193,6 +205,7 @@ async function handleRun(req: Request) {
     return new Response(JSON.stringify({ error: 'Unauthorized', code: 'INVALID_TOKEN' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
   const effectiveUserId = authUser.id;
+  const normalizedCategory = normalizeUpscalerCategory(category);
 
   // ========== INPUT VALIDATION ==========
   if (!jobId || typeof jobId !== 'string') {
@@ -213,6 +226,11 @@ async function handleRun(req: Request) {
     } catch {
       return new Response(JSON.stringify({ error: 'Invalid image URL format', code: 'INVALID_IMAGE_URL' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
+  }
+
+  const validCategories = ['pessoas_perto', 'pessoas_longe', 'comida', 'fotoAntiga', 'logo', 'render3d'];
+  if (category !== undefined && !validCategories.includes(normalizedCategory)) {
+    return new Response(JSON.stringify({ error: 'Invalid category', code: 'INVALID_CATEGORY' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   if (typeof creditCost !== 'number' || creditCost < 1 || creditCost > 500) {
@@ -237,7 +255,7 @@ async function handleRun(req: Request) {
     }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  await logStep(jobId, 'validating', { category, version, framingMode });
+  await logStep(jobId, 'validating', { category: normalizedCategory, version, framingMode });
 
   // ========== TRANSFER IMAGE TO RUNNINGHUB ==========
   let rhFileName = fileName;
@@ -303,7 +321,7 @@ async function handleRun(req: Request) {
   await supabase.from('upscaler_jobs').update({
     input_file_name: rhFileName,
     job_payload: {
-      category: category || 'personas_cerca',
+      category: normalizedCategory,
       version: version || 'standard',
       framingMode: framingMode || 'perto',
       detailDenoise,
