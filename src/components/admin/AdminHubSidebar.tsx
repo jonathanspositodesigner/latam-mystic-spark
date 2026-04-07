@@ -1,9 +1,9 @@
-import { Home, LogOut, ArrowLeft, Users, ShieldCheck, Mail } from "lucide-react";
+import { Home, LogOut, ArrowLeft, Users, ShieldCheck, Mail, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-export type HubViewType = "home" | "dashboard" | "email-marketing" | "push-notifications" | "partners" | "admins" | "emails";
+export type HubViewType = "home" | "dashboard" | "email-marketing" | "push-notifications" | "partners" | "admins" | "emails" | "vendas";
 
 interface AdminHubSidebarProps {
   activeView: HubViewType;
@@ -16,6 +16,7 @@ const AdminHubSidebar = ({ activeView, onViewChange, onLogout }: AdminHubSidebar
 
   const menuItems = [
     { id: "home" as const, label: "HOME", icon: Home, description: "Selecionar plataforma" },
+    { id: "vendas" as const, label: "VENDAS STRIPE", icon: CreditCard, description: "Vendas, emails e acessos" },
     { id: "partners" as const, label: "GERENCIAR PARCEIROS", icon: Users, description: "Cadastrar e gerenciar colaboradores" },
     { id: "admins" as const, label: "ADMINISTRADORES", icon: ShieldCheck, description: "Gerenciar acessos de admin" },
     { id: "emails" as const, label: "EMAILS DE BOAS-VINDAS", icon: Mail, description: "Monitoramento de envios" },

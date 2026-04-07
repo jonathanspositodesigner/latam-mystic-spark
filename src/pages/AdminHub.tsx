@@ -10,6 +10,7 @@ import AdminHubSidebar, { HubViewType } from "@/components/admin/AdminHubSidebar
 import AdminSimpleMetrics from "@/components/admin/AdminSimpleMetrics";
 import PartnersManagementContent from "@/components/admin/PartnersManagementContent";
 import AdminsManagementContent from "@/components/admin/AdminsManagementContent";
+import SalesTrackingContent from "@/components/admin/SalesTrackingContent";
 
 const AdminHub = () => {
   const navigate = useNavigate();
@@ -64,6 +65,7 @@ const AdminHub = () => {
           </div>
         );
       case "dashboard": return <AdminSimpleMetrics />;
+      case "vendas": return <SalesTrackingContent />;
       case "partners": return <PartnersManagementContent />;
       case "admins": return <AdminsManagementContent />;
       case "push-notifications": return <PlaceholderView title="Push Notifications" />;

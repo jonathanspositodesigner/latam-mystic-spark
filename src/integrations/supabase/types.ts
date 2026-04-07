@@ -937,6 +937,8 @@ export type Database = {
           payment_status: string | null
           plan_type: string | null
           user_id: string
+          welcome_email_sent: boolean | null
+          welcome_email_sent_at: string | null
         }
         Insert: {
           amount?: number | null
@@ -950,6 +952,8 @@ export type Database = {
           payment_status?: string | null
           plan_type?: string | null
           user_id: string
+          welcome_email_sent?: boolean | null
+          welcome_email_sent_at?: string | null
         }
         Update: {
           amount?: number | null
@@ -963,6 +967,8 @@ export type Database = {
           payment_status?: string | null
           plan_type?: string | null
           user_id?: string
+          welcome_email_sent?: boolean | null
+          welcome_email_sent_at?: string | null
         }
         Relationships: [
           {
