@@ -301,15 +301,24 @@ async function startJobOnRunningHub(table: JobTable, job: any, account: ApiAccou
 
   try {
     const requestBody = {
-      apiKey: account.apiKey,
-      webappId,
       nodeInfoList,
-      callbackUrl: webhookUrl,
+      instanceType: "default",
+      usePersonalQueue: false,
+      webhookUrl,
     };
+
+    console.log(`[QueueManager] Request body:`, JSON.stringify(requestBody));
 
     const response = await fetchWithRetry(
       `https://www.runninghub.ai/openapi/v2/run/ai-app/${webappId}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) },
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${account.apiKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      },
       'RunningHub v2 API call'
     );
 
@@ -321,11 +330,11 @@ async function startJobOnRunningHub(table: JobTable, job: any, account: ApiAccou
 
     console.log(`[QueueManager] RunningHub response:`, JSON.stringify(data));
 
-    if (data.code !== 0) {
+    // v2 API returns taskId directly at root level
+    const taskId = data.taskId || data.data?.taskId;
+    if (!taskId && data.code && data.code !== 0) {
       throw new Error(data.msg || `RunningHub error code ${data.code}`);
     }
-
-    const taskId = data.data?.taskId;
     if (!taskId) throw new Error('No taskId in RunningHub response');
 
     // Update job with taskId and running status

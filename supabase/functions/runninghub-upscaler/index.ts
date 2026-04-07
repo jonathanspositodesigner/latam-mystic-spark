@@ -414,24 +414,27 @@ async function handleFallback(req: Request) {
       `https://www.runninghub.ai/openapi/v2/run/ai-app/${WEBAPP_ID_STANDARD}`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${RUNNINGHUB_API_KEY}`,
+        },
         body: JSON.stringify({
-          apiKey: RUNNINGHUB_API_KEY,
-          webappId: WEBAPP_ID_STANDARD,
           nodeInfoList,
-          callbackUrl: `${SUPABASE_URL}/functions/v1/runninghub-webhook`,
+          instanceType: "default",
+          usePersonalQueue: false,
+          webhookUrl: `${SUPABASE_URL}/functions/v1/runninghub-webhook`,
         }),
       },
       'Fallback RunningHub v2 call'
     );
 
     const data = await safeParseResponse(response, 'Fallback response');
-    if (data.code !== 0) {
-      await supabase.from('upscaler_jobs').update({ status: 'failed', error_message: `FALLBACK_FAILED: ${data.msg}`, failed_at_step: 'fallback_start' }).eq('id', jobId);
-      return new Response(JSON.stringify({ success: false, error: data.msg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const taskId = data.taskId || data.data?.taskId;
+    if (!taskId) {
+      const errMsg = data.msg || data.message || 'No taskId';
+      await supabase.from('upscaler_jobs').update({ status: 'failed', error_message: `FALLBACK_FAILED: ${errMsg}`, failed_at_step: 'fallback_start' }).eq('id', jobId);
+      return new Response(JSON.stringify({ success: false, error: errMsg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-
-    const taskId = data.data?.taskId;
     if (!taskId) {
       await supabase.from('upscaler_jobs').update({ status: 'failed', error_message: 'FALLBACK_NO_TASKID', failed_at_step: 'fallback_start' }).eq('id', jobId);
       return new Response(JSON.stringify({ success: false, error: 'No taskId from fallback' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
