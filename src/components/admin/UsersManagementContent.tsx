@@ -143,6 +143,14 @@ const UsersManagementContent = () => {
     );
   });
 
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedUsers = filteredUsers.slice((safeCurrentPage - 1) * USERS_PER_PAGE, safeCurrentPage * USERS_PER_PAGE);
+
+  // Reset page when search changes
+  useEffect(() => { setCurrentPage(1); }, [search]);
+
   // Edit profile
   const openEdit = (u: UserRow) => {
     setEditUser(u);
