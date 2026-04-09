@@ -69,6 +69,8 @@ const UsersManagementContent = () => {
 
   // Action loading
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const USERS_PER_PAGE = 20;
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -140,6 +142,14 @@ const UsersManagementContent = () => {
       (u.phone?.toLowerCase().includes(term))
     );
   });
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedUsers = filteredUsers.slice((safeCurrentPage - 1) * USERS_PER_PAGE, safeCurrentPage * USERS_PER_PAGE);
+
+  // Reset page when search changes
+  useEffect(() => { setCurrentPage(1); }, [search]);
 
   // Edit profile
   const openEdit = (u: UserRow) => {
@@ -338,7 +348,7 @@ const UsersManagementContent = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-1">Gerenciar Usuários</h2>
-          <p className="text-muted-foreground text-sm">{allUsers.length} usuário(s) cadastrados</p>
+          <p className="text-muted-foreground text-sm">{filteredUsers.length} de {allUsers.length} usuário(s) • Página {safeCurrentPage}/{totalPages}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
@@ -381,7 +391,7 @@ const UsersManagementContent = () => {
       )}
 
       <div className="space-y-3">
-        {filteredUsers.map(u => (
+        {paginatedUsers.map(u => (
           <Card key={u.id} className="overflow-hidden">
             <div
               className="p-4 flex items-center justify-between cursor-pointer hover:bg-accent/50 transition-colors"
@@ -482,6 +492,51 @@ const UsersManagementContent = () => {
         ))}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safeCurrentPage <= 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          >
+            Anterior
+          </Button>
+          <div className="flex gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 2)
+              .reduce<number[]>((acc, p) => {
+                if (acc.length > 0 && p - acc[acc.length - 1] > 1) acc.push(-1);
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, idx) =>
+                p === -1 ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">…</span>
+                ) : (
+                  <Button
+                    key={p}
+                    variant={p === safeCurrentPage ? "default" : "outline"}
+                    size="sm"
+                    className="w-9"
+                    onClick={() => setCurrentPage(p)}
+                  >
+                    {p}
+                  </Button>
+                )
+              )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={safeCurrentPage >= totalPages}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          >
+            Próximo
+          </Button>
+        </div>
+      )}
       {/* Edit Dialog */}
       <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>
         <DialogContent>
