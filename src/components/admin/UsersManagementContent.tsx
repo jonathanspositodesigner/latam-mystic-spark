@@ -348,7 +348,7 @@ const UsersManagementContent = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-1">Gerenciar Usuários</h2>
-          <p className="text-muted-foreground text-sm">{allUsers.length} usuário(s) cadastrados</p>
+          <p className="text-muted-foreground text-sm">{filteredUsers.length} de {allUsers.length} usuário(s) • Página {safeCurrentPage}/{totalPages}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
