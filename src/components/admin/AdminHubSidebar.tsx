@@ -1,9 +1,9 @@
-import { Home, LogOut, ArrowLeft, Users, ShieldCheck, Mail, CreditCard } from "lucide-react";
+import { Home, LogOut, ArrowLeft, Users, ShieldCheck, Mail, CreditCard, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-export type HubViewType = "home" | "dashboard" | "email-marketing" | "push-notifications" | "partners" | "admins" | "emails" | "vendas";
+export type HubViewType = "home" | "dashboard" | "email-marketing" | "push-notifications" | "partners" | "admins" | "emails" | "vendas" | "usuarios";
 
 interface AdminHubSidebarProps {
   activeView: HubViewType;
