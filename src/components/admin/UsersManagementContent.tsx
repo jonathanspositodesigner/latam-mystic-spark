@@ -285,10 +285,19 @@ const UsersManagementContent = () => {
   // Resend welcome email
   const resendWelcome = async (u: UserRow) => {
     if (!u.email) return;
+    const latestPurchase = u.products[0];
+    if (!latestPurchase) {
+      toast.error("Este usuário não possui nenhuma compra registrada.");
+      return;
+    }
     setActionLoading("welcome-" + u.id);
     try {
       const { error } = await supabase.functions.invoke("resend-welcome-email", {
-        body: { email: u.email },
+        body: {
+          purchase_id: latestPurchase.id,
+          customer_email: u.email,
+          pack_slug: latestPurchase.pack_slug || "upscaller-arcano-v3",
+        },
       });
       if (error) throw error;
       toast.success("Email de boas-vindas reenviado!");
