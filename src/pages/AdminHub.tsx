@@ -66,6 +66,7 @@ const AdminHub = () => {
           </div>
         );
       case "dashboard": return <AdminSimpleMetrics />;
+      case "usuarios": return <UsersManagementContent />;
       case "vendas": return <SalesTrackingContent />;
       case "partners": return <PartnersManagementContent />;
       case "admins": return <AdminsManagementContent />;
