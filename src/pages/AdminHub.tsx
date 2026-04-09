@@ -11,6 +11,7 @@ import AdminSimpleMetrics from "@/components/admin/AdminSimpleMetrics";
 import PartnersManagementContent from "@/components/admin/PartnersManagementContent";
 import AdminsManagementContent from "@/components/admin/AdminsManagementContent";
 import SalesTrackingContent from "@/components/admin/SalesTrackingContent";
+import UsersManagementContent from "@/components/admin/UsersManagementContent";
 
 const AdminHub = () => {
   const navigate = useNavigate();
@@ -65,6 +66,7 @@ const AdminHub = () => {
           </div>
         );
       case "dashboard": return <AdminSimpleMetrics />;
+      case "usuarios": return <UsersManagementContent />;
       case "vendas": return <SalesTrackingContent />;
       case "partners": return <PartnersManagementContent />;
       case "admins": return <AdminsManagementContent />;
