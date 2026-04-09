@@ -391,7 +391,7 @@ const UsersManagementContent = () => {
       )}
 
       <div className="space-y-3">
-        {filteredUsers.map(u => (
+        {paginatedUsers.map(u => (
           <Card key={u.id} className="overflow-hidden">
             <div
               className="p-4 flex items-center justify-between cursor-pointer hover:bg-accent/50 transition-colors"
