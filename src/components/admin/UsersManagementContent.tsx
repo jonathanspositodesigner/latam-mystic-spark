@@ -69,6 +69,8 @@ const UsersManagementContent = () => {
 
   // Action loading
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const USERS_PER_PAGE = 20;
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
