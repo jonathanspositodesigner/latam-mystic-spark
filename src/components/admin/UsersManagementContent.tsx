@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   Search, RefreshCw, Loader2, Shield, ShieldOff, Coins, Mail,
   KeyRound, Trash2, Pencil, Save, X, UserCheck, UserX, Plus, Minus,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, UserPlus
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -26,7 +26,6 @@ interface UserRow {
   has_logged_in: boolean;
   password_changed: boolean;
   created_at: string;
-  // derived
   credits: number;
   products: { id: string; pack_slug: string | null; payment_status: string | null; created_at: string }[];
   isAdmin: boolean;
@@ -42,8 +41,8 @@ const SLUG_LABELS: Record<string, string> = {
 };
 
 const UsersManagementContent = () => {
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [allUsers, setAllUsers] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
@@ -63,35 +62,34 @@ const UsersManagementContent = () => {
   const [deleteUser, setDeleteUser] = useState<UserRow | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Create user modal
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [createForm, setCreateForm] = useState({ email: "", name: "", phone: "" });
+  const [creating, setCreating] = useState(false);
+
   // Action loading
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const searchUsers = async () => {
-    if (!search.trim() || search.trim().length < 3) {
-      toast.error("Digite ao menos 3 caracteres para buscar");
-      return;
-    }
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const searchTerm = search.trim().toLowerCase();
-      
-      // Search profiles
+      // Fetch all profiles
       const { data: profiles, error } = await supabase
         .from("profiles")
         .select("id, email, name, phone, has_logged_in, password_changed, created_at")
-        .or(`email.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
-        .limit(20);
+        .order("created_at", { ascending: false })
+        .limit(200);
 
       if (error) throw error;
       if (!profiles || profiles.length === 0) {
-        setUsers([]);
+        setAllUsers([]);
         setLoading(false);
         return;
       }
 
       const userIds = profiles.map(p => p.id);
 
-      // Fetch purchases, credits, roles in parallel
+      // Fetch purchases and roles in parallel
       const [purchasesRes, rolesRes] = await Promise.all([
         supabase.from("user_pack_purchases").select("id, user_id, pack_slug, payment_status, created_at").in("user_id", userIds),
         supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
@@ -120,13 +118,28 @@ const UsersManagementContent = () => {
         isAdmin: roles.some(r => r.user_id === p.id && r.role === "admin"),
       }));
 
-      setUsers(mapped);
+      setAllUsers(mapped);
     } catch (err: any) {
-      toast.error("Erro ao buscar: " + err.message);
+      toast.error("Erro ao carregar usuários: " + err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  // Filter users by search
+  const filteredUsers = allUsers.filter(u => {
+    if (!search.trim()) return true;
+    const term = search.trim().toLowerCase();
+    return (
+      (u.email?.toLowerCase().includes(term)) ||
+      (u.name?.toLowerCase().includes(term)) ||
+      (u.phone?.toLowerCase().includes(term))
+    );
+  });
 
   // Edit profile
   const openEdit = (u: UserRow) => {
@@ -146,7 +159,7 @@ const UsersManagementContent = () => {
       if (error) throw error;
       toast.success("Perfil atualizado!");
       setEditUser(null);
-      searchUsers();
+      loadUsers();
     } catch (err: any) {
       toast.error("Erro: " + err.message);
     } finally {
@@ -189,7 +202,7 @@ const UsersManagementContent = () => {
       }
       toast.success(`${amount} créditos ${creditsType === "add" ? "adicionados" : "removidos"}!`);
       setCreditsUser(null);
-      searchUsers();
+      loadUsers();
     } catch (err: any) {
       toast.error("Erro: " + err.message);
     } finally {
@@ -205,7 +218,7 @@ const UsersManagementContent = () => {
       const { error } = await supabase.from("user_pack_purchases").update({ payment_status: newStatus }).eq("id", purchaseId);
       if (error) throw error;
       toast.success(`Produto ${newStatus === "active" ? "liberado" : "bloqueado"}!`);
-      searchUsers();
+      loadUsers();
     } catch (err: any) {
       toast.error("Erro: " + err.message);
     } finally {
@@ -230,20 +243,18 @@ const UsersManagementContent = () => {
     }
   };
 
-  // Reset password (set to email as temp password)
+  // Reset password
   const resetPassword = async (u: UserRow) => {
     if (!u.email) { toast.error("Usuário sem email"); return; }
     setActionLoading("resetpw-" + u.id);
     try {
-      // Use admin function to reset password
       const { error } = await supabase.functions.invoke("signup-user", {
         body: { action: "reset-password", email: u.email },
       });
       if (error) throw error;
-      // Mark password_changed as false so they'll be prompted
       await supabase.from("profiles").update({ password_changed: false }).eq("id", u.id);
       toast.success("Senha resetada! O usuário precisará criar nova senha no próximo login.");
-      searchUsers();
+      loadUsers();
     } catch (err: any) {
       toast.error("Erro: " + err.message);
     } finally {
@@ -256,15 +267,14 @@ const UsersManagementContent = () => {
     if (!deleteUser) return;
     setDeleting(true);
     try {
-      // Delete related data
       await supabase.from("user_pack_purchases").delete().eq("user_id", deleteUser.id);
       await supabase.from("upscaler_credit_transactions").delete().eq("user_id", deleteUser.id);
       await supabase.from("upscaler_jobs").delete().eq("user_id", deleteUser.id);
       await supabase.from("user_roles").delete().eq("user_id", deleteUser.id);
       await supabase.from("profiles").delete().eq("id", deleteUser.id);
-      toast.success("Dados do usuário removidos! (conta auth mantida)");
+      toast.success("Dados do usuário removidos!");
       setDeleteUser(null);
-      searchUsers();
+      loadUsers();
     } catch (err: any) {
       toast.error("Erro: " + err.message);
     } finally {
@@ -289,42 +299,81 @@ const UsersManagementContent = () => {
     }
   };
 
+  // Create user manually
+  const createUser = async () => {
+    if (!createForm.email.trim()) { toast.error("Email é obrigatório"); return; }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("signup-user", {
+        body: {
+          email: createForm.email.trim().toLowerCase(),
+          name: createForm.name.trim() || undefined,
+          phone: createForm.phone.trim() || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Usuário criado com sucesso!");
+      setShowCreateUser(false);
+      setCreateForm({ email: "", name: "", phone: "" });
+      loadUsers();
+    } catch (err: any) {
+      toast.error("Erro ao criar: " + err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground mb-1">Gerenciar Usuários</h2>
-        <p className="text-muted-foreground text-sm">Busque por email ou nome para gerenciar contas, produtos, créditos e acessos</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground mb-1">Gerenciar Usuários</h2>
+          <p className="text-muted-foreground text-sm">{allUsers.length} usuário(s) cadastrados</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={loadUsers} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+          <Button size="sm" onClick={() => setShowCreateUser(true)}>
+            <UserPlus className="h-4 w-4 mr-1" />
+            Novo Usuário
+          </Button>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por email ou nome (mín. 3 caracteres)..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && searchUsers()}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={searchUsers} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          <span className="ml-1.5">Buscar</span>
-        </Button>
+      {/* Search filter */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Filtrar por email, nome ou telefone..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pl-10"
+        />
       </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Carregando usuários...</span>
+        </div>
+      )}
 
       {/* Results */}
-      {users.length === 0 && !loading && (
+      {!loading && filteredUsers.length === 0 && (
         <Card className="p-8 text-center">
-          <p className="text-muted-foreground">Nenhum resultado. Busque por email ou nome.</p>
+          <p className="text-muted-foreground">
+            {search.trim() ? "Nenhum usuário encontrado com esse filtro." : "Nenhum usuário cadastrado."}
+          </p>
         </Card>
       )}
 
       <div className="space-y-3">
-        {users.map(u => (
+        {filteredUsers.map(u => (
           <Card key={u.id} className="overflow-hidden">
-            {/* Header */}
             <div
               className="p-4 flex items-center justify-between cursor-pointer hover:bg-accent/50 transition-colors"
               onClick={() => setExpandedUser(expandedUser === u.id ? null : u.id)}
@@ -335,13 +384,13 @@ const UsersManagementContent = () => {
                     <p className="font-semibold text-sm truncate">{u.email || "Sem email"}</p>
                     {u.isAdmin && <Badge variant="outline" className="text-[10px] border-primary text-primary">Admin</Badge>}
                     {u.has_logged_in ? (
-                      <Badge variant="outline" className="text-[10px] text-green-600 border-green-600">Ativo</Badge>
+                      <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-600">Ativo</Badge>
                     ) : (
-                      <Badge variant="outline" className="text-[10px] text-yellow-600 border-yellow-600">Nunca logou</Badge>
+                      <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">Nunca logou</Badge>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {u.name || "Sem nome"} • {u.products.length} produto(s) • {u.credits} créditos
+                    {u.name || "Sem nome"} • {u.products.length} produto(s) • {u.credits} créditos • {new Date(u.created_at).toLocaleDateString("pt-BR")}
                   </p>
                 </div>
               </div>
@@ -350,10 +399,8 @@ const UsersManagementContent = () => {
               </div>
             </div>
 
-            {/* Expanded */}
             {expandedUser === u.id && (
               <div className="border-t border-border p-4 space-y-4">
-                {/* Info */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                   <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{u.email}</span></div>
                   <div><span className="text-muted-foreground">Nome:</span> <span className="font-medium">{u.name || "—"}</span></div>
@@ -363,7 +410,6 @@ const UsersManagementContent = () => {
                   <div><span className="text-muted-foreground">Créditos:</span> <span className="font-bold text-primary">{u.credits}</span></div>
                 </div>
 
-                {/* Products */}
                 {u.products.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold mb-2">Produtos</p>
@@ -398,7 +444,6 @@ const UsersManagementContent = () => {
                   </div>
                 )}
 
-                {/* Actions */}
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
                   <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openEdit(u)}>
                     <Pencil className="h-3 w-3 mr-1" />Editar Perfil
@@ -414,7 +459,7 @@ const UsersManagementContent = () => {
                     {actionLoading === "reset-" + u.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <KeyRound className="h-3 w-3 mr-1" />}
                     Email Reset Senha
                   </Button>
-                  <Button size="sm" variant="outline" className="h-8 text-xs text-orange-600 hover:text-orange-700" onClick={() => resetPassword(u)} disabled={actionLoading === "resetpw-" + u.id}>
+                  <Button size="sm" variant="outline" className="h-8 text-xs text-destructive hover:text-destructive" onClick={() => resetPassword(u)} disabled={actionLoading === "resetpw-" + u.id}>
                     {actionLoading === "resetpw-" + u.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <KeyRound className="h-3 w-3 mr-1" />}
                     Resetar Senha
                   </Button>
@@ -482,13 +527,56 @@ const UsersManagementContent = () => {
           <p className="text-sm text-destructive font-medium">⚠️ Esta ação é irreversível!</p>
           <p className="text-sm text-muted-foreground">
             Todos os dados do usuário <strong>{deleteUser?.email}</strong> serão removidos (perfil, compras, créditos, jobs).
-            A conta de autenticação será mantida no Supabase Auth.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteUser(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
               {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
               Confirmar Exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={showCreateUser} onOpenChange={setShowCreateUser}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Cadastrar Novo Usuário</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Email *</Label>
+              <Input
+                value={createForm.email}
+                onChange={e => setCreateForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="usuario@email.com"
+                type="email"
+              />
+            </div>
+            <div>
+              <Label>Nome</Label>
+              <Input
+                value={createForm.name}
+                onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Nome completo"
+              />
+            </div>
+            <div>
+              <Label>Telefone / WhatsApp</Label>
+              <Input
+                value={createForm.phone}
+                onChange={e => setCreateForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="+55 11 99999-9999"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              O usuário será criado com o email como senha temporária. No primeiro login, será solicitado a definir uma nova senha.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateUser(false)}>Cancelar</Button>
+            <Button onClick={createUser} disabled={creating}>
+              {creating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserPlus className="h-4 w-4 mr-1" />}
+              Criar Usuário
             </Button>
           </DialogFooter>
         </DialogContent>
