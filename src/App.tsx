@@ -11,6 +11,7 @@ import { AIJobProvider } from "./contexts/AIJobContext";
 
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
@@ -90,10 +91,10 @@ const AppContent = () => {
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/olvide-contrasena" element={<ForgotPassword />} />
           <Route path="/restablecer-contrasena" element={<ResetPassword />} />
-          <Route path="/configuracion" element={<ProfileSettings />} />
+          <Route path="/configuracion" element={<ProtectedRoute><ProfileSettings /></ProtectedRoute>} />
 
           {/* Admin routes */}
           <Route path="/admin-login" element={<AdminLogin />} />
@@ -138,13 +139,13 @@ const AppContent = () => {
           <Route path="/admin-prompts/top-indicadores" element={<PromptsTopIndicadores />} />
 
           {/* Upscaler routes */}
-          <Route path="/upscaler-arcano" element={<UpscalerArcanoVersionSelect />} />
+          <Route path="/upscaler-arcano" element={<ProtectedRoute><UpscalerArcanoVersionSelect /></ProtectedRoute>} />
           <Route path="/ferramenta-ia-artes/upscaller-arcano" element={<Navigate to="/upscaler-arcano" replace />} />
-          <Route path="/ferramenta-ia-artes/:toolSlug/:versionSlug" element={<ToolVersionLessons />} />
-          <Route path="/upgrade-upscaler-v3" element={<UpgradeUpscalerV3 />} />
-          <Route path="/upscaler-arcano-tool" element={<UpscalerArcanoTool />} />
-          <Route path="/planes" element={<PlanesCreditos />} />
-          <Route path="/creditos-upscaler" element={<CreditosUpscaler />} />
+          <Route path="/ferramenta-ia-artes/:toolSlug/:versionSlug" element={<ProtectedRoute><ToolVersionLessons /></ProtectedRoute>} />
+          <Route path="/upgrade-upscaler-v3" element={<ProtectedRoute><UpgradeUpscalerV3 /></ProtectedRoute>} />
+          <Route path="/upscaler-arcano-tool" element={<ProtectedRoute><UpscalerArcanoTool /></ProtectedRoute>} />
+          <Route path="/planes" element={<ProtectedRoute><PlanesCreditos /></ProtectedRoute>} />
+          <Route path="/creditos-upscaler" element={<ProtectedRoute><CreditosUpscaler /></ProtectedRoute>} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

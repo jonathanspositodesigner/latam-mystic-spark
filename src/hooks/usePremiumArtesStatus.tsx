@@ -20,23 +20,35 @@ export const usePremiumArtesStatus = () => {
 
     const fetchAccess = async () => {
       try {
-        // Check premium_artes_users
+        const now = new Date().toISOString();
+
+        // Check premium_artes_users — filter expired
         const { data: premiumData } = await supabase
           .from("premium_artes_users")
-          .select("pack_slug")
+          .select("pack_slug, expires_at")
           .eq("user_id", user.id)
           .eq("is_active", true);
 
-        // Check user_pack_purchases
+        // Check user_pack_purchases — filter expired
         const { data: purchaseData } = await supabase
           .from("user_pack_purchases")
-          .select("pack_slug")
+          .select("pack_slug, expires_at")
           .eq("user_id", user.id)
           .eq("payment_status", "active");
 
         const slugs = new Set<string>();
-        premiumData?.forEach((r) => r.pack_slug && slugs.add(r.pack_slug));
-        purchaseData?.forEach((r) => r.pack_slug && slugs.add(r.pack_slug));
+        premiumData?.forEach((r) => {
+          if (!r.pack_slug) return;
+          // Skip if expired
+          if (r.expires_at && new Date(r.expires_at) < new Date(now)) return;
+          slugs.add(r.pack_slug);
+        });
+        purchaseData?.forEach((r) => {
+          if (!r.pack_slug) return;
+          // Skip if expired
+          if (r.expires_at && new Date(r.expires_at) < new Date(now)) return;
+          slugs.add(r.pack_slug);
+        });
         setPackSlugs(Array.from(slugs));
       } catch (err) {
         console.error("Error fetching premium artes status:", err);
