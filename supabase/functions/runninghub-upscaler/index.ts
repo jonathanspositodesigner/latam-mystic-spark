@@ -191,21 +191,27 @@ async function handleRun(req: Request) {
 
   const {
     jobId, imageUrl, fileName, detailDenoise, resolution, prompt,
-    version, framingMode, userId, creditCost, category, editingLevel
+    version, framingMode, userId, category, editingLevel
   } = await req.json();
 
-  // ========== JWT AUTH ==========
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
-  const anonClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!);
-  const { data: { user: authUser }, error: authError } = await anonClient.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (authError || !authUser) {
-    return new Response(JSON.stringify({ error: 'Unauthorized', code: 'INVALID_TOKEN' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
-  const effectiveUserId = authUser.id;
+  // (JWT AUTH moved above)
   const normalizedCategory = normalizeUpscalerCategory(category);
+
+  // ========== SERVER-SIDE CREDIT COST DETERMINATION ==========
+  // SECURITY: Never trust creditCost from the frontend. Determine it server-side.
+  const CREDIT_COSTS: Record<string, number> = {
+    'logo': 50,
+    'pro': 80,
+    'standard': 60,
+  };
+  let creditCost: number;
+  if (normalizedCategory === 'logo') {
+    creditCost = CREDIT_COSTS['logo'];
+  } else if (version === 'pro') {
+    creditCost = CREDIT_COSTS['pro'];
+  } else {
+    creditCost = CREDIT_COSTS['standard'];
+  }
 
   // ========== INPUT VALIDATION ==========
   if (!jobId || typeof jobId !== 'string') {
@@ -231,10 +237,6 @@ async function handleRun(req: Request) {
   const validCategories = ['pessoas_perto', 'pessoas_longe', 'comida', 'fotoAntiga', 'logo', 'render3d'];
   if (category !== undefined && !validCategories.includes(normalizedCategory)) {
     return new Response(JSON.stringify({ error: 'Invalid category', code: 'INVALID_CATEGORY' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-  }
-
-  if (typeof creditCost !== 'number' || creditCost < 1 || creditCost > 500) {
-    return new Response(JSON.stringify({ error: 'Invalid credit cost', code: 'INVALID_CREDIT_COST' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   // ========== RATE LIMITING (1 job per 60s per user) ==========

@@ -1,10 +1,10 @@
-// TODO: Implement when planos2_subscriptions table is created
+// Planos2 not yet implemented — all features default to FALSE (deny by default)
 export const usePlanos2Access = (_userId?: string) => {
   return {
     subscription: null,
     isLoading: false,
-    hasImageGeneration: true,
-    hasVideoGeneration: true,
+    hasImageGeneration: false,
+    hasVideoGeneration: false,
     isPlanos2User: false,
     planSlug: null,
     costMultiplier: 1.0,
