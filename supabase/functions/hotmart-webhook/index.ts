@@ -168,6 +168,18 @@ Deno.serve(async (req) => {
     return json({ error: "method_not_allowed" }, 405);
   }
 
+  // ── Validate Hotmart hottok secret ──
+  const HOTTOK = Deno.env.get("HOTMART_HOTTOK");
+  if (HOTTOK) {
+    const headerHottok = req.headers.get("x-hotmart-hottok");
+    if (headerHottok !== HOTTOK) {
+      console.warn("[hotmart-webhook] Invalid or missing hottok header");
+      return json({ error: "unauthorized" }, 401);
+    }
+  } else {
+    console.warn("[hotmart-webhook] HOTMART_HOTTOK not configured — skipping validation");
+  }
+
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
