@@ -195,6 +195,8 @@ async function handleRun(req: Request) {
   } = await req.json();
 
   // (JWT AUTH moved above)
+  // Use userId from request body as the effective user ID
+  const effectiveUserId = userId;
   const normalizedCategory = normalizeUpscalerCategory(category);
 
   // ========== SERVER-SIDE CREDIT COST DETERMINATION ==========
