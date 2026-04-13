@@ -189,9 +189,9 @@ const SalesTrackingContent = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-foreground">Vendas Stripe</h2>
+        <h2 className="text-2xl font-bold text-foreground">Vendas</h2>
         <p className="text-muted-foreground text-sm mt-1">
-          Acompanhe vendas, envio de emails e status de acesso dos clientes
+          Acompanhe vendas (Stripe & Hotmart), envio de emails e status de acesso dos clientes
         </p>
       </div>
 
@@ -249,6 +249,11 @@ const SalesTrackingContent = () => {
                     <span>🏷️ {SLUG_LABELS[sale.pack_slug || ""] || sale.pack_slug || "N/A"}</span>
                     {sale.amount != null && <span>💰 ${Number(sale.amount).toFixed(2)}</span>}
                     <span>📅 {new Date(sale.created_at).toLocaleDateString("pt-BR")}</span>
+                    {sale.gateway && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {sale.gateway === "hotmart" ? "Hotmart" : sale.gateway === "stripe" ? "Stripe" : sale.gateway}
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
