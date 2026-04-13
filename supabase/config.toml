@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.resend-welcome-email]
 verify_jwt = false
+
+[functions.hotmart-webhook]
+verify_jwt = false
