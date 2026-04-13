@@ -210,14 +210,56 @@ Deno.serve(async (req) => {
     processed: false,
   });
 
+  // ── Handle cancellation / chargeback events ──
+  const cancellationEvents = [
+    "PURCHASE_CANCELED",
+    "PURCHASE_REFUNDED",
+    "PURCHASE_CHARGEBACK",
+    "PURCHASE_EXPIRED",
+  ];
+
+  if (cancellationEvents.includes(event)) {
+    console.log(`[hotmart-webhook] Cancellation event: ${event}`);
+    const cancelEmail = (
+      buyerData.email || purchaseData.buyer?.email || payload.data?.email || ""
+    ).trim().toLowerCase();
+
+    if (cancelEmail) {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles").select("id").eq("email", cancelEmail).maybeSingle();
+
+      if (profile) {
+        // Deactivate premium_artes_users
+        await supabaseAdmin.from("premium_artes_users")
+          .update({ is_active: false })
+          .eq("user_id", profile.id)
+          .eq("payment_gateway", "hotmart");
+
+        // Deactivate user_pack_purchases
+        await supabaseAdmin.from("user_pack_purchases")
+          .update({ payment_status: "cancelled" })
+          .eq("user_id", profile.id)
+          .eq("gateway", "hotmart");
+
+        console.log(`[hotmart-webhook] Access revoked for user ${profile.id} due to ${event}`);
+      }
+    }
+
+    await supabaseAdmin.from("webhook_logs")
+      .update({ status: `processed_${event.toLowerCase()}`, processed: true })
+      .eq("source", "hotmart")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    return json({ received: true, action: `access_revoked_${event.toLowerCase()}` });
+  }
+
   // Only process approved purchases
   const approvedEvents = [
     "PURCHASE_APPROVED",
     "PURCHASE_COMPLETE",
-    "PURCHASE_PROTEST", // sometimes used
   ];
 
-  // Also check purchase status
   const purchaseStatus = purchaseData.status || purchaseData.transaction?.status || "";
 
   if (!approvedEvents.includes(event) && purchaseStatus !== "APPROVED" && purchaseStatus !== "COMPLETE") {
