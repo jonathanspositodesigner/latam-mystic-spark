@@ -460,16 +460,13 @@ const UpscalerArcanoTool: React.FC = () => {
       createdJobId = job.id;
       setProgress(45);
 
-      // Step 3: Call edge function
-      const edgeCreditCost = isLogoMode ? 50 : (version === 'pro' ? getCreditCost('Upscaler Pro', 80) : getCreditCost('Upscaler Arcano', 60));
-
+      // Step 3: Call edge function (creditCost determined server-side)
       const { data: response, error: fnError } = await supabase.functions.invoke('runninghub-upscaler/run', {
         body: {
           jobId: job.id,
           imageUrl: imageUrl,
           version: version,
           userId: user.id,
-          creditCost: edgeCreditCost,
           category: promptCategory,
           detailDenoise: isComidaMode 
             ? comidaDetailLevel 
