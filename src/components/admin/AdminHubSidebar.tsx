@@ -17,7 +17,7 @@ const AdminHubSidebar = ({ activeView, onViewChange, onLogout }: AdminHubSidebar
   const menuItems = [
     { id: "home" as const, label: "HOME", icon: Home, description: "Selecionar plataforma" },
     { id: "usuarios" as const, label: "GERENCIAR USUÁRIOS", icon: UserCog, description: "Contas, produtos, créditos e acessos" },
-    { id: "vendas" as const, label: "VENDAS STRIPE", icon: CreditCard, description: "Vendas, emails e acessos" },
+    { id: "vendas" as const, label: "VENDAS", icon: CreditCard, description: "Stripe, Hotmart e acessos" },
     { id: "partners" as const, label: "GERENCIAR PARCEIROS", icon: Users, description: "Cadastrar e gerenciar colaboradores" },
     { id: "admins" as const, label: "ADMINISTRADORES", icon: ShieldCheck, description: "Gerenciar acessos de admin" },
     { id: "emails" as const, label: "EMAILS DE BOAS-VINDAS", icon: Mail, description: "Monitoramento de envios" },
