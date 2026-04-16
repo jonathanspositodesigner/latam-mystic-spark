@@ -483,7 +483,13 @@ const UpscalerArcanoTool: React.FC = () => {
       });
 
       if (fnError) throw new Error('Error en la función: ' + fnError.message);
-      if (!response.success) throw new Error(response.error || 'Error desconocido de la función');
+      if (!response) throw new Error('Sin respuesta del servidor. Intenta de nuevo.');
+      if (!response.success) {
+        const err: any = new Error(response.userMessage || response.error || 'Error desconocido de la función');
+        err.code = response.code;
+        err.userMessage = response.userMessage;
+        throw err;
+      }
 
       setProgress(50);
       setStatus('processing');
@@ -504,10 +510,55 @@ const UpscalerArcanoTool: React.FC = () => {
         }
       }
 
+      // Identify error type to show clear message
+      const rawMsg = error.message || 'Error desconocido';
+      const code = error.code || 'UPLOAD_ERROR';
+      const isAuthError = code === 'UPSCALER_AUTH_FAILED' || /ApiKey|401|verification failed|unauthorized/i.test(rawMsg);
+      const isTransferError = code === 'IMAGE_TRANSFER_ERROR';
+      const isRateLimit = code === 'RATE_LIMIT_EXCEEDED';
+
+      let displayMessage = error.userMessage || rawMsg;
+      let solution = 'Intenta de nuevo o usa una imagen más pequeña.';
+      let toastMsg = '⚠️ Error al procesar imagen';
+
+      if (isAuthError) {
+        displayMessage = 'Servicio temporalmente no disponible (autenticación). El equipo técnico ya fue notificado automáticamente.';
+        solution = 'Espera unos minutos e intenta de nuevo. Tus créditos no fueron consumidos.';
+        toastMsg = '🔧 Servicio en mantenimiento. Equipo notificado.';
+      } else if (isTransferError) {
+        displayMessage = 'No pudimos enviar tu imagen al servicio de upscaling.';
+        solution = 'Verifica tu conexión y prueba con otra imagen.';
+        toastMsg = '📡 Error al enviar la imagen';
+      } else if (isRateLimit) {
+        displayMessage = 'Demasiadas solicitudes seguidas.';
+        solution = 'Espera 1 minuto antes de intentar de nuevo.';
+        toastMsg = '⏱️ Espera 1 minuto';
+      }
+
+      // Ensure overlay closes and UI returns to error state
       setStatus('error');
-      setLastError({ message: error.message || 'Error desconocido', code: 'UPLOAD_ERROR', solution: 'Intenta de nuevo o usa una imagen más pequeña.' });
-      toast.error('Error al procesar imagen');
+      setProgress(0);
+      setIsWaitingInQueue(false);
+      setQueuePosition(0);
+      setLastError({ message: displayMessage, code, solution });
+      toast.error(toastMsg, { description: displayMessage, duration: 6000 });
       endSubmit();
+
+      // Notify backend of frontend-side critical errors not already caught by edge function
+      if (!isAuthError && !isTransferError && !isRateLimit) {
+        try {
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-bug-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+            body: JSON.stringify({
+              errorType: 'UPSCALER_FRONTEND_ERROR',
+              errorMessage: rawMsg,
+              errorKey: `upscaler:frontend:${code}`,
+              context: { code, jobId: createdJobId, userId: user?.id, version },
+            }),
+          }).catch(() => {});
+        } catch {}
+      }
     }
   };
 
