@@ -374,6 +374,33 @@ export type Database = {
         }
         Relationships: []
       }
+      bug_notification_log: {
+        Row: {
+          context: Json | null
+          error_key: string
+          error_message: string | null
+          error_type: string | null
+          id: string
+          sent_at: string
+        }
+        Insert: {
+          context?: Json | null
+          error_key: string
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          sent_at?: string
+        }
+        Update: {
+          context?: Json | null
+          error_key?: string
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       device_signups: {
         Row: {
           created_at: string

@@ -40,6 +40,23 @@ async function logStep(jobId: string, step: string, details?: Record<string, any
   }
 }
 
+async function notifyBugEmail(errorType: string, errorMessage: string, context: Record<string, any>): Promise<void> {
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/notify-bug-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+      body: JSON.stringify({
+        errorType,
+        errorMessage: errorMessage.slice(0, 500),
+        errorKey: `upscaler:${errorType}`,
+        context,
+      }),
+    });
+  } catch (e) {
+    console.error('[notifyBugEmail] failed:', e);
+  }
+}
+
 async function logStepFailure(jobId: string, failedAtStep: string, errorMessage: string, rawResponse?: Record<string, any>): Promise<void> {
   const timestamp = new Date().toISOString();
   const entry = { step: 'failed', timestamp, at_step: failedAtStep, error: errorMessage };
@@ -293,7 +310,25 @@ async function handleRun(req: Request) {
         failed_at_step: 'image_transfer',
         completed_at: new Date().toISOString(),
       }).eq('id', jobId);
-      return new Response(JSON.stringify({ error: errorMsg, code: 'IMAGE_TRANSFER_ERROR' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      // Detect API key / auth issues for clearer messaging + notify
+      const isAuthError = /ApiKey|401|verification failed|unauthorized/i.test(errorMsg);
+      const userMessage = isAuthError
+        ? 'Servicio de upscaling temporalmente no disponible (autenticación). El equipo ya fue notificado. Intenta en unos minutos.'
+        : `No pudimos enviar tu imagen al servicio de upscaling: ${errorMsg.slice(0, 120)}`;
+
+      await notifyBugEmail(
+        isAuthError ? 'UPSCALER_AUTH_FAILED' : 'UPSCALER_IMAGE_TRANSFER_ERROR',
+        errorMsg,
+        { jobId, userId: effectiveUserId, version, category: normalizedCategory, isAuthError }
+      );
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: userMessage,
+        userMessage,
+        code: isAuthError ? 'UPSCALER_AUTH_FAILED' : 'IMAGE_TRANSFER_ERROR',
+      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
   }
 
