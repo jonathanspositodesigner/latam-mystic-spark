@@ -291,11 +291,7 @@ const UsersManagementContent = () => {
       setDeleting(false);
     }
   };
-      toast.error("Erro: " + err.message);
-    } finally {
-      setDeleting(false);
-    }
-  };
+
 
   // Resend welcome email
   const resendWelcome = async (u: UserRow) => {
