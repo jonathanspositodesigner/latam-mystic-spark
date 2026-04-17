@@ -210,12 +210,14 @@ Deno.serve(async (req) => {
     processed: false,
   });
 
-  // ── Handle cancellation / chargeback events ──
+  // ── Handle cancellation / chargeback / refund / dispute events ──
   const cancellationEvents = [
     "PURCHASE_CANCELED",
     "PURCHASE_REFUNDED",
     "PURCHASE_CHARGEBACK",
     "PURCHASE_EXPIRED",
+    "PURCHASE_PROTEST",
+    "SUBSCRIPTION_CANCELLATION",
   ];
 
   if (cancellationEvents.includes(event)) {
