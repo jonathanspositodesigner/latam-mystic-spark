@@ -272,20 +272,25 @@ const UsersManagementContent = () => {
     }
   };
 
-  // Delete user account
+  // Delete user account (full delete: profile + auth.users + dependents)
   const confirmDelete = async () => {
     if (!deleteUser) return;
     setDeleting(true);
     try {
-      await supabase.from("user_pack_purchases").delete().eq("user_id", deleteUser.id);
-      await supabase.from("upscaler_credit_transactions").delete().eq("user_id", deleteUser.id);
-      await supabase.from("upscaler_jobs").delete().eq("user_id", deleteUser.id);
-      await supabase.from("user_roles").delete().eq("user_id", deleteUser.id);
-      await supabase.from("profiles").delete().eq("id", deleteUser.id);
-      toast.success("Dados do usuário removidos!");
+      const { data, error } = await supabase.functions.invoke("delete-user-account", {
+        body: { user_id: deleteUser.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message || data.error);
+      toast.success("Conta excluída completamente (auth + dados)!");
       setDeleteUser(null);
       loadUsers();
     } catch (err: any) {
+      toast.error("Erro ao excluir: " + (err?.message || "desconhecido"));
+    } finally {
+      setDeleting(false);
+    }
+  };
       toast.error("Erro: " + err.message);
     } finally {
       setDeleting(false);
