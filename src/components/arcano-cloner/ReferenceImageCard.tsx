@@ -1,0 +1,99 @@
+import React from 'react';
+import { Plus, X, ImageIcon } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+
+interface ReferenceImageCardProps {
+  image: string | null;
+  onClearImage: () => void;
+  onOpenLibrary: () => void;
+  disabled?: boolean;
+  title?: string;
+  emptyLabel?: string;
+  emptySubLabel?: string;
+}
+
+const ReferenceImageCard: React.FC<ReferenceImageCardProps> = ({
+  image,
+  onClearImage,
+  onOpenLibrary,
+  disabled = false,
+  title = 'Foto de Referência',
+  emptyLabel = 'Escolher da biblioteca',
+  emptySubLabel = 'Ou envie sua foto',
+}) => {
+  return (
+    <Card className={cn(
+      "relative overflow-hidden bg-accent border-border flex-shrink-0",
+      disabled && "opacity-50 cursor-not-allowed"
+    )}>
+      {/* Header - same as ImageUploadCard */}
+      <div className="px-2 py-1 border-b border-border">
+        <h3 className="text-[10px] font-semibold text-foreground flex items-center gap-1">
+          <ImageIcon className="w-3 h-3 text-muted-foreground" />
+           {title}
+        </h3>
+      </div>
+
+      {/* Content Area - fixed height matching ImageUploadCard */}
+      <div
+        className={cn(
+          "relative min-h-[120px] h-[120px] lg:min-h-[160px] lg:h-[160px] transition-all",
+          !image && "cursor-pointer hover:bg-accent0/10",
+          disabled && "cursor-not-allowed"
+        )}
+        onClick={!image && !disabled ? onOpenLibrary : undefined}
+      >
+        {image ? (
+          <>
+            <div className="w-full h-full flex items-center justify-center p-2">
+              <img
+                src={image}
+                alt="Foto de referência"
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+            {/* Remove button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onClearImage();
+              }}
+              disabled={disabled}
+              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/80 hover:bg-red-500/100 flex items-center justify-center transition-colors"
+            >
+              <X className="w-3 h-3 text-foreground" />
+            </button>
+          </>
+        ) : (
+          /* Overlay absoluto para centralização perfeita */
+          <div className="absolute inset-0 grid place-items-center pointer-events-none">
+            <div className="flex flex-col items-center gap-1 text-center">
+              <div className="w-8 h-8 rounded-lg bg-accent border border-dashed border-border flex items-center justify-center">
+                <Plus className="w-4 h-4 text-muted-foreground" />
+              </div>
+              <p className="text-[10px] text-muted-foreground font-medium">{emptyLabel}</p>
+              <p className="text-[9px] text-muted-foreground">{emptySubLabel}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Change button when image selected - same style as library button */}
+      {image && (
+        <div className="px-2 py-1 border-t border-border">
+          <button
+            onClick={onOpenLibrary}
+            disabled={disabled}
+            className="w-full h-6 text-[10px] rounded-md bg-accent0/10 border border-border text-muted-foreground hover:bg-accent0/20 hover:text-foreground transition-colors flex items-center justify-center gap-1"
+          >
+            <ImageIcon className="w-3 h-3" />
+            Trocar Imagem
+          </button>
+        </div>
+      )}
+    </Card>
+  );
+};
+
+export default ReferenceImageCard;

@@ -54,6 +54,7 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
   const fetchAll = useCallback(async () => {
     setIsLoading(true);
     try {
+      // 1) Carregue categorias da ferramenta
       const { data: catData } = await supabase
         .from('ai_tool_library_categories')
         .select('id, name, slug, display_order')
@@ -61,7 +62,8 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
         .order('display_order', { ascending: true });
       setCategories(catData || []);
 
-      const { data: libItems } = await supabase
+      // 2) Carregue itens visíveis curados da biblioteca da ferramenta
+      const { data: libItems, error: libErr } = await supabase
         .from('ai_tool_library_items' as any)
         .select('source_id, category_id, display_order')
         .eq('tool_slug', TOOL_SLUG)
@@ -69,16 +71,19 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
         .order('display_order', { ascending: true })
         .limit(1000);
 
-      if (!libItems || libItems.length === 0) { setFlyers([]); return; }
+      if (libErr || !libItems || (libItems as any[]).length === 0) { setFlyers([]); return; }
       const sourceIds = (libItems as any[]).map(i => i.source_id);
 
-      const { data: artesData } = await supabase
+      // 3) Carregue artes
+      const { data: artesData, error: artesErr } = await supabase
         .from('admin_artes' as any)
         .select('id, title, image_url, category')
         .in('id', sourceIds);
 
+      if (artesErr || !artesData) { setFlyers([]); return; }
+
       const catById = new Map((libItems as any[]).map(i => [i.source_id, i.category_id]));
-      const merged: FlyerItem[] = (artesData || []).map(a => ({
+      const merged: FlyerItem[] = (artesData as any[]).map(a => ({
         id: a.id,
         title: a.title,
         image_url: a.image_url,
