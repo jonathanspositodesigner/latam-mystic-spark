@@ -92,7 +92,7 @@ const MOTION_VIDEOS = [
   { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/5.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/flyer-motion-1777576682516.mp4" },
   { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/6-2.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/Seedance%202_0%20-%20_%20%20title%20Proximos%20Shows%20Sunset%20Tour_%20%20genre%20Motion%20Design%20%20Event%20Promo_%20%20duration%2010s.mp4" },
   { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/7-2.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/Seedance%202_0%20-%20_%20%20title%20Street%20Surrealism%20Cover_%20%20genre%20Motion%20Design%20%20Cinematic%20Poster_%20%20duration%201.mp4" },
-  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/8.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/seedance-_____title____O__ltimo_Samba_d-1777251989355.mp4" },
+  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/1171604363451cc73c9c9d71438b0e28.jpg", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/Seedance%202_0%20-%20_%20%20title%20Gabriel%20Barbosa%20-%20Hero%20Reveal_%20%20genre%20Motion%20Design%20%20Sports%20Promo_%20%20duration.mp4" },
 ];
 
 const COMPARISON_ROWS = [
