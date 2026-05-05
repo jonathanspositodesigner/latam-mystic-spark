@@ -43,7 +43,7 @@ const RefinePanel: React.FC<RefinePanelProps> = ({
     e.target.value = '';
     if (!rawFile) return;
     if (!isAcceptedImage(rawFile)) {
-      toast.error('Selecione uma imagem válida (JPG, PNG, WEBP ou HEIC).');
+      toast.error('Selecciona una imagen válida (JPG, PNG, WEBP o HEIC).');
       return;
     }
     try {
@@ -54,7 +54,7 @@ const RefinePanel: React.FC<RefinePanelProps> = ({
       };
       reader.readAsDataURL(file);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao processar a imagem.');
+      toast.error(err instanceof Error ? err.message : 'Error al procesar la imagen.');
     }
   };
 
@@ -68,14 +68,14 @@ const RefinePanel: React.FC<RefinePanelProps> = ({
       <Textarea
         value={prompt}
         onChange={(e) => onPromptChange(e.target.value)}
-        placeholder="Escreva aqui o que vc quer modificar na imagem"
+        placeholder="Escribe aquí lo que quieres modificar en la imagen"
         className="min-h-[70px] text-xs bg-accent border-border text-foreground placeholder:text-muted-foreground resize-none"
         disabled={isRefining || disabled}
       />
 
       {/* Optional reference image */}
       <div>
-        <label className="text-[10px] text-muted-foreground mb-1 block">Imagem extra (opcional)</label>
+        <label className="text-[10px] text-muted-foreground mb-1 block">Imagen extra (opcional)</label>
         {referencePreview ? (
           <div className="relative w-16 h-16 rounded-md overflow-hidden border border-border">
             <img src={referencePreview} alt="Ref" className="w-full h-full object-cover" />
@@ -95,7 +95,7 @@ const RefinePanel: React.FC<RefinePanelProps> = ({
             disabled={isRefining || disabled}
           >
             <Upload className="w-3 h-3 mr-1" />
-            Enviar imagem
+            Enviar imagen
           </Button>
         )}
         <input
