@@ -1449,6 +1449,13 @@ export type Database = {
           remaining: number
         }[]
       }
+      cleanup_all_stale_ai_jobs: {
+        Args: never
+        Returns: {
+          flyer_maker_cancelled: number
+          upscaler_cancelled: number
+        }[]
+      }
       consume_flyer_test_credits: {
         Args: { _amount: number; _user_id: string }
         Returns: {
@@ -1473,14 +1480,19 @@ export type Database = {
         }
         Returns: boolean
       }
-      mark_pending_job_as_failed: {
-        Args: {
-          p_error_message: string
-          p_job_id: string
-          p_table_name: string
-        }
-        Returns: undefined
-      }
+      mark_pending_job_as_failed:
+        | {
+            Args: { p_job_id: string; p_table_name: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_error_message: string
+              p_job_id: string
+              p_table_name: string
+            }
+            Returns: undefined
+          }
       refund_seedance_job: {
         Args: { _job_id: string; _reason: string }
         Returns: Json
