@@ -1189,12 +1189,15 @@ const FlyerMakerTool: React.FC = () => {
         },
       });
 
-      if (runError) throw new Error(runError.message || 'Error al iniciar el procesamiento');
+      if (runError) {
+        setStatus('idle');
+        throw new Error(runError.message || 'Error al iniciar el procesamiento');
+      }
 
       fetchTestCredits();
       refetchCredits();
 
-      if (runResult?.code === 'INSUFFICIENT_CREDITS') {
+      if (runResult?.error === 'INSUFFICIENT_CREDITS' || runResult?.code === 'INSUFFICIENT_CREDITS') {
         setStatus('idle');
         setNoCreditsReason('insufficient');
         setShowNoCreditsModal(true);
@@ -1210,15 +1213,20 @@ const FlyerMakerTool: React.FC = () => {
         setProgress(60);
       }
 
+      // Se não estiver em queue ou processando, volta para idle
+      if (!runResult?.queued && runResult?.status !== 'running') {
+        setStatus('idle');
+      }
       endSubmit();
     } catch (error: any) {
       console.error(`[FlyerMaker ${flyerType}] Process error:`, error);
       if (localJobId) {
         await markJobAsFailedInDb(localJobId, 'flyer_maker', error.message || 'Error desconocido');
       }
-      setStatus('error');
+      setStatus('idle'); // Destrava o botão em caso de erro
       setDebugErrorMessage(error.message);
       toast.error(error.message);
+      setStatus('idle');
       endSubmit();
     }
   };
@@ -1772,7 +1780,7 @@ const FlyerMakerTool: React.FC = () => {
                       {motionStatus === 'error' && (
                         <Button
                           className="w-full py-4 text-sm font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md"
-                          onClick={() => setMotionStatus('idle')}
+                          onClick={() => { setMotionStatus('idle'); endSubmit(); }}
                         >
                           Generar flyer animado (Intentar de Nuevo)
                         </Button>
