@@ -33,7 +33,11 @@ async function startJobOnRunningHub(table: string, job: any) {
   try {
     const response = await fetch(`https://www.runninghub.ai/openapi/v2/run/ai-app/${p.webappId}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Authorization': `Bearer ${apiKey}`,
+        'apiKey': apiKey 
+      },
       body: JSON.stringify({ nodeInfoList: p.nodeInfoList, instanceType: "default", webhookUrl }),
     });
     const data = await response.json();
