@@ -1214,21 +1214,21 @@ const FlyerMakerTool: React.FC = () => {
         setProgress(60);
       }
 
-      // Se não estiver em queue ou processando, volta para idle
-      if (!runResult?.queued && runResult?.status !== 'running') {
-        setStatus('idle');
-      }
+      // FORÇA O BOTÃO A FICAR CLICÁVEL SEMPRE APÓS O CLIQUE INICIAL
+      setStatus('idle');
       endSubmit();
     } catch (error: any) {
       console.error(`[FlyerMaker ${flyerType}] Process error:`, error);
       if (localJobId) {
         await markJobAsFailedInDb(localJobId, 'flyer_maker', error.message || 'Error desconocido');
       }
-      setStatus('idle'); // Destrava o botão em caso de erro
       setDebugErrorMessage(error.message);
       toast.error(error.message);
+      
+      // GARANTE QUE O BOTÃO SEJA DESTRAVADO EM QUALQUER ERRO
       setStatus('idle');
       endSubmit();
+    }
     }
   };
 
