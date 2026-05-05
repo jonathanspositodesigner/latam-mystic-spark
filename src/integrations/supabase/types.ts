@@ -164,6 +164,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_tool_library_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          slug: string
+          tool_slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          slug: string
+          tool_slug: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          tool_slug?: string
+        }
+        Relationships: []
+      }
+      ai_tool_settings: {
+        Row: {
+          api_cost: number
+          credit_cost: number
+          has_api_cost: boolean
+          tool_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_cost?: number
+          credit_cost?: number
+          has_api_cost?: boolean
+          tool_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_cost?: number
+          credit_cost?: number
+          has_api_cost?: boolean
+          tool_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       app_installations: {
         Row: {
           created_at: string | null
