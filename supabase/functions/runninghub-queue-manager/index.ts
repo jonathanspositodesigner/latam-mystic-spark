@@ -22,7 +22,7 @@ async function logStep(table: string, jobId: string, step: string, details?: Rec
 
 async function startJobOnRunningHub(table: string, job: any) {
   const p = job.job_payload || {};
-  const apiKey = Deno.env.get('RUNNINGHUB_API_KEY')?.trim();
+  const apiKey = (Deno.env.get('RUNNINGHUB_API_KEY') || Deno.env.get('RUNNINGHUB_APIKEY') || '').trim();
   const webhookUrl = `${SUPABASE_URL}/functions/v1/runninghub-webhook`;
 
   try {
