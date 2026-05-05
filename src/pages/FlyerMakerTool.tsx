@@ -1216,7 +1216,7 @@ const FlyerMakerTool: React.FC = () => {
       if (localJobId) {
         await markJobAsFailedInDb(localJobId, 'flyer_maker', error.message || 'Error desconocido');
       }
-      setStatus('error');
+      setStatus('idle'); // Destrava o botão em caso de erro
       setDebugErrorMessage(error.message);
       toast.error(error.message);
       endSubmit();
