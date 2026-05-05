@@ -111,23 +111,26 @@ serve(async (req) => {
       }
       let logoFileName = logoUrl ? await uploadImageToRunningHub(logoUrl, 'logo', jobId) : null;
 
-      // Consumir créditos (simplificado aqui para usar a lógica do arcanoapp)
-      const { data: creditResult } = await supabase.rpc('consume_flyer_test_credits', { _user_id: userId, _amount: creditCost });
+      // Consumir créditos (Test credits logic)
+      const { data: testResult } = await supabase.rpc('consume_flyer_test_credits', { _user_id: userId, _amount: creditCost });
       let testUsed = 0;
       let normalToCharge = creditCost;
-      if (creditResult?.[0]) {
-        testUsed = creditResult[0].test_used;
-        normalToCharge = creditResult[0].remaining;
+      if (testResult && testResult.length > 0) {
+        testUsed = testResult[0].test_used ?? 0;
+        normalToCharge = testResult[0].remaining ?? creditCost;
       }
 
       if (normalToCharge > 0) {
         const { data: normalResult } = await supabase.rpc('consume_upscaler_credits', { 
-          _user_id: userId, _amount: normalToCharge, _description: `Flyer Maker ${flyerSubType}` 
+          _user_id: userId, _amount: normalToCharge, _description: `Flyer Maker ${flyerSubType}${testUsed > 0 ? ` (+${testUsed} teste)` : ''}` 
         });
         if (!normalResult?.[0]?.success) {
-          // Devolver créditos de teste se falhar
-          if (testUsed > 0) await supabase.rpc('get_flyer_test_credits', { _user_id: userId }); // logic omitted for brevity, should use real refund
-          return new Response(JSON.stringify({ error: 'Saldo insuficiente' }), { status: 400, headers: corsHeaders });
+          // Devolver créditos de teste se falhar (reembolso simples)
+          if (testUsed > 0) {
+            const { data: currentBal } = await supabase.rpc('get_flyer_test_credits', { _user_id: userId });
+            await supabase.from('flyer_maker_test_credits' as any).update({ balance: (currentBal || 0) + testUsed } as any).eq('user_id', userId);
+          }
+          return new Response(JSON.stringify({ error: 'Saldo insuficiente', code: 'INSUFFICIENT_CREDITS' }), { status: 400, headers: corsHeaders });
         }
       }
 
@@ -141,7 +144,7 @@ serve(async (req) => {
           { nodeId: '10', fieldName: 'text', fieldValue: artistNames || 'NOMES DOS ARTISTAS:' },
           { nodeId: '140', fieldName: 'text', fieldValue: dateTimeLocation || '' },
           { nodeId: '9', fieldName: 'text', fieldValue: footerPromo || 'PROMOÇÃO DE RODAPÉ:' },
-          { nodeId: '107', fieldName: 'value', fieldValue: String(creativity ?? 4) },
+          { nodeId: '107', fieldName: 'value', fieldValue: String(creativity ?? 0) },
           { nodeId: '201', fieldName: 'aspectRatio', fieldValue: imageSize || '9:16' },
         ];
       } else if (flyerSubType === 'contrate') {
@@ -179,7 +182,7 @@ serve(async (req) => {
           { nodeId: '7', fieldName: 'text', fieldValue: title || 'TITULO:' },
           { nodeId: '9', fieldName: 'text', fieldValue: footerPromo || 'PROMOÇÃO DE RODAPÉ:' },
           { nodeId: '103', fieldName: 'text', fieldValue: address || 'ENDEREÇO:' },
-          { nodeId: '111', fieldName: 'value', fieldValue: String(creativity ?? 4) },
+          { nodeId: '111', fieldName: 'value', fieldValue: String(creativity ?? 0) },
           { nodeId: '183', fieldName: 'aspectRatio', fieldValue: imageSize || '3:4' },
         ];
         for (let i = 0; i < artistFileNames.length; i++) {
@@ -197,7 +200,6 @@ serve(async (req) => {
         job_payload: { flyerSubType, webappId, nodeInfoList }
       }).eq('id', jobId);
 
-      // Delegar para o Queue Manager
       const qmResponse = await fetch(`${SUPABASE_URL}/functions/v1/runninghub-queue-manager/run-or-queue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
@@ -212,7 +214,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: 'Invalid endpoint' }), { status: 400, headers: corsHeaders });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[FlyerMaker] Error:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
   }
