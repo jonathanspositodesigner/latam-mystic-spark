@@ -28,7 +28,6 @@ import { getSeedanceTotalCost } from '@/config/seedance-pricing';
 import { isAcceptedImage, ensureBrowserCompatibleImage, IMAGE_ACCEPT } from '@/lib/heicConverter';
 import { optimizeForAI } from '@/hooks/useImageOptimizer';
 
-// Assets
 import flyerTypeEvento from '@/assets/flyer-type-evento.webp';
 import flyerTypeAgenda from '@/assets/flyer-type-agenda.webp';
 import flyerTypeContrate from '@/assets/flyer-type-contrate.webp';
@@ -59,7 +58,6 @@ const FlyerMakerTool: React.FC = () => {
   const { registerJob } = useAIJobContext();
   const { referencePromptId } = useCollaboratorAttribution();
 
-  // Basic States
   const [flyerType, setFlyerType] = useState<'evento' | 'agenda' | 'contrate' | 'outro' | null>(null);
   const [flyerScreen, setFlyerScreen] = useState<FlyerScreen>('choose');
   const [status, setStatus] = useState<ProcessingStatus>('idle');
@@ -68,7 +66,6 @@ const FlyerMakerTool: React.FC = () => {
   const [showPhotoLibrary, setShowPhotoLibrary] = useState(false);
   const [showTutorial, setShowTutorial] = useState(!localStorage.getItem("flyer-maker-tutorial-seen"));
 
-  // Input states (simplified for clarity but includes all types)
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -76,7 +73,6 @@ const FlyerMakerTool: React.FC = () => {
   const [creativity, setCreativity] = useState(0);
   const [imageSize, setImageSize] = useState<'3:4' | '9:16'>('3:4');
 
-  // Motion states
   const [motionSourceImage, setMotionSourceImage] = useState<string | null>(null);
   const [motionVideoUrl, setMotionVideoUrl] = useState<string | null>(null);
   const [motionStatus, setMotionStatus] = useState<ProcessingStatus>('idle');
@@ -98,7 +94,6 @@ const FlyerMakerTool: React.FC = () => {
     <AppLayout>
       <div className="h-full flex flex-col p-4 max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
-          {/* Inputs */}
           <div className="lg:col-span-4 bg-card border border-border rounded-2xl p-5 overflow-y-auto">
             <h1 className="text-xl font-bold text-foreground">Flyer Maker</h1>
             {flyerScreen === 'choose' ? (
@@ -148,7 +143,6 @@ const FlyerMakerTool: React.FC = () => {
               </div>
             )}
           </div>
-          {/* Preview */}
           <div className="lg:col-span-8 bg-card border border-border rounded-2xl p-5 flex items-center justify-center">
             {outputImage ? (
               <img src={outputImage} className="max-w-full rounded-xl" />
