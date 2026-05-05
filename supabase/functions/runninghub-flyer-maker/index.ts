@@ -55,20 +55,29 @@ async function uploadImageToRunningHub(imageUrl: string, label: string, jobId: s
   let lastErr = '';
   for (const key of RUNNINGHUB_API_KEYS) {
     const fd = new FormData();
-    // RunningHub documentation shows 'apiKey' should be passed as a query parameter for upload or field in multipart
-    // We'll try passing it as a standard header as well just in case of inconsistent API behavior
+    fd.append('apiKey', key);
     fd.append('fileType', 'image');
     fd.append('file', blob, name);
     
-    const uploadResponse = await fetch(`https://www.runninghub.ai/task/openapi/upload?apiKey=${key}`, { 
+    // We send apiKey in 3 ways to be absolutely sure: query param, FormData, and Authorization header
+    // The RunningHub API is inconsistent between versions/regions
+    const uploadUrl = `https://www.runninghub.ai/task/openapi/upload?apiKey=${key}`;
+    
+    console.log(`[FlyerMaker] Attempting upload for ${label} with key ending ${key.slice(-4)}`);
+    const uploadResponse = await fetch(uploadUrl, { 
       method: 'POST', 
+      headers: {
+        'Authorization': `Bearer ${key}`
+      },
       body: fd 
     });
     
     const data = await uploadResponse.json();
-    if (data.code === 0) return data.data.fileName;
-    lastErr = data.msg || 'Unknown';
-    console.error(`[FlyerMaker] upload ${label} failed with key ending ${key.slice(-4)}:`, lastErr);
+    if (data.code === 0 || data.taskId || data.data?.fileName) {
+      return data.data?.fileName || data.fileName || data.taskId;
+    }
+    lastErr = data.msg || data.error || 'Unknown';
+    console.error(`[FlyerMaker] upload ${label} failed with key ending ${key.slice(-4)}:`, lastErr, data);
   }
   throw new Error(`${label} upload failed: ${lastErr}`);
 }
