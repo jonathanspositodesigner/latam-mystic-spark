@@ -392,6 +392,7 @@ export async function uploadToStorage(
   file: File | Blob,
   folder: string,
   userId: string,
+  bucketName: string = 'artes-cloudinary',
   fileName?: string
 ): Promise<{ url: string | null; error?: string }> {
   try {
@@ -403,7 +404,7 @@ export async function uploadToStorage(
     const filePath = `${folder}/${userId}/${finalName}`;
     
     const { error: uploadError } = await supabase.storage
-      .from('ai-uploads')
+      .from(bucketName)
       .upload(filePath, file, {
         contentType: file.type || 'image/webp',
         upsert: true,
@@ -416,6 +417,7 @@ export async function uploadToStorage(
     
     const { data: urlData } = supabase.storage
       .from(bucketName)
+
 
       .getPublicUrl(filePath);
     
