@@ -453,7 +453,7 @@ const FlyerMakerTool: React.FC = () => {
 
   useJobPendingWatchdog({
     jobId,
-    toolId: 'flyer_maker',
+    toolType: 'flyer_maker',
     enabled: isProcessing,
     onJobFailed: useCallback((errorMessage) => {
       setStatus('error');

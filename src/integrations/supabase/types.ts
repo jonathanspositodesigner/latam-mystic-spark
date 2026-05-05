@@ -739,6 +739,63 @@ export type Database = {
         }
         Relationships: []
       }
+      image_generator_jobs: {
+        Row: {
+          aspect_ratio: string | null
+          created_at: string | null
+          credits_charged: boolean | null
+          current_step: string | null
+          error_message: string | null
+          id: string
+          model: string | null
+          output_url: string | null
+          prompt: string
+          session_id: string | null
+          status: string | null
+          step_history: Json | null
+          task_id: string | null
+          updated_at: string | null
+          user_credit_cost: number | null
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          created_at?: string | null
+          credits_charged?: boolean | null
+          current_step?: string | null
+          error_message?: string | null
+          id?: string
+          model?: string | null
+          output_url?: string | null
+          prompt: string
+          session_id?: string | null
+          status?: string | null
+          step_history?: Json | null
+          task_id?: string | null
+          updated_at?: string | null
+          user_credit_cost?: number | null
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          created_at?: string | null
+          credits_charged?: boolean | null
+          current_step?: string | null
+          error_message?: string | null
+          id?: string
+          model?: string | null
+          output_url?: string | null
+          prompt?: string
+          session_id?: string | null
+          status?: string | null
+          step_history?: Json | null
+          task_id?: string | null
+          updated_at?: string | null
+          user_credit_cost?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           created_at: string | null
@@ -1449,6 +1506,13 @@ export type Database = {
           remaining: number
         }[]
       }
+      cleanup_all_stale_ai_jobs: {
+        Args: never
+        Returns: {
+          flyer_maker_cancelled: number
+          upscaler_cancelled: number
+        }[]
+      }
       consume_flyer_test_credits: {
         Args: { _amount: number; _user_id: string }
         Returns: {
@@ -1473,14 +1537,19 @@ export type Database = {
         }
         Returns: boolean
       }
-      mark_pending_job_as_failed: {
-        Args: {
-          p_error_message: string
-          p_job_id: string
-          p_table_name: string
-        }
-        Returns: undefined
-      }
+      mark_pending_job_as_failed:
+        | {
+            Args: { p_job_id: string; p_table_name: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_error_message: string
+              p_job_id: string
+              p_table_name: string
+            }
+            Returns: undefined
+          }
       refund_seedance_job: {
         Args: { _job_id: string; _reason: string }
         Returns: Json
