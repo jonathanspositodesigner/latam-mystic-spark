@@ -295,6 +295,9 @@ async function startJobOnRunningHub(table: JobTable, job: any, account: ApiAccou
         { nodeId: "547", fieldName: "value", fieldValue: String(resolution || 4096) },
       ];
     }
+  } else if (table === 'flyer_maker_jobs') {
+    webappId = p.webappId || WEBAPP_IDS.flyer_maker_jobs;
+    nodeInfoList = p.nodeInfoList || [];
   } else {
     console.error(`[QueueManager] Unknown table: ${table}`);
     return { taskId: null };
