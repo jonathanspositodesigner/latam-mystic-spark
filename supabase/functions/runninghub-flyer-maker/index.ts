@@ -2,11 +2,12 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const RUNNINGHUB_API_KEY = (
-  Deno.env.get('RUNNINGHUB_API_KEY') ||
-  Deno.env.get('RUNNINGHUB_APIKEY') ||
-  ''
-).trim();
+const RUNNINGHUB_API_KEYS = [
+  Deno.env.get('RUNNINGHUB_API_KEY'),
+  Deno.env.get('RUNNINGHUB_APIKEY'),
+  Deno.env.get('RUNNINGHUB_API_KEY_SECONDARY'),
+].map(k => (k || '').trim()).filter(Boolean);
+const RUNNINGHUB_API_KEY = RUNNINGHUB_API_KEYS[0] || '';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -47,15 +48,23 @@ async function uploadImageToRunningHub(imageUrl: string, label: string, jobId: s
   const name = imageUrl.split('/').pop() || `${label}.png`;
 
   const formData = new FormData();
-  formData.append('apiKey', RUNNINGHUB_API_KEY);
   formData.append('fileType', 'image');
   formData.append('file', blob, name);
 
   await logStep(jobId, `uploading_${label}`);
-  const uploadResponse = await fetch('https://www.runninghub.ai/task/openapi/upload', { method: 'POST', body: formData });
-  const data = await uploadResponse.json();
-  if (data.code !== 0) throw new Error(`${label} upload failed: ${data.msg || 'Unknown'}`);
-  return data.data.fileName;
+  let lastErr = '';
+  for (const key of RUNNINGHUB_API_KEYS) {
+    const fd = new FormData();
+    fd.append('apiKey', key);
+    fd.append('fileType', 'image');
+    fd.append('file', blob, name);
+    const uploadResponse = await fetch('https://www.runninghub.ai/task/openapi/upload', { method: 'POST', body: fd });
+    const data = await uploadResponse.json();
+    if (data.code === 0) return data.data.fileName;
+    lastErr = data.msg || 'Unknown';
+    console.error(`[FlyerMaker] upload ${label} failed with key ending ${key.slice(-4)}:`, lastErr);
+  }
+  throw new Error(`${label} upload failed: ${lastErr}`);
 }
 
 serve(async (req) => {
