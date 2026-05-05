@@ -1189,7 +1189,10 @@ const FlyerMakerTool: React.FC = () => {
         },
       });
 
-      if (runError) throw new Error(runError.message || 'Error al iniciar el procesamiento');
+      if (runError) {
+        setStatus('idle');
+        throw new Error(runError.message || 'Error al iniciar el procesamiento');
+      }
 
       fetchTestCredits();
       refetchCredits();
