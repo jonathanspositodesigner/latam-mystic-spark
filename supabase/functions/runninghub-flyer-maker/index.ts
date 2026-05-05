@@ -2,11 +2,12 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const RUNNINGHUB_API_KEY = (
-  Deno.env.get('RUNNINGHUB_API_KEY') ||
-  Deno.env.get('RUNNINGHUB_APIKEY') ||
-  ''
-).trim();
+const RUNNINGHUB_API_KEYS = [
+  Deno.env.get('RUNNINGHUB_API_KEY'),
+  Deno.env.get('RUNNINGHUB_APIKEY'),
+  Deno.env.get('RUNNINGHUB_API_KEY_SECONDARY'),
+].map(k => (k || '').trim()).filter(Boolean);
+const RUNNINGHUB_API_KEY = RUNNINGHUB_API_KEYS[0] || '';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
