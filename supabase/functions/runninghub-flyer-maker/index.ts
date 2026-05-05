@@ -54,11 +54,27 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
     }
 
-    // MAPA DE NODOS POR TIPO DE ARTE
-    // Se o tipo for OUTRO ou MOTION_STANDARD, usamos o mapeamento que foi testado e falhou com node 6
+    // MAPA DE NODOS POR TIPO DE ARTE (SINCRONIZADO COM ARCANOAPP)
     let nodeInfoList = [];
     
-    if (type === 'OUTRO' || type === 'MOTION_STANDARD') {
+    if (type === 'AGENDA') {
+      nodeInfoList = [
+        { nodeId: '1', fieldName: 'image', fieldValue: referenceFileName },
+        { nodeId: '11', fieldName: 'image', fieldValue: artistFileNames[0] || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' },
+        { nodeId: '7', fieldName: 'text', fieldValue: title || 'TITULO: AGENDA MENSAL' },
+        { nodeId: '10', fieldName: 'text', fieldValue: artistNames || 'NOMES DOS ARTISTAS:' },
+        { nodeId: '140', fieldName: 'text', fieldValue: dateTimeLocation || '' },
+        { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' }
+      ];
+    } else if (type === 'CONTRATE') {
+      nodeInfoList = [
+        { nodeId: '1', fieldName: 'image', fieldValue: referenceFileName },
+        { nodeId: '11', fieldName: 'image', fieldValue: artistFileNames[0] || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' },
+        { nodeId: '7', fieldName: 'text', fieldValue: title || 'CONTRATE' },
+        { nodeId: '10', fieldName: 'text', fieldValue: artistNames || 'NOME DO ARTISTA' },
+        { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' }
+      ];
+    } else if (type === 'OUTRO') {
       nodeInfoList = [
         { nodeId: '1', fieldName: 'image', fieldValue: referenceFileName },
         { nodeId: '7', fieldName: 'text', fieldValue: title || '' },
@@ -70,8 +86,13 @@ serve(async (req) => {
           fieldValue: fn
         }))
       ];
+    } else if (type === 'MOTION_STANDARD') {
+      // O Motion Standard no ArcanoApp usa apenas o nodeId 2 para a imagem (analisado via flyer-motion-v3)
+      nodeInfoList = [
+        { nodeId: '2', fieldName: 'image', fieldValue: referenceFileName }
+      ];
     } else {
-      // Layout padrão para EVENTO, AGENDA, CONTRATE
+      // EVENTO (WebApp 2025656642724962305)
       nodeInfoList = [
         { nodeId: '1', fieldName: 'image', fieldValue: referenceFileName },
         { nodeId: '6', fieldName: 'text', fieldValue: dateTimeLocation || '' },
@@ -81,7 +102,7 @@ serve(async (req) => {
         { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' },
         { nodeId: '103', fieldName: 'text', fieldValue: address || '' },
         { nodeId: '111', fieldName: 'value', fieldValue: String(creativity || 0) },
-        ...artistFileNames.map((fn, i) => ({
+        ...artistFileNames.slice(0, 5).map((fn, i) => ({
           nodeId: String(11 + i),
           fieldName: 'image',
           fieldValue: fn
