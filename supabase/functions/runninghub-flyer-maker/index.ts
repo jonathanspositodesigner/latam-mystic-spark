@@ -64,7 +64,9 @@ serve(async (req) => {
         { nodeId: '7', fieldName: 'text', fieldValue: title || 'TITULO: AGENDA MENSAL' },
         { nodeId: '10', fieldName: 'text', fieldValue: artistNames || 'NOMES DOS ARTISTAS:' },
         { nodeId: '140', fieldName: 'text', fieldValue: dateTimeLocation || '' },
-        { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' }
+        { nodeId: '9', fieldName: 'text', fieldValue: footerPromo || 'PROMOÇÃO DE RODAPÉ:' },
+        { nodeId: '107', fieldName: 'value', fieldValue: String(creativity ?? 4) },
+        { nodeId: '201', fieldName: 'aspectRatio', fieldValue: '9:16' }
       ];
     } else if (type === 'CONTRATE') {
       nodeInfoList = [
@@ -72,22 +74,28 @@ serve(async (req) => {
         { nodeId: '11', fieldName: 'image', fieldValue: artistFileNames[0] || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' },
         { nodeId: '7', fieldName: 'text', fieldValue: title || 'CONTRATE' },
         { nodeId: '10', fieldName: 'text', fieldValue: artistNames || 'NOME DO ARTISTA' },
-        { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' }
+        { nodeId: '140', fieldName: 'text', fieldValue: dateTimeLocation || 'CONTATO:' },
+        { nodeId: '9', fieldName: 'text', fieldValue: footerPromo || 'PROMOÇÃO DE RODAPÉ:' },
+        { nodeId: '107', fieldName: 'value', fieldValue: String(creativity ?? 4) },
+        { nodeId: '190', fieldName: 'aspectRatio', fieldValue: '9:16' }
       ];
     } else if (type === 'OUTRO') {
       nodeInfoList = [
         { nodeId: '1', fieldName: 'image', fieldValue: referenceFileName },
-        { nodeId: '7', fieldName: 'text', fieldValue: title || '' },
-        { nodeId: '10', fieldName: 'text', fieldValue: artistNames || '' },
-        { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' },
-        ...artistFileNames.map((fn, i) => ({
-          nodeId: String(11 + i),
-          fieldName: 'image',
-          fieldValue: fn
-        }))
+        { nodeId: '7', fieldName: 'text', fieldValue: title || 'HEADLINE:' },
+        { nodeId: '10', fieldName: 'text', fieldValue: address || 'SUB-HEADLINE:' },
+        { nodeId: '140', fieldName: 'text', fieldValue: dateTimeLocation || 'CALL TO ACTION:' },
+        { nodeId: '9', fieldName: 'text', fieldValue: footerPromo || 'PROMO:' },
+        { nodeId: '107', fieldName: 'value', fieldValue: String(creativity ?? 2) },
+        { nodeId: '190', fieldName: 'aspectRatio', fieldValue: '9:16' }
       ];
+      if (artistFileNames.length > 0) {
+        nodeInfoList.push({ nodeId: '11', fieldName: 'image', fieldValue: artistFileNames[0] });
+      }
+      if (logoFileName) {
+        nodeInfoList.push({ nodeId: '195', fieldName: 'image', fieldValue: logoFileName });
+      }
     } else if (type === 'MOTION_STANDARD') {
-      // O Motion Standard no ArcanoApp usa apenas o nodeId 2 para a imagem (analisado via flyer-motion-v3)
       nodeInfoList = [
         { nodeId: '2', fieldName: 'image', fieldValue: referenceFileName }
       ];
