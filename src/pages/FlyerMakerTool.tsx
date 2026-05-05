@@ -2881,7 +2881,8 @@ const FlyerMakerTool: React.FC = () => {
                         <div className="flex flex-col items-center text-red-400 max-w-lg mx-auto bg-red-500/10 p-6 rounded-2xl border border-red-500/20">
                           <XCircle className="w-16 h-16 mb-4 opacity-80" />
                           <h4 className="text-lg font-bold mb-2">Error en la Generación</h4>
-                          <p className="text-sm mb-4 text-center opacity-90">{getAIErrorMessage(debugErrorMessage, 'flyer-maker')}</p>
+                          <p className="text-sm mb-4 text-center opacity-90">{getAIErrorMessage(debugErrorMessage).message}</p>
+                          <p className="text-xs mb-4 text-center text-muted-foreground">{getAIErrorMessage(debugErrorMessage).solution}</p>
                           <div className="w-full bg-black/40 p-4 rounded-lg overflow-x-auto text-left">
                             <p className="text-[10px] font-mono whitespace-pre text-red-300 leading-tight">
                               {debugErrorMessage}
