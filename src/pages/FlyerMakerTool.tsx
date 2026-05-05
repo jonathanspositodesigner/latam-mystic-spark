@@ -1307,12 +1307,9 @@ const FlyerMakerTool: React.FC = () => {
       if (localJobId) {
         await markJobAsFailedInDb(localJobId, 'flyer_maker', error.message || 'Error desconocido');
       }
-<<<<<<< Updated upstream
-=======
       setStatus('error');
       setJobId(null);
       if (typeof window !== 'undefined') localStorage.removeItem('flyer_job_id');
->>>>>>> Stashed changes
       setDebugErrorMessage(error.message);
       toast.error(error.message);
       
