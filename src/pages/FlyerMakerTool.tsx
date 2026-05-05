@@ -1255,28 +1255,32 @@ const FlyerMakerTool: React.FC = () => {
       // 5. Call Edge Function
       setProgress(50);
 
+      const requestBody = {
+        jobId: job.id,
+        userId: user.id,
+        creditCost,
+        flyerSubType: flyerType,
+        referenceImageUrl: referenceUrl,
+        artistPhotoUrls: artistUrls,
+        logoUrl: logoUrlStr,
+        dateTimeLocation: dateTimeLocationStr,
+        title: titleStr,
+        address: addressStr,
+        artistNames: artistNamesStr,
+        footerPromo: footerPromoStr,
+        imageSize: currentImageSize,
+        creativity: currentCreativity
+      };
+
       const { data: runResult, error: runError } = await supabase.functions.invoke('runninghub-flyer-maker/run', {
-        body: {
-          jobId: job.id,
-          userId: user.id,
-          creditCost,
-          flyerSubType: flyerType,
-          referenceImageUrl: referenceUrl,
-          artistPhotoUrls: artistUrls,
-          logoUrl: logoUrlStr,
-          dateTimeLocation: dateTimeLocationStr,
-          title: titleStr,
-          address: addressStr,
-          artistNames: artistNamesStr,
-          footerPromo: footerPromoStr,
-          imageSize: currentImageSize,
-          creativity: currentCreativity
-        },
+        body: requestBody,
       });
 
       if (runError) {
         setStatus('idle');
         endSubmit();
+        const errorDetails = `HTTP ${runError.status || 'Unknown'} - ${runError.message}\nPayload: ${JSON.stringify(requestBody, null, 2)}`;
+        setDebugErrorMessage(errorDetails);
         throw new Error(runError.message || 'Error al iniciar el procesamiento');
       }
 
