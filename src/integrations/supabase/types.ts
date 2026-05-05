@@ -191,6 +191,44 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_tool_library_items: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_visible: boolean | null
+          source_id: string
+          tool_slug: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean | null
+          source_id: string
+          tool_slug: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean | null
+          source_id?: string
+          tool_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tool_library_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ai_tool_library_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_tool_settings: {
         Row: {
           api_cost: number
@@ -1017,6 +1055,90 @@ export type Database = {
         }
         Relationships: []
       }
+      seedance_jobs: {
+        Row: {
+          aspect_ratio: string | null
+          cancelled_at: string | null
+          completed_at: string | null
+          created_at: string | null
+          credits_charged: number | null
+          duration: number | null
+          error_message: string | null
+          generate_audio: boolean | null
+          generation_type: string | null
+          id: string
+          input_audio_urls: string[] | null
+          input_image_urls: string[] | null
+          input_video_urls: string[] | null
+          model: string
+          output_url: string | null
+          prompt: string
+          quality: string | null
+          reference_prompt_id: string | null
+          rh_cost: number | null
+          source_tool: string | null
+          status: string | null
+          task_id: string | null
+          thumbnail_url: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          credits_charged?: number | null
+          duration?: number | null
+          error_message?: string | null
+          generate_audio?: boolean | null
+          generation_type?: string | null
+          id?: string
+          input_audio_urls?: string[] | null
+          input_image_urls?: string[] | null
+          input_video_urls?: string[] | null
+          model: string
+          output_url?: string | null
+          prompt: string
+          quality?: string | null
+          reference_prompt_id?: string | null
+          rh_cost?: number | null
+          source_tool?: string | null
+          status?: string | null
+          task_id?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          credits_charged?: number | null
+          duration?: number | null
+          error_message?: string | null
+          generate_audio?: boolean | null
+          generation_type?: string | null
+          id?: string
+          input_audio_urls?: string[] | null
+          input_image_urls?: string[] | null
+          input_video_urls?: string[] | null
+          model?: string
+          output_url?: string | null
+          prompt?: string
+          quality?: string | null
+          reference_prompt_id?: string | null
+          rh_cost?: number | null
+          source_tool?: string | null
+          status?: string | null
+          task_id?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       upscaler_credit_transactions: {
         Row: {
           amount: number
@@ -1314,6 +1436,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      refund_seedance_job: {
+        Args: { _job_id: string; _reason: string }
+        Returns: Json
       }
       refund_upscaler_credits: {
         Args: { _amount: number; _description?: string; _user_id: string }
