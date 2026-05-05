@@ -49,7 +49,33 @@ serve(async (req) => {
   const path = url.pathname.split('/').pop();
 
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+
+    if (path === 'check-user-active') {
+      const { userId } = body;
+      if (!userId) {
+        return new Response(JSON.stringify({ hasActiveJob: false, activeTool: null }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      const tables = [
+        { table: 'flyer_maker_jobs', tool: 'flyer_maker' },
+        { table: 'upscaler_jobs', tool: 'upscaler' },
+        { table: 'seedance_jobs', tool: 'seedance' },
+      ];
+      for (const { table, tool } of tables) {
+        const { data } = await supabase
+          .from(table)
+          .select('id, status, current_step')
+          .eq('user_id', userId)
+          .in('status', ['pending', 'queued', 'starting', 'running'])
+          .limit(1)
+          .maybeSingle();
+        if (data) {
+          return new Response(JSON.stringify({ hasActiveJob: true, activeTool: tool, jobId: data.id, status: data.status, currentStep: data.current_step }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      }
+      return new Response(JSON.stringify({ hasActiveJob: false, activeTool: null }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     if (path === 'run-or-queue') {
       const { table, jobId, job_payload } = body;
       const { data: job } = await supabase.from(table).update({ job_payload, status: 'starting' }).eq('id', jobId).select().single();
