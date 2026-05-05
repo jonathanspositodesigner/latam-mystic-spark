@@ -1255,28 +1255,32 @@ const FlyerMakerTool: React.FC = () => {
       // 5. Call Edge Function
       setProgress(50);
 
+      const requestBody = {
+        jobId: job.id,
+        userId: user.id,
+        creditCost,
+        flyerSubType: flyerType,
+        referenceImageUrl: referenceUrl,
+        artistPhotoUrls: artistUrls,
+        logoUrl: logoUrlStr,
+        dateTimeLocation: dateTimeLocationStr,
+        title: titleStr,
+        address: addressStr,
+        artistNames: artistNamesStr,
+        footerPromo: footerPromoStr,
+        imageSize: currentImageSize,
+        creativity: currentCreativity
+      };
+
       const { data: runResult, error: runError } = await supabase.functions.invoke('runninghub-flyer-maker/run', {
-        body: {
-          jobId: job.id,
-          userId: user.id,
-          creditCost,
-          flyerSubType: flyerType,
-          referenceImageUrl: referenceUrl,
-          artistPhotoUrls: artistUrls,
-          logoUrl: logoUrlStr,
-          dateTimeLocation: dateTimeLocationStr,
-          title: titleStr,
-          address: addressStr,
-          artistNames: artistNamesStr,
-          footerPromo: footerPromoStr,
-          imageSize: currentImageSize,
-          creativity: currentCreativity
-        },
+        body: requestBody,
       });
 
       if (runError) {
         setStatus('idle');
         endSubmit();
+        const errorDetails = `HTTP ${runError.status || 'Unknown'} - ${runError.message}\nPayload: ${JSON.stringify(requestBody, null, 2)}`;
+        setDebugErrorMessage(errorDetails);
         throw new Error(runError.message || 'Error al iniciar el procesamiento');
       }
 
@@ -2872,6 +2876,25 @@ const FlyerMakerTool: React.FC = () => {
                           <p className="text-foreground font-medium mb-1">{status === 'uploading' ? 'Subiendo imágenes...' : status === 'waiting' ? `En cola: Posición ${queuePosition}` : 'Procesando IA...'}</p>
                           <p className="text-xs text-muted-foreground animate-pulse">{queueMessages[queueMessageIndex].text}</p>
                           <div className="w-48 h-1 bg-accent rounded-full mt-4 overflow-hidden"><div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }}></div></div>
+                        </div>
+                      ) : debugErrorMessage ? (
+                        <div className="flex flex-col items-center text-red-400 max-w-lg mx-auto bg-red-500/10 p-6 rounded-2xl border border-red-500/20">
+                          <XCircle className="w-16 h-16 mb-4 opacity-80" />
+                          <h4 className="text-lg font-bold mb-2">Error en la Generación</h4>
+                          <p className="text-sm mb-4 text-center opacity-90">{getAIErrorMessage(debugErrorMessage).message}</p>
+                          <p className="text-xs mb-4 text-center text-muted-foreground">{getAIErrorMessage(debugErrorMessage).solution}</p>
+                          <div className="w-full bg-black/40 p-4 rounded-lg overflow-x-auto text-left">
+                            <p className="text-[10px] font-mono whitespace-pre text-red-300 leading-tight">
+                              {debugErrorMessage}
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            className="mt-6 border-red-500/30 text-red-300 hover:bg-red-500/10 rounded-xl"
+                            onClick={() => setDebugErrorMessage(null)}
+                          >
+                            Entendido
+                          </Button>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center text-muted-foreground">
