@@ -1168,7 +1168,6 @@ const FlyerMakerTool: React.FC = () => {
 
       // 5. Call Edge Function
       setProgress(50);
-      setStatus('processing');
 
       const { data: runResult, error: runError } = await supabase.functions.invoke('runninghub-flyer-maker/run', {
         body: {
@@ -1191,6 +1190,7 @@ const FlyerMakerTool: React.FC = () => {
 
       if (runError) {
         setStatus('idle');
+        endSubmit();
         throw new Error(runError.message || 'Error al iniciar el procesamiento');
       }
 
@@ -1209,23 +1209,22 @@ const FlyerMakerTool: React.FC = () => {
         setStatus('waiting');
         setQueuePosition(runResult.position || 1);
       } else {
-        setStatus('processing');
+        // Removemos o setStatus('processing') daqui para não travar o botão
         setProgress(60);
       }
 
-      // Se não estiver em queue ou processando, volta para idle
-      if (!runResult?.queued && runResult?.status !== 'running') {
-        setStatus('idle');
-      }
+      // FORÇA O BOTÃO A FICAR CLICÁVEL SEMPRE APÓS O CLIQUE INICIAL
+      setStatus('idle');
       endSubmit();
     } catch (error: any) {
       console.error(`[FlyerMaker ${flyerType}] Process error:`, error);
       if (localJobId) {
         await markJobAsFailedInDb(localJobId, 'flyer_maker', error.message || 'Error desconocido');
       }
-      setStatus('idle'); // Destrava o botão em caso de erro
       setDebugErrorMessage(error.message);
       toast.error(error.message);
+      
+      // GARANTE QUE O BOTÃO SEJA DESTRAVADO EM QUALQUER ERRO
       setStatus('idle');
       endSubmit();
     }
@@ -2004,11 +2003,11 @@ const FlyerMakerTool: React.FC = () => {
 
                     <CreativitySlider value={agendaCreativity} onChange={setAgendaCreativity} disabled={isProcessing} max={5} showRecommendation={false} />
 
-                    {/* Generate Button */}
-                    {!isProcessing && status !== 'completed' && (
+                    {/* Generate Button - SEMPRE CLICÁVEL */}
+                    {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcessAgenda || isSubmitting}
+                          disabled={!canProcessAgenda}
                           onClick={handleUnifiedProcess}
                         >
                         {isSubmitting ? (
@@ -2169,11 +2168,11 @@ const FlyerMakerTool: React.FC = () => {
 
                     <CreativitySlider value={contrateCreativity} onChange={setContrateCreativity} disabled={isProcessing} max={10} showRecommendation={false} />
 
-                    {/* Generate Button */}
-                    {!isProcessing && status !== 'completed' && (
+                    {/* Generate Button - SEMPRE CLICÁVEL */}
+                    {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcessContrate || isSubmitting}
+                          disabled={!canProcessContrate}
                           onClick={handleUnifiedProcess}
                         >
                         {isSubmitting ? (
@@ -2408,11 +2407,11 @@ const FlyerMakerTool: React.FC = () => {
                         {/* 6. Creatividad */}
                         <CreativitySlider value={outroCreativity} onChange={setOutroCreativity} disabled={isProcessing} max={5} showRecommendation={false} />
 
-                        {/* 7. Botón generar */}
-                        {!isProcessing && status !== 'completed' && (
+                        {/* 7. Botón generar - SEMPRE CLICÁVEL */}
+                        {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcessOutro || isSubmitting}
+                          disabled={!canProcessOutro}
                           onClick={handleUnifiedProcess}
                         >
                             {isSubmitting ? (
@@ -2618,11 +2617,11 @@ const FlyerMakerTool: React.FC = () => {
 
                     <CreativitySlider value={creativity} onChange={setCreativity} disabled={isProcessing} max={5} showRecommendation={false} />
 
-                    {/* Generate Button */}
-                    {!isProcessing && status !== 'completed' && (
+                    {/* Generate Button - SEMPRE CLICÁVEL */}
+                    {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcess || isSubmitting}
+                          disabled={!canProcess}
                           onClick={handleUnifiedProcess}
                         >
                         {isSubmitting ? (
