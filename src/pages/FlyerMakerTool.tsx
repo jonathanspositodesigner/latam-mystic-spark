@@ -12,7 +12,7 @@ import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useQueueSessionCleanup } from '@/hooks/useQueueSessionCleanup';
 import { useProcessingButton } from '@/hooks/useProcessingButton';
-import { useAIJob } from '@/contexts/AIJobContext';
+import { useAIJobContext } from '@/contexts/AIJobContext';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
 import ReferenceImageCard from '@/components/arcano-cloner/ReferenceImageCard';
@@ -50,7 +50,7 @@ const FlyerMakerTool: React.FC = () => {
   
   useEffect(() => { fetchTestCredits(); }, [fetchTestCredits]);
   
-  const { registerJob, updateJobStatus, playNotificationSound } = useAIJob();
+  const { registerJob, updateJobStatus } = useAIJobContext();
   const { referencePromptId } = useCollaboratorAttribution();
 
   // Common states
@@ -89,11 +89,11 @@ const FlyerMakerTool: React.FC = () => {
 
   // Sync for static flyer
   useJobStatusSync({
-    jobId, toolType: 'flyer_maker', enabled: status === 'processing' || status === 'waiting',
+    jobId, toolId: 'flyer_maker', enabled: status === 'processing' || status === 'waiting',
     onStatusChange: (update) => {
       if (update.status === 'completed' && update.outputUrl) {
         setOutputImage(update.outputUrl); setStatus('completed'); endSubmit(); refetchCredits(); fetchTestCredits();
-        playNotificationSound(); toast.success('¡Flyer generado con éxito!');
+        toast.success('¡Flyer generado con éxito!');
       } else if (update.status === 'failed') {
         setStatus('error'); endSubmit(); toast.error(getAIErrorMessage(update.errorMessage).message);
       }
@@ -102,11 +102,11 @@ const FlyerMakerTool: React.FC = () => {
 
   // Sync for motion flyer
   useJobStatusSync({
-    jobId: motionJobId, toolType: 'flyer_motion', enabled: motionStatus === 'processing' || motionStatus === 'waiting',
+    jobId: motionJobId, toolId: 'flyer_motion', enabled: motionStatus === 'processing' || motionStatus === 'waiting',
     onStatusChange: (update) => {
       if (update.status === 'completed' && update.outputUrl) {
         setMotionVideoUrl(update.outputUrl); setMotionStatus('completed'); setFlyerScreen('motion-result'); endSubmit(); refetchCredits(); fetchTestCredits();
-        playNotificationSound(); toast.success('¡Video generado con éxito!');
+        toast.success('¡Video generado con éxito!');
       } else if (update.status === 'failed') {
         setMotionStatus('error'); endSubmit(); toast.error(getAIErrorMessage(update.errorMessage).message);
       }
