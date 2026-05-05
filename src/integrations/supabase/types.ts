@@ -1143,6 +1143,7 @@ export type Database = {
           completed_at: string | null
           created_at: string | null
           credits_charged: number | null
+          credits_refunded: number
           duration: number | null
           error_message: string | null
           generate_audio: boolean | null
@@ -1156,6 +1157,7 @@ export type Database = {
           prompt: string
           quality: string | null
           reference_prompt_id: string | null
+          refunded_at: string | null
           rh_cost: number | null
           source_tool: string | null
           status: string | null
@@ -1170,6 +1172,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           credits_charged?: number | null
+          credits_refunded?: number
           duration?: number | null
           error_message?: string | null
           generate_audio?: boolean | null
@@ -1183,6 +1186,7 @@ export type Database = {
           prompt: string
           quality?: string | null
           reference_prompt_id?: string | null
+          refunded_at?: string | null
           rh_cost?: number | null
           source_tool?: string | null
           status?: string | null
@@ -1197,6 +1201,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string | null
           credits_charged?: number | null
+          credits_refunded?: number
           duration?: number | null
           error_message?: string | null
           generate_audio?: boolean | null
@@ -1210,6 +1215,7 @@ export type Database = {
           prompt?: string
           quality?: string | null
           reference_prompt_id?: string | null
+          refunded_at?: string | null
           rh_cost?: number | null
           source_tool?: string | null
           status?: string | null
@@ -1509,8 +1515,30 @@ export type Database = {
       cleanup_all_stale_ai_jobs: {
         Args: never
         Returns: {
-          flyer_maker_cancelled: number
+          arcano_cancelled: number
+          arcano_refunded: number
+          bgremover_cancelled: number
+          bgremover_refunded: number
+          chargen_cancelled: number
+          chargen_refunded: number
+          flyer_cancelled: number
+          flyer_refunded: number
+          imggen_cancelled: number
+          imggen_refunded: number
+          movieled_cancelled: number
+          movieled_refunded: number
+          pose_cancelled: number
+          pose_refunded: number
+          seedance_cancelled: number
+          seedance_refunded: number
           upscaler_cancelled: number
+          upscaler_refunded: number
+          veste_cancelled: number
+          veste_refunded: number
+          video_cancelled: number
+          video_refunded: number
+          videogen_cancelled: number
+          videogen_refunded: number
         }[]
       }
       consume_flyer_test_credits: {
@@ -1526,6 +1554,17 @@ export type Database = {
           error_message: string
           new_balance: number
           success: boolean
+        }[]
+      }
+      get_ai_tools_cost_averages: {
+        Args: never
+        Returns: {
+          avg_rh_cost: number
+          avg_user_credits: number
+          tool_name: string
+          total_completed: number
+          total_rh_cost: number
+          total_user_credits: number
         }[]
       }
       get_flyer_test_credits: { Args: { _user_id: string }; Returns: number }
@@ -1544,19 +1583,32 @@ export type Database = {
           }
         | {
             Args: {
-              p_error_message: string
+              p_error_message?: string
               p_job_id: string
               p_table_name: string
             }
-            Returns: undefined
+            Returns: boolean
           }
       refund_seedance_job: {
-        Args: { _job_id: string; _reason: string }
-        Returns: Json
+        Args: { _job_id: string; _reason?: string }
+        Returns: {
+          message: string
+          refunded_amount: number
+          success: boolean
+        }[]
       }
       refund_upscaler_credits: {
         Args: { _amount: number; _description?: string; _user_id: string }
         Returns: undefined
+      }
+      register_collaborator_tool_earning: {
+        Args: {
+          _job_id: string
+          _prompt_id: string
+          _tool_table: string
+          _user_id: string
+        }
+        Returns: Json
       }
       register_device_signup: {
         Args: { p_fingerprint: string; p_user_id: string }
