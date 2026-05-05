@@ -39,7 +39,7 @@ const AI_OPTIMIZATION_CONFIG = {
   initialQuality: 0.9,
 };
 
-// Upscaler-specific config - stricter limit to prevent VRAM OOM
+// Upscaler-specific config
 const UPSCALER_OPTIMIZATION_CONFIG = {
   maxSizeMB: 2,
   maxWidthOrHeight: 1024,
@@ -70,6 +70,7 @@ export const optimizeImage = async (
 
     const webpFileName = file.name.replace(/\.[^/.]+$/, '.webp');
     const optimizedFile = new File([compressedFile], webpFileName, { type: 'image/webp' });
+
     const optimizedSize = optimizedFile.size;
     const savings = originalSize - optimizedSize;
     const savingsPercent = Math.round((savings / originalSize) * 100);
@@ -83,7 +84,6 @@ export const optimizeImage = async (
 
 export const optimizeForAI = async (file: File): Promise<OptimizationResult> => {
   const originalSize = file.size;
-
   try {
     const compressedFile = await imageCompression(file, AI_OPTIMIZATION_CONFIG);
     const jpegFileName = file.name.replace(/\.[^/.]+$/, '.jpg');
@@ -91,7 +91,6 @@ export const optimizeForAI = async (file: File): Promise<OptimizationResult> => 
     const optimizedSize = optimizedFile.size;
     const savings = originalSize - optimizedSize;
     const savingsPercent = Math.round((savings / originalSize) * 100);
-
     return { file: optimizedFile, originalSize, optimizedSize, savings, savingsPercent };
   } catch (error) {
     console.error('[AI Optimize] Error:', error);
@@ -126,10 +125,7 @@ export const compressToMaxDimension = async (
   maxPx: number
 ): Promise<{ file: File; width: number; height: number }> => {
   const { width, height } = await getImageDimensions(file);
-
-  if (width <= maxPx && height <= maxPx) {
-    return { file, width, height };
-  }
+  if (width <= maxPx && height <= maxPx) return { file, width, height };
 
   try {
     const compressedFile = await imageCompression(file, {
@@ -138,11 +134,9 @@ export const compressToMaxDimension = async (
       fileType: 'image/webp',
       initialQuality: 0.9,
     });
-
     const newDimensions = await getImageDimensions(compressedFile as File);
     const webpFileName = file.name.replace(/\.[^/.]+$/, '.webp');
     const optimizedFile = new File([compressedFile], webpFileName, { type: 'image/webp' });
-
     return { file: optimizedFile, width: newDimensions.width, height: newDimensions.height };
   } catch (error) {
     console.error('[compressToMaxDimension] Error:', error);
@@ -157,7 +151,12 @@ export const validateImageDimensions = (file: File): Promise<ImageDimensionValid
     img.onload = () => {
       URL.revokeObjectURL(url);
       if (img.width > MAX_AI_DIMENSION || img.height > MAX_AI_DIMENSION) {
-        resolve({ valid: false, width: img.width, height: img.height, error: `Imagen muy grande (${img.width}x${img.height}). El límite máximo es ${MAX_AI_DIMENSION}x${MAX_AI_DIMENSION} píxeles.` });
+        resolve({
+          valid: false,
+          width: img.width,
+          height: img.height,
+          error: `Imagen muy grande (${img.width}x${img.height}). El límite máximo es ${MAX_AI_DIMENSION}x${MAX_AI_DIMENSION} píxeles.`,
+        });
       } else {
         resolve({ valid: true, width: img.width, height: img.height });
       }
@@ -169,7 +168,6 @@ export const validateImageDimensions = (file: File): Promise<ImageDimensionValid
 
 export const optimizeForUpscaler = async (file: File): Promise<OptimizationResult> => {
   const originalSize = file.size;
-
   try {
     const compressedFile = await imageCompression(file, UPSCALER_OPTIMIZATION_CONFIG);
     const jpegFileName = file.name.replace(/\.[^/.]+$/, '.jpg');
@@ -177,7 +175,6 @@ export const optimizeForUpscaler = async (file: File): Promise<OptimizationResul
     const optimizedSize = optimizedFile.size;
     const savings = originalSize - optimizedSize;
     const savingsPercent = Math.round((savings / originalSize) * 100);
-
     return { file: optimizedFile, originalSize, optimizedSize, savings, savingsPercent };
   } catch (error) {
     console.error('[Upscaler Optimize] Error:', error);
