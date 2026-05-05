@@ -65,6 +65,7 @@ const UpscalerArcanoTool = React.lazy(() => import("./pages/UpscalerArcanoTool")
 const PlanesCreditos = React.lazy(() => import("./pages/PlanesCreditos"));
 const CreditosUpscaler = React.lazy(() => import("./pages/CreditosUpscaler"));
 const FlyerMakerTool = React.lazy(() => import("./pages/FlyerMakerTool"));
+const FlyerMakerLanding = React.lazy(() => import("./pages/FlyerMakerLanding"));
 
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-[hsl(270,60%,4%)] flex items-center justify-center">
@@ -148,6 +149,7 @@ const AppContent = () => {
           <Route path="/planes" element={<ProtectedRoute><PlanesCreditos /></ProtectedRoute>} />
           <Route path="/creditos-upscaler" element={<ProtectedRoute><CreditosUpscaler /></ProtectedRoute>} />
           <Route path="/flyer-maker" element={<ProtectedRoute><FlyerMakerTool /></ProtectedRoute>} />
+          <Route path="/flyermakerlanding" element={<FlyerMakerLanding />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
