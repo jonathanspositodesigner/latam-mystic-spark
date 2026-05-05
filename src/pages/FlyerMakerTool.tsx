@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sparkles, Download, Loader2, ImageIcon, RefreshCw, Upload, ArrowLeft, Film, Play, GraduationCap, XCircle, AlertTriangle, Wand2, Trash2, Plus, Film as MovieIcon } from 'lucide-react';
+import { Sparkles, Download, Loader2, ImageIcon, RefreshCw, Upload, ArrowLeft, Film, Play, GraduationCap, XCircle, AlertTriangle, Wand2, Trash2, Plus, Coins, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import { getAIErrorMessage } from '@/utils/errorMessages';
 import { useAIToolSettings } from '@/hooks/useAIToolSettings';
 import { useCollaboratorAttribution } from '@/hooks/useCollaboratorAttribution';
 import { getSeedanceTotalCost } from '@/config/seedance-pricing';
+import { isAcceptedImage, ensureBrowserCompatibleImage, IMAGE_ACCEPT } from '@/lib/heicConverter';
 
 type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'waiting' | 'completed' | 'error';
 type FlyerScreen = 'choose' | 'static-type' | 'static-controls' | 'motion' | 'motion-result';
@@ -53,7 +54,6 @@ const FlyerMakerTool: React.FC = () => {
   const { registerJob, updateJobStatus } = useAIJobContext();
   const { referencePromptId } = useCollaboratorAttribution();
 
-  // Common states
   const [flyerType, setFlyerType] = useState<'evento' | 'agenda' | 'contrate' | 'outro' | null>(null);
   const [flyerScreen, setFlyerScreen] = useState<FlyerScreen>('choose');
   const [status, setStatus] = useState<ProcessingStatus>('idle');
@@ -63,7 +63,6 @@ const FlyerMakerTool: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(!localStorage.getItem("flyer-maker-tutorial-seen"));
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
 
-  // Tool specific states
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [artistPhotos, setArtistPhotos] = useState<{ url: string, file: File }[]>([]);
@@ -73,7 +72,6 @@ const FlyerMakerTool: React.FC = () => {
   const [creativity, setCreativity] = useState(0);
   const [imageSize, setImageSize] = useState<'3:4' | '9:16'>('3:4');
 
-  // Motion states
   const [motionSourceImage, setMotionSourceImage] = useState<string | null>(null);
   const [motionVideoUrl, setMotionVideoUrl] = useState<string | null>(null);
   const [motionStatus, setMotionStatus] = useState<ProcessingStatus>('idle');
@@ -87,7 +85,6 @@ const FlyerMakerTool: React.FC = () => {
 
   useQueueSessionCleanup(sessionIdRef.current, status);
 
-  // Sync for static flyer
   useJobStatusSync({
     jobId, toolId: 'flyer_maker', enabled: status === 'processing' || status === 'waiting',
     onStatusChange: (update) => {
@@ -100,7 +97,6 @@ const FlyerMakerTool: React.FC = () => {
     }
   });
 
-  // Sync for motion flyer
   useJobStatusSync({
     jobId: motionJobId, toolId: 'flyer_motion', enabled: motionStatus === 'processing' || motionStatus === 'waiting',
     onStatusChange: (update) => {
