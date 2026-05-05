@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.runninghub-webhook]
 verify_jwt = false
+
+[functions.runninghub-flyer-motion]
+verify_jwt = false
