@@ -1226,8 +1226,8 @@ const FlyerMakerTool: React.FC = () => {
       setStatus('idle'); // Destrava o botão em caso de erro
       setDebugErrorMessage(error.message);
       toast.error(error.message);
+      setStatus('idle');
       endSubmit();
-      if (status === 'processing') setStatus('idle'); // Destrava se der erro crítico no início
     }
   };
 
