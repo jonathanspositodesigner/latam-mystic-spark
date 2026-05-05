@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.hotmart-webhook]
 verify_jwt = false
+
+[functions.runninghub-flyer-maker]
+verify_jwt = false
+
+[functions.runninghub-queue-manager]
+verify_jwt = false
+
+[functions.runninghub-webhook]
+verify_jwt = false
