@@ -1016,7 +1016,8 @@ const FlyerMakerTool: React.FC = () => {
 
 
   const handleUnifiedProcess = async () => {
-    if (!startSubmit()) return;
+    // REMOVIDO startSubmit() PARA DEIXAR O BOTÃO SEMPRE CLICÁVEL
+    // if (!startSubmit()) return;
 
     if (!user?.id) {
       setNoCreditsReason('not_logged');
@@ -1755,7 +1756,7 @@ const FlyerMakerTool: React.FC = () => {
                             <Button
                               className="w-full py-4 text-sm font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white rounded-xl shadow-md shadow-purple-500/30"
                               onClick={handleGenerateMotion}
-                              disabled={!motionSourceImage || (motionStatus !== 'idle' && motionStatus !== 'completed') || isSubmitting}
+                              disabled={!motionSourceImage}
                             >
                               {isIdle ? (
                                 <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -2007,7 +2008,6 @@ const FlyerMakerTool: React.FC = () => {
                     {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcessAgenda}
                           onClick={handleUnifiedProcess}
                         >
                         {isSubmitting ? (
@@ -2172,7 +2172,6 @@ const FlyerMakerTool: React.FC = () => {
                     {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcessContrate}
                           onClick={handleUnifiedProcess}
                         >
                         {isSubmitting ? (
@@ -2411,7 +2410,6 @@ const FlyerMakerTool: React.FC = () => {
                         {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcessOutro}
                           onClick={handleUnifiedProcess}
                         >
                             {isSubmitting ? (
@@ -2621,7 +2619,6 @@ const FlyerMakerTool: React.FC = () => {
                     {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcess}
                           onClick={handleUnifiedProcess}
                         >
                         {isSubmitting ? (
