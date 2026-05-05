@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sparkles, Download, Loader2, ZoomIn, ZoomOut, ImageIcon, XCircle, AlertTriangle, Coins, RefreshCw, Plus, Trash2, Upload, Wand2, ArrowLeft, Construction, Play, Film, Lock, GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { getSeedanceTotalCost, modeToGenType } from '@/config/seedance-pricing';
+import { getSeedanceTotalCost } from '@/config/seedance-pricing';
 import flyerTypeEvento from '@/assets/flyer-type-evento.webp';
 import flyerTypeAgenda from '@/assets/flyer-type-agenda.webp';
 import flyerTypeContrate from '@/assets/flyer-type-contrate.webp';
@@ -21,7 +21,7 @@ import { usePremiumStatus } from '@/hooks/usePremiumStatus';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useQueueSessionCleanup } from '@/hooks/useQueueSessionCleanup';
 import { useProcessingButton } from '@/hooks/useProcessingButton';
-import { useAIJob } from '@/contexts/AIJobContext';
+import { useAIJobContext } from '@/contexts/AIJobContext';
 import { supabase } from '@/integrations/supabase/client';
 import AppLayout from '@/components/layout/AppLayout';
 import ReferenceImageCard from '@/components/arcano-cloner/ReferenceImageCard';
@@ -32,7 +32,7 @@ import ActiveJobBlockModal from '@/components/ai-tools/ActiveJobBlockModal';
 import FlyerMakerTutorialModal from '@/components/flyer-maker/FlyerMakerTutorialModal';
 import { optimizeForAI } from '@/hooks/useImageOptimizer';
 import { isAcceptedImage, ensureBrowserCompatibleImage, IMAGE_ACCEPT } from '@/lib/heicConverter';
-import { cancelJob as centralCancelJob, checkActiveJob, createJob as centralCreateJob, startJob as centralStartJob } from '@/ai/JobManager';
+import { cancelJob as centralCancelJob, checkActiveJob } from '@/ai/JobManager';
 import { useResilientDownload } from '@/hooks/useResilientDownload';
 import { ResilientImage } from '@/components/upscaler/ResilientImage';
 import { useJobStatusSync } from '@/hooks/useJobStatusSync';
@@ -41,6 +41,7 @@ import { useAIToolSettings } from '@/hooks/useAIToolSettings';
 import RefinePanel from '@/components/arcano-cloner/RefinePanel';
 import RefinementTimeline, { type RefinementVersion } from '@/components/arcano-cloner/RefinementTimeline';
 import { useCollaboratorAttribution } from '@/hooks/useCollaboratorAttribution';
+
 
 type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'waiting' | 'completed' | 'error';
 
@@ -75,7 +76,8 @@ const FlyerMakerTool: React.FC = () => {
   
   useEffect(() => { fetchTestCredits(); }, [fetchTestCredits]);
   
-  const { registerJob, updateJobStatus, clearJob: clearGlobalJob, playNotificationSound } = useAIJob();
+  const { registerJob, updateJobStatus, clearJob: clearGlobalJob } = useAIJobContext();
+
   const { referencePromptId, clear: clearAttribution } = useCollaboratorAttribution();
 
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
@@ -412,9 +414,14 @@ const FlyerMakerTool: React.FC = () => {
                   {outputImage ? (
                     <TransformWrapper ref={transformRef}>
                       <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }}>
-                        <ResilientImage src={outputImage} className="max-w-full max-h-full object-contain" />
+                        <ResilientImage 
+                          src={outputImage} 
+                          alt="Resultado"
+                          className="max-w-full max-h-full object-contain" 
+                        />
                       </TransformComponent>
                     </TransformWrapper>
+
                   ) : (
                     <div className="text-center p-8 text-muted-foreground">
                       <ImageIcon className="w-16 h-16 mb-2 mx-auto" />
