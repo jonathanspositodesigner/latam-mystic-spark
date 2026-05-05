@@ -2877,6 +2877,24 @@ const FlyerMakerTool: React.FC = () => {
                           <p className="text-xs text-muted-foreground animate-pulse">{queueMessages[queueMessageIndex].text}</p>
                           <div className="w-48 h-1 bg-accent rounded-full mt-4 overflow-hidden"><div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }}></div></div>
                         </div>
+                      ) : debugErrorMessage ? (
+                        <div className="flex flex-col items-center text-red-400 max-w-lg mx-auto bg-red-500/10 p-6 rounded-2xl border border-red-500/20">
+                          <XCircle className="w-16 h-16 mb-4 opacity-80" />
+                          <h4 className="text-lg font-bold mb-2">Error en la Generación</h4>
+                          <p className="text-sm mb-4 text-center opacity-90">{getAIErrorMessage(debugErrorMessage, 'flyer-maker')}</p>
+                          <div className="w-full bg-black/40 p-4 rounded-lg overflow-x-auto text-left">
+                            <p className="text-[10px] font-mono whitespace-pre text-red-300 leading-tight">
+                              {debugErrorMessage}
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            className="mt-6 border-red-500/30 text-red-300 hover:bg-red-500/10 rounded-xl"
+                            onClick={() => setDebugErrorMessage(null)}
+                          >
+                            Entendido
+                          </Button>
+                        </div>
                       ) : (
                         <div className="flex flex-col items-center text-muted-foreground">
                           <ImageIcon className="w-16 h-16 mb-2" />
