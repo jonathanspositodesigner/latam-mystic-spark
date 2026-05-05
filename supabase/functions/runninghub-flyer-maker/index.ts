@@ -55,10 +55,16 @@ async function uploadImageToRunningHub(imageUrl: string, label: string, jobId: s
   let lastErr = '';
   for (const key of RUNNINGHUB_API_KEYS) {
     const fd = new FormData();
-    fd.append('apiKey', key);
+    // RunningHub documentation shows 'apiKey' should be passed as a query parameter for upload or field in multipart
+    // We'll try passing it as a standard header as well just in case of inconsistent API behavior
     fd.append('fileType', 'image');
     fd.append('file', blob, name);
-    const uploadResponse = await fetch('https://www.runninghub.ai/task/openapi/upload', { method: 'POST', body: fd });
+    
+    const uploadResponse = await fetch(`https://www.runninghub.ai/task/openapi/upload?apiKey=${key}`, { 
+      method: 'POST', 
+      body: fd 
+    });
+    
     const data = await uploadResponse.json();
     if (data.code === 0) return data.data.fileName;
     lastErr = data.msg || 'Unknown';
