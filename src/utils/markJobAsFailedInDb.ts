@@ -28,7 +28,7 @@ export async function markJobAsFailedInDb(
   }
 
   try {
-    const { error } = await supabase.rpc('mark_pending_job_as_failed', {
+    const { error } = await supabase.rpc('mark_pending_job_as_failed' as any, {
       p_table_name: tableName,
       p_job_id: jobId,
       p_error_message: `Erro no cliente: ${(errorMessage || 'Desconhecido').substring(0, 200)}`,

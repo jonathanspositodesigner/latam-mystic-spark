@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { useAIJob } from '@/contexts/AIJobContext';
+import { useAIJobContext as useAIJob } from '@/contexts/AIJobContext';
 import { subscribeToJob, type JobStatus, type JobUpdate } from '@/ai/JobManager';
 
 interface UseAIJobWithNotificationResult {
