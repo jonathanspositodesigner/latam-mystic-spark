@@ -23,7 +23,8 @@ serve(async (req) => {
       creativity, creditCost 
     } = body;
 
-    const webappId = RH_CONFIG.WEBAPP_IDS[flyerSubType?.toUpperCase() as keyof typeof RH_CONFIG.WEBAPP_IDS] || RH_CONFIG.DEFAULT_WEBAPP;
+    const type = flyerSubType?.toUpperCase();
+    const webappId = RH_CONFIG.WEBAPP_IDS[type as keyof typeof RH_CONFIG.WEBAPP_IDS] || RH_CONFIG.DEFAULT_WEBAPP;
 
     await logStep(RH_CONFIG.JOB_TABLE, jobId, 'starting', { flyerSubType, webappId });
 
@@ -53,21 +54,40 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
     }
 
-    const nodeInfoList = [
-      { nodeId: '1', fieldName: 'image', fieldValue: referenceFileName },
-      { nodeId: '6', fieldName: 'text', fieldValue: dateTimeLocation || '' },
-      { nodeId: '7', fieldName: 'text', fieldValue: title || '' },
-      { nodeId: '9', fieldName: 'text', fieldValue: footerPromo || '' },
-      { nodeId: '10', fieldName: 'text', fieldValue: artistNames || '' },
-      { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' },
-      { nodeId: '103', fieldName: 'text', fieldValue: address || '' },
-      { nodeId: '111', fieldName: 'value', fieldValue: String(creativity || 0) },
-      ...artistFileNames.map((fn, i) => ({
-        nodeId: String(11 + i),
-        fieldName: 'image',
-        fieldValue: fn
-      }))
-    ];
+    // MAPA DE NODOS POR TIPO DE ARTE
+    // Se o tipo for OUTRO ou MOTION_STANDARD, usamos o mapeamento que foi testado e falhou com node 6
+    let nodeInfoList = [];
+    
+    if (type === 'OUTRO' || type === 'MOTION_STANDARD') {
+      nodeInfoList = [
+        { nodeId: '1', fieldName: 'image', fieldValue: referenceFileName },
+        { nodeId: '7', fieldName: 'text', fieldValue: title || '' },
+        { nodeId: '10', fieldName: 'text', fieldValue: artistNames || '' },
+        { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' },
+        ...artistFileNames.map((fn, i) => ({
+          nodeId: String(11 + i),
+          fieldName: 'image',
+          fieldValue: fn
+        }))
+      ];
+    } else {
+      // Layout padrão para EVENTO, AGENDA, CONTRATE
+      nodeInfoList = [
+        { nodeId: '1', fieldName: 'image', fieldValue: referenceFileName },
+        { nodeId: '6', fieldName: 'text', fieldValue: dateTimeLocation || '' },
+        { nodeId: '7', fieldName: 'text', fieldValue: title || '' },
+        { nodeId: '9', fieldName: 'text', fieldValue: footerPromo || '' },
+        { nodeId: '10', fieldName: 'text', fieldValue: artistNames || '' },
+        { nodeId: '28', fieldName: 'image', fieldValue: logoFileName || 'https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/temp//pixel.png' },
+        { nodeId: '103', fieldName: 'text', fieldValue: address || '' },
+        { nodeId: '111', fieldName: 'value', fieldValue: String(creativity || 0) },
+        ...artistFileNames.map((fn, i) => ({
+          nodeId: String(11 + i),
+          fieldName: 'image',
+          fieldValue: fn
+        }))
+      ];
+    }
 
     const { data: queueResult, error: queueError } = await supabase.functions.invoke('runninghub-queue-manager/run-or-queue', {
       body: {
