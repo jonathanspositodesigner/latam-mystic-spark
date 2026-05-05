@@ -54,7 +54,6 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
   const fetchAll = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 1) Carregue categorias da ferramenta
       const { data: catData } = await supabase
         .from('ai_tool_library_categories')
         .select('id, name, slug, display_order')
@@ -62,28 +61,37 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
         .order('display_order', { ascending: true });
       setCategories(catData || []);
 
-      // 2) Carregue itens visíveis curados da biblioteca da ferramenta
-      const { data: libItems, error: libErr } = await supabase
-        .from('ai_tool_library_items' as any)
-        .select('source_id, category_id, display_order')
-        .eq('tool_slug', TOOL_SLUG)
-        .eq('is_visible', true)
-        .order('display_order', { ascending: true })
-        .limit(1000);
+      let libItems: any[] = [];
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from('ai_tool_library_items')
+          .select('source_id, category_id, display_order')
+          .eq('tool_slug', TOOL_SLUG)
+          .eq('is_visible', true)
+          .order('display_order', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) break;
+        libItems = libItems.concat(data || []);
+        if (!data || data.length < PAGE) break;
+      }
 
-      if (libErr || !libItems || (libItems as any[]).length === 0) { setFlyers([]); return; }
-      const sourceIds = (libItems as any[]).map(i => i.source_id);
+      const sourceIds = libItems.map(i => i.source_id);
+      if (sourceIds.length === 0) { setFlyers([]); return; }
 
-      // 3) Carregue artes
-      const { data: artesData, error: artesErr } = await supabase
-        .from('admin_artes' as any)
-        .select('id, title, image_url, category')
-        .in('id', sourceIds);
+      const CHUNK = 100;
+      const allArtes: any[] = [];
+      for (let i = 0; i < sourceIds.length; i += CHUNK) {
+        const { data } = await supabase
+          .from('admin_artes')
+          .select('id, title, image_url, category')
+          .in('id', sourceIds.slice(i, i + CHUNK))
+          .not('image_url', 'like', '%.mp4');
+        if (data) allArtes.push(...data);
+      }
 
-      if (artesErr || !artesData) { setFlyers([]); return; }
-
-      const catById = new Map((libItems as any[]).map(i => [i.source_id, i.category_id]));
-      const merged: FlyerItem[] = (artesData as any[]).map(a => ({
+      const catById = new Map(libItems.map(i => [i.source_id, i.category_id]));
+      const merged: FlyerItem[] = allArtes.map(a => ({
         id: a.id,
         title: a.title,
         image_url: a.image_url,
@@ -91,7 +99,7 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
         category_id: catById.get(a.id) ?? null,
       }));
 
-      setFlyers(merged);
+      setFlyers(merged.sort(() => Math.random() - 0.5));
     } catch (err) {
       console.error('[FlyerLibrary] Fetch error:', err);
     } finally {
@@ -106,6 +114,13 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
     }
   }, [isOpen, fetchAll]);
 
+  useEffect(() => {
+    if (categorySlug && categories.length > 0) {
+      const found = categories.find(c => c.slug === categorySlug);
+      if (found) setActiveCategoryId(found.id);
+    }
+  }, [categorySlug, categories]);
+
   const visibleFlyers = useMemo(() => {
     let list = flyers;
     if (activeCategoryId === 'uncategorized') list = list.filter(f => !f.category_id);
@@ -113,57 +128,76 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
 
     if (expandedTerms.length > 0) {
       const terms = expandedTerms.map(t => t.toLowerCase());
-      list = list.filter(f => {
-        const hay = `${f.title} ${f.category}`.toLowerCase();
-        return terms.some(t => hay.includes(t));
-      });
+      list = list.filter(f => terms.some(t => `${f.title} ${f.category}`.toLowerCase().includes(t)));
     }
     return list;
   }, [flyers, activeCategoryId, expandedTerms]);
+
+  useEffect(() => { setVisibleCount(20); }, [activeCategoryId, searchTerm]);
 
   const displayedFlyers = useMemo(() => visibleFlyers.slice(0, visibleCount), [visibleFlyers, visibleCount]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const rawFile = event.target.files?.[0];
     if (!rawFile || !onUploadPhoto) return;
-    if (!isAcceptedImage(rawFile)) {
-      toast.error('Selecciona una imagen válida (JPG, PNG, WEBP o HEIC).');
-      return;
-    }
+    if (!isAcceptedImage(rawFile)) { toast.error('Selecciona una imagen válida'); return; }
     setIsUploading(true);
     try {
       const file = await ensureBrowserCompatibleImage(rawFile);
       const compressed = await imageCompression(file, { maxSizeMB: 2, maxWidthOrHeight: 2048, useWebWorker: true });
       const reader = new FileReader();
-      reader.onloadend = () => { onUploadPhoto(reader.result as string, compressed as unknown as File); onClose(); };
+      reader.onloadend = () => { onUploadPhoto(reader.result as string, compressed as any); onClose(); };
       reader.readAsDataURL(compressed);
     } catch (err) {
-      console.error('[FlyerLibrary] Upload error:', err);
-      toast.error('Error al procesar la imagen.');
-    } finally {
-      setIsUploading(false);
-    }
+      toast.error('Error al procesar la imagen');
+    } finally { setIsUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-background border border-purple-500/40 text-foreground max-h-[85vh] overflow-hidden flex flex-col p-6 rounded-xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-2xl w-[calc(100%-32px)] bg-background border border-purple-500/40 max-h-[80vh] overflow-hidden flex flex-col p-4 sm:p-6 rounded-xl">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-base font-semibold flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-muted-foreground" />
             Biblioteca de Flyers
           </DialogTitle>
         </DialogHeader>
+
         <input ref={fileInputRef} type="file" accept={IMAGE_ACCEPT} onChange={handleFileChange} className="hidden" />
-        {isLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div> : (
-          <div className="grid grid-cols-3 gap-3 overflow-y-auto">
-            {displayedFlyers.map(flyer => (
-              <button key={flyer.id} onClick={() => { onSelectPhoto(flyer.image_url); onClose(); }} className="aspect-[3/4] rounded-lg overflow-hidden border">
-                <img src={flyer.image_url} alt={flyer.title} className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
+
+        {onUploadPhoto && (
+          <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full mt-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white">
+            {isUploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Procesando...</> : <><Upload className="w-4 h-4 mr-2" /> Enviar Tu Propio Flyer</>}
+          </Button>
         )}
+
+        <div className="flex items-center gap-2 mt-4">
+          <div className="flex-1 h-px bg-purple-500/20" />
+          <span className="text-[10px] text-muted-foreground">o elige de la biblioteca</span>
+          <div className="flex-1 h-px bg-purple-500/20" />
+        </div>
+
+        <div className="relative mt-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="buscar por nombre o categoría..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 bg-muted/30" />
+        </div>
+
+        <div className="mt-4 overflow-y-auto flex-1">
+          {isLoading && flyers.length === 0 ? (
+            <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-muted-foreground animate-spin" /></div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {displayedFlyers.map(f => (
+                <button key={f.id} onClick={() => { onSelectPhoto(f.image_url); onClose(); }} className="relative aspect-[3/4] rounded-lg overflow-hidden border border-border hover:scale-105 transition-transform">
+                  <img src={f.image_url} alt={f.title} className="absolute inset-0 w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+          {displayedFlyers.length < visibleFlyers.length && (
+            <Button variant="secondary" size="sm" onClick={() => setVisibleCount(c => c + 20)} className="w-full mt-4">Ver más</Button>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
