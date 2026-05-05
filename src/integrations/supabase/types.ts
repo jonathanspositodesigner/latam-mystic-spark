@@ -1055,6 +1055,30 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          endpoint: string
+          id: string
+          ip_address: string
+          request_count: number | null
+          window_start: string | null
+        }
+        Insert: {
+          endpoint: string
+          id?: string
+          ip_address: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Update: {
+          endpoint?: string
+          id?: string
+          ip_address?: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       seedance_jobs: {
         Row: {
           aspect_ratio: string | null
@@ -1411,6 +1435,18 @@ export type Database = {
           exists_in_db: boolean
           has_logged_in: boolean
           password_changed: boolean
+        }[]
+      }
+      check_rate_limit: {
+        Args: {
+          _endpoint: string
+          _ip_address: string
+          _max_requests: number
+          _window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
         }[]
       }
       consume_flyer_test_credits: {
