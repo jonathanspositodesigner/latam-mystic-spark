@@ -1473,6 +1473,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      mark_pending_job_as_failed: {
+        Args: {
+          p_error_message: string
+          p_job_id: string
+          p_table_name: string
+        }
+        Returns: undefined
+      }
       refund_seedance_job: {
         Args: { _job_id: string; _reason: string }
         Returns: Json
@@ -1487,11 +1495,7 @@ export type Database = {
       }
       user_cancel_ai_job: {
         Args: { p_job_id: string; p_table_name: string }
-        Returns: {
-          error_message: string
-          refunded_amount: number
-          success: boolean
-        }[]
+        Returns: Json
       }
     }
     Enums: {
