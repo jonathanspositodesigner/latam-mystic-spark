@@ -250,6 +250,85 @@ const FlyerMakerTool: React.FC = () => {
     localStorage.setItem('flyer_status', status);
   }, [status]);
 
+  // 🔓 Auto-recovery on mount: si hay un jobId persistido pero el job ya está en estado
+  // terminal (failed/completed/cancelled) o stale (sin actualización hace >5min), libera el botón.
+  // Esto evita que el botón quede trabado tras un fallo de Edge Function.
+  useEffect(() => {
+    let cancelled = false;
+    const persistedJobId = typeof window !== 'undefined' ? localStorage.getItem('flyer_job_id') : null;
+    const persistedStatus = typeof window !== 'undefined' ? localStorage.getItem('flyer_status') : null;
+    const ACTIVE = ['uploading', 'processing', 'waiting'];
+
+    // Caso 1: status activo persistido pero sin jobId → reset inmediato
+    if (persistedStatus && ACTIVE.includes(persistedStatus) && !persistedJobId) {
+      console.log('[FlyerMaker auto-recovery] Status activo sin jobId — reseteando a idle');
+      setStatus('idle');
+      setJobId(null);
+      setProgress(0);
+      return;
+    }
+
+    // Caso 2: hay jobId — checar estado real en el DB
+    if (!persistedJobId || !persistedStatus || !ACTIVE.includes(persistedStatus)) return;
+
+    (async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('flyer_maker_jobs')
+          .select('status, updated_at, error_message')
+          .eq('id', persistedJobId)
+          .maybeSingle();
+        if (cancelled) return;
+
+        // Job no existe — limpiar
+        if (error || !data) {
+          console.log('[FlyerMaker auto-recovery] Job no encontrado — reseteando');
+          setStatus('idle');
+          setJobId(null);
+          setProgress(0);
+          return;
+        }
+
+        // Estado terminal en DB — liberar botón
+        if (['completed', 'failed', 'cancelled'].includes(data.status)) {
+          console.log(`[FlyerMaker auto-recovery] Job ${persistedJobId} en estado terminal (${data.status}) — reseteando`);
+          setStatus(data.status === 'completed' ? 'completed' : 'idle');
+          if (data.status !== 'completed') setJobId(null);
+          return;
+        }
+
+        // Stale: sin update hace más de 5 minutos en estado activo
+        const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+        const now = Date.now();
+        if (updatedAt && now - updatedAt > 5 * 60 * 1000) {
+          console.log(`[FlyerMaker auto-recovery] Job ${persistedJobId} stale (sin update hace >5min) — reseteando`);
+          setStatus('idle');
+          setJobId(null);
+          setProgress(0);
+        }
+      } catch (e) {
+        console.error('[FlyerMaker auto-recovery] error:', e);
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Helper centralizado para resetear todo el estado de generación.
+  // Uso: en catch blocks o cuando el botón quede trabado.
+  const forceUnlockGenerator = useCallback(() => {
+    setStatus('idle');
+    setJobId(null);
+    setProgress(0);
+    setQueuePosition(0);
+    setQueueMessageIndex(0);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('flyer_job_id');
+      localStorage.setItem('flyer_status', 'idle');
+    }
+  }, []);
+
   const { isSubmitting, startSubmit, endSubmit } = useProcessingButton();
   const { isDownloading, progress: downloadProgress, download, cancel: cancelDownload } = useResilientDownload();
   const transformRef = useRef<ReactZoomPanPinchRef>(null);
@@ -287,10 +366,12 @@ const FlyerMakerTool: React.FC = () => {
   outputImageRef.current = outputImage;
   refinementHistoryRef.current = refinementHistory;
 
-  const canProcess = referenceImage && artistPhotos.length > 0 && status === 'idle';
-  const canProcessAgenda = !!(referenceImage && agendaArtistPhoto && agendaTitle.trim() && agendaArtistName.trim() && agendaDates.length > 0 && agendaDates[0].dia.trim() && agendaDates[0].local.trim()) && status === 'idle';
-  const canProcessContrate = !!(referenceImage && contrateArtistPhoto && contrateTitle.trim() && contrateArtistName.trim()) && status === 'idle';
-  const canProcessOutro = !!(referenceImage && outroHeadline.trim()) && status === 'idle';
+  // Status no-bloqueante (permiten reintentar): 'idle' o 'error'
+  const canRetry = status === 'idle' || status === 'error';
+  const canProcess = referenceImage && artistPhotos.length > 0 && canRetry;
+  const canProcessAgenda = !!(referenceImage && agendaArtistPhoto && agendaTitle.trim() && agendaArtistName.trim() && agendaDates.length > 0 && agendaDates[0].dia.trim() && agendaDates[0].local.trim()) && canRetry;
+  const canProcessContrate = !!(referenceImage && contrateArtistPhoto && contrateTitle.trim() && contrateArtistName.trim()) && canRetry;
+  const canProcessOutro = !!(referenceImage && outroHeadline.trim()) && canRetry;
   const isProcessing = status === 'uploading' || status === 'processing' || status === 'waiting';
 
   useEffect(() => {
@@ -344,6 +425,8 @@ const FlyerMakerTool: React.FC = () => {
         toast.success('¡Flyer generado con éxito!');
       } else if (update.status === 'failed' || update.status === 'cancelled') {
         setStatus('error');
+        setJobId(null);
+        if (typeof window !== 'undefined') localStorage.removeItem('flyer_job_id');
         const friendlyError = getAIErrorMessage(update.errorMessage);
         setDebugErrorMessage(update.errorMessage);
         endSubmit();
@@ -446,6 +529,8 @@ const FlyerMakerTool: React.FC = () => {
     enabled: isProcessing,
     onJobFailed: useCallback((errorMessage) => {
       setStatus('error');
+      setJobId(null);
+      if (typeof window !== 'undefined') localStorage.removeItem('flyer_job_id');
       setDebugErrorMessage(errorMessage);
       endSubmit();
       toast.error(errorMessage);
@@ -1222,6 +1307,12 @@ const FlyerMakerTool: React.FC = () => {
       if (localJobId) {
         await markJobAsFailedInDb(localJobId, 'flyer_maker', error.message || 'Error desconocido');
       }
+<<<<<<< Updated upstream
+=======
+      setStatus('error');
+      setJobId(null);
+      if (typeof window !== 'undefined') localStorage.removeItem('flyer_job_id');
+>>>>>>> Stashed changes
       setDebugErrorMessage(error.message);
       toast.error(error.message);
       
