@@ -2408,11 +2408,11 @@ const FlyerMakerTool: React.FC = () => {
                         {/* 6. Creatividad */}
                         <CreativitySlider value={outroCreativity} onChange={setOutroCreativity} disabled={isProcessing} max={5} showRecommendation={false} />
 
-                        {/* 7. Botón generar */}
-                        {!isProcessing && status !== 'completed' && (
+                        {/* 7. Botón generar - SEMPRE CLICÁVEL */}
+                        {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
-                          disabled={!canProcessOutro || isSubmitting}
+                          disabled={!canProcessOutro}
                           onClick={handleUnifiedProcess}
                         >
                             {isSubmitting ? (
