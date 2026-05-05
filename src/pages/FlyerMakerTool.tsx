@@ -1220,6 +1220,7 @@ const FlyerMakerTool: React.FC = () => {
       setDebugErrorMessage(error.message);
       toast.error(error.message);
       endSubmit();
+      if (status === 'processing') setStatus('idle'); // Destrava se der erro crítico no início
     }
   };
 
