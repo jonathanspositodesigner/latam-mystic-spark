@@ -1209,7 +1209,7 @@ const FlyerMakerTool: React.FC = () => {
         setStatus('waiting');
         setQueuePosition(runResult.position || 1);
       } else {
-        setStatus('processing');
+        // Removemos o setStatus('processing') daqui para não travar o botão
         setProgress(60);
       }
 
