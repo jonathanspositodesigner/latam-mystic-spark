@@ -1194,7 +1194,7 @@ const FlyerMakerTool: React.FC = () => {
       fetchTestCredits();
       refetchCredits();
 
-      if (runResult?.code === 'INSUFFICIENT_CREDITS') {
+      if (runResult?.error === 'INSUFFICIENT_CREDITS' || runResult?.code === 'INSUFFICIENT_CREDITS') {
         setStatus('idle');
         setNoCreditsReason('insufficient');
         setShowNoCreditsModal(true);
