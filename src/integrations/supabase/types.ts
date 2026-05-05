@@ -739,6 +739,63 @@ export type Database = {
         }
         Relationships: []
       }
+      image_generator_jobs: {
+        Row: {
+          aspect_ratio: string | null
+          created_at: string | null
+          credits_charged: boolean | null
+          current_step: string | null
+          error_message: string | null
+          id: string
+          model: string | null
+          output_url: string | null
+          prompt: string
+          session_id: string | null
+          status: string | null
+          step_history: Json | null
+          task_id: string | null
+          updated_at: string | null
+          user_credit_cost: number | null
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          created_at?: string | null
+          credits_charged?: boolean | null
+          current_step?: string | null
+          error_message?: string | null
+          id?: string
+          model?: string | null
+          output_url?: string | null
+          prompt: string
+          session_id?: string | null
+          status?: string | null
+          step_history?: Json | null
+          task_id?: string | null
+          updated_at?: string | null
+          user_credit_cost?: number | null
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          created_at?: string | null
+          credits_charged?: boolean | null
+          current_step?: string | null
+          error_message?: string | null
+          id?: string
+          model?: string | null
+          output_url?: string | null
+          prompt?: string
+          session_id?: string | null
+          status?: string | null
+          step_history?: Json | null
+          task_id?: string | null
+          updated_at?: string | null
+          user_credit_cost?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           created_at: string | null
