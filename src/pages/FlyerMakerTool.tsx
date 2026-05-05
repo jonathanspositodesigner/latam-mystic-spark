@@ -1168,7 +1168,6 @@ const FlyerMakerTool: React.FC = () => {
 
       // 5. Call Edge Function
       setProgress(50);
-      setStatus('processing');
 
       const { data: runResult, error: runError } = await supabase.functions.invoke('runninghub-flyer-maker/run', {
         body: {
