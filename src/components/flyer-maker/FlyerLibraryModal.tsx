@@ -99,7 +99,12 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
         category_id: catById.get(a.id) ?? null,
       }));
 
-      setFlyers(merged.sort(() => Math.random() - 0.5));
+      for (let i = merged.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [merged[i], merged[j]] = [merged[j], merged[i]];
+      }
+
+      setFlyers(merged);
     } catch (err) {
       console.error('[FlyerLibrary] Fetch error:', err);
     } finally {
@@ -128,7 +133,10 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
 
     if (expandedTerms.length > 0) {
       const terms = expandedTerms.map(t => t.toLowerCase());
-      list = list.filter(f => terms.some(t => `${f.title} ${f.category}`.toLowerCase().includes(t)));
+      list = list.filter(f => {
+        const hay = `${f.title} ${f.category}`.toLowerCase();
+        return terms.some(t => hay.includes(t));
+      });
     }
     return list;
   }, [flyers, activeCategoryId, expandedTerms]);
@@ -146,7 +154,7 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
       const file = await ensureBrowserCompatibleImage(rawFile);
       const compressed = await imageCompression(file, { maxSizeMB: 2, maxWidthOrHeight: 2048, useWebWorker: true });
       const reader = new FileReader();
-      reader.onloadend = () => { onUploadPhoto(reader.result as string, compressed as any); onClose(); };
+      reader.onloadend = () => { onUploadPhoto(reader.result as string, compressed as unknown as File); onClose(); };
       reader.readAsDataURL(compressed);
     } catch (err) {
       toast.error('Error al procesar la imagen');
@@ -167,7 +175,7 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
 
         {onUploadPhoto && (
           <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full mt-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white">
-            {isUploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Procesando...</> : <><Upload className="w-4 h-4 mr-2" /> Enviar Tu Propio Flyer</>}
+            {isUploading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Procesando...</> : <><Upload className="w-4 h-4 mr-2" /> Subir Tu Propio Flyer</>}
           </Button>
         )}
 
@@ -185,6 +193,11 @@ const FlyerLibraryModal: React.FC<FlyerLibraryModalProps> = ({
         <div className="mt-4 overflow-y-auto flex-1">
           {isLoading && flyers.length === 0 ? (
             <div className="flex items-center justify-center py-12"><Loader2 className="w-8 h-8 text-muted-foreground animate-spin" /></div>
+          ) : visibleFlyers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
+              <p className="text-sm">No se encontraron flyers</p>
+            </div>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {displayedFlyers.map(f => (
