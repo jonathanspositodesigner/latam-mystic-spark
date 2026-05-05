@@ -1842,9 +1842,9 @@ const FlyerMakerTool: React.FC = () => {
 
                           return (
                             <Button
-                              className="w-full py-4 text-sm font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white rounded-xl shadow-md shadow-purple-500/30"
+                              className="w-full py-4 text-sm font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white rounded-xl shadow-md shadow-purple-500/30 disabled:opacity-50"
                               onClick={handleGenerateMotion}
-                              disabled={!motionSourceImage}
+                              disabled={!motionSourceImage || !isIdle || isSubmitting}
                             >
                               {isIdle ? (
                                 <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -2096,10 +2096,11 @@ const FlyerMakerTool: React.FC = () => {
                     {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
+                          disabled={isSubmitting || isProcessing}
                           onClick={handleUnifiedProcess}
                         >
-                        {isSubmitting ? (
-                          <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>Iniciando...</span></div>
+                        {(isSubmitting || isProcessing) ? (
+                          <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>{isProcessing ? 'Procesando...' : 'Iniciando...'}</span></div>
                         ) : (
                           <div className="flex items-center justify-center gap-2 flex-wrap text-center">
                             <Sparkles className="w-4 h-4 shrink-0" />
@@ -2260,10 +2261,11 @@ const FlyerMakerTool: React.FC = () => {
                     {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
+                          disabled={isSubmitting || isProcessing}
                           onClick={handleUnifiedProcess}
                         >
-                        {isSubmitting ? (
-                          <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>Iniciando...</span></div>
+                        {(isSubmitting || isProcessing) ? (
+                          <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>{isProcessing ? 'Procesando...' : 'Iniciando...'}</span></div>
                         ) : (
                           <div className="flex items-center justify-center gap-2 flex-wrap">
                             <Sparkles className="w-4 h-4" />
@@ -2498,10 +2500,11 @@ const FlyerMakerTool: React.FC = () => {
                         {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
+                          disabled={isSubmitting || isProcessing}
                           onClick={handleUnifiedProcess}
                         >
-                            {isSubmitting ? (
-                              <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>Iniciando...</span></div>
+                            {(isSubmitting || isProcessing) ? (
+                              <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>{isProcessing ? 'Procesando...' : 'Iniciando...'}</span></div>
                             ) : (
                               <div className="flex items-center justify-center gap-2 flex-wrap text-center">
                                 <Sparkles className="w-4 h-4 shrink-0" />
@@ -2707,10 +2710,11 @@ const FlyerMakerTool: React.FC = () => {
                     {status !== 'completed' && (
                         <Button
                           className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
+                          disabled={isSubmitting || isProcessing}
                           onClick={handleUnifiedProcess}
                         >
-                        {isSubmitting ? (
-                          <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>Iniciando...</span></div>
+                        {(isSubmitting || isProcessing) ? (
+                          <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>{isProcessing ? 'Procesando...' : 'Iniciando...'}</span></div>
                         ) : (
                           <div className="flex items-center justify-center gap-2 flex-wrap text-center">
                             <Sparkles className="w-4 h-4 shrink-0" />
