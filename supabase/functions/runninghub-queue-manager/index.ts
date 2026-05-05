@@ -36,15 +36,18 @@ const WEBAPP_IDS: Record<string, any> = {
     logo: '2019239272464785409',
     render3d: '2019234965992509442',
   },
+  flyer_maker_jobs: '2025656642724962305',
+  flyer_motion_standard: '2050034000953135105',
 };
 
-const JOB_TABLES = ['upscaler_jobs'] as const;
+const JOB_TABLES = ['upscaler_jobs', 'flyer_maker_jobs'] as const;
 type JobTable = typeof JOB_TABLES[number];
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const TOOL_NAMES: Record<JobTable, string> = {
   upscaler_jobs: 'Upscaler Arcano',
+  flyer_maker_jobs: 'Flyer Maker',
 };
 
 interface ApiAccount { name: string; apiKey: string; maxSlots: number; }

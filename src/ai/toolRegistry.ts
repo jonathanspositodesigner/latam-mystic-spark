@@ -23,6 +23,32 @@ export const TOOL_REGISTRY = {
     toolUrl: '/upscaler-arcano-tool',
     emoji: '✨',
   },
+  flyer_maker: {
+    id: 'flyer_maker' as const,
+    nameEs: 'Flyer Maker',
+    table: 'flyer_maker_jobs',
+    edgeFunction: 'runninghub-flyer-maker/run',
+    uploadFunction: 'runninghub-flyer-maker/upload',
+    creditCost: 100,
+    maxFileSizeMB: 20,
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    timeoutMs: 900_000, // 15 min
+    toolUrl: '/flyer-maker',
+    emoji: '🎭',
+  },
+  flyer_motion: {
+    id: 'flyer_motion' as const,
+    nameEs: 'Flyer Motion',
+    table: 'seedance_jobs',
+    edgeFunction: 'runninghub-flyer-motion',
+    uploadFunction: 'runninghub-flyer-motion',
+    creditCost: 700,
+    maxFileSizeMB: 20,
+    acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    timeoutMs: 1200_000, // 20 min
+    toolUrl: '/flyer-maker',
+    emoji: '🎬',
+  },
 } as const;
 
 export type ToolId = keyof typeof TOOL_REGISTRY;

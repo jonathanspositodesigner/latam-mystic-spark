@@ -1,0 +1,1 @@
+ALTER TABLE public.ai_tool_library_categories ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
