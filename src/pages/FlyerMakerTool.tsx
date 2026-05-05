@@ -1773,7 +1773,7 @@ const FlyerMakerTool: React.FC = () => {
                       {motionStatus === 'error' && (
                         <Button
                           className="w-full py-4 text-sm font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md"
-                          onClick={() => setMotionStatus('idle')}
+                          onClick={() => { setMotionStatus('idle'); endSubmit(); }}
                         >
                           Generar flyer animado (Intentar de Nuevo)
                         </Button>
