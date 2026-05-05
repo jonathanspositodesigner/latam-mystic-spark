@@ -1191,6 +1191,7 @@ const FlyerMakerTool: React.FC = () => {
 
       if (runError) {
         setStatus('idle');
+        endSubmit();
         throw new Error(runError.message || 'Error al iniciar el procesamiento');
       }
 
