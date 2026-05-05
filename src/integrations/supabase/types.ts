@@ -167,6 +167,7 @@ export type Database = {
       ai_tool_library_categories: {
         Row: {
           created_at: string | null
+          display_order: number | null
           id: string
           name: string
           slug: string
@@ -174,6 +175,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          display_order?: number | null
           id?: string
           name: string
           slug: string
@@ -181,6 +183,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          display_order?: number | null
           id?: string
           name?: string
           slug?: string

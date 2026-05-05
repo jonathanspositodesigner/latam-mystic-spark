@@ -1002,7 +1002,7 @@ const UpscalerArcanoTool: React.FC = () => {
                         beforeTransformRef.current.style.transformOrigin = '0% 0%';
                       }
                     }}
-                    onTransformed={(_, state) => {
+                    onTransform={(_, state) => {
                       setZoomLevel(state.scale);
                       if (beforeTransformRef.current) {
                         beforeTransformRef.current.style.transform = `translate(${state.positionX}px, ${state.positionY}px) scale(${state.scale})`;
