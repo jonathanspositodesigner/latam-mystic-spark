@@ -1,4 +1,5 @@
 import MediaTrimModal from '@/components/flyer-maker/MediaTrimModal';
+import { markJobAsFailedInDb } from '@/utils/markJobAsFailedInDb';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -56,18 +57,6 @@ const queueMessages = [
   { emoji: '🌟', text: 'Finalizando los detalles...' },
 ];
 
-// TODO: helper local para marcar job como fallido — reemplaza @/utils/markJobAsFailedInDb (no existe en LATAM).
-async function markJobAsFailedLocal(jobId: string, table: string, errorMessage: string) {
-  try {
-    await supabase.from(table as any).update({
-      status: 'failed',
-      error_message: errorMessage,
-      completed_at: new Date().toISOString(),
-    }).eq('id', jobId);
-  } catch (e) {
-    console.error('[markJobAsFailedLocal] error:', e);
-  }
-}
 
 const FlyerMakerTool: React.FC = () => {
   const location = useLocation();
@@ -908,7 +897,7 @@ const FlyerMakerTool: React.FC = () => {
     } catch (err: any) {
       if (createdMotionJobId) {
         if (createdMotionJobToolType === 'flyer_maker') {
-          await markJobAsFailedLocal(createdMotionJobId, 'flyer_maker_jobs', err.message || 'Error al iniciar la animación standard');
+          await markJobAsFailedInDb(createdMotionJobId, 'flyer_maker', err.message || 'Error al iniciar la animación standard');
         } else if (createdMotionJobToolType === 'flyer_motion') {
           await supabase.from('seedance_jobs' as any).update({
             status: 'failed',
@@ -1225,7 +1214,7 @@ const FlyerMakerTool: React.FC = () => {
     } catch (error: any) {
       console.error(`[FlyerMaker ${flyerType}] Process error:`, error);
       if (localJobId) {
-        await markJobAsFailedLocal(localJobId, 'flyer_maker_jobs', error.message || 'Error desconocido');
+        await markJobAsFailedInDb(localJobId, 'flyer_maker', error.message || 'Error desconocido');
       }
       setStatus('error');
       setDebugErrorMessage(error.message);
@@ -1354,7 +1343,7 @@ const FlyerMakerTool: React.FC = () => {
       console.error('[FlyerMaker] Refine error:', err);
       toast.error(err.message || 'Error al modificar la imagen');
       if (localRefineJobId) {
-        await markJobAsFailedLocal(localRefineJobId, 'image_generator_jobs', err.message || 'Refine invocation failed');
+        await markJobAsFailedInDb(localRefineJobId, 'image_generator', err.message || 'Refine invocation failed');
       }
       setIsRefining(false);
       setRefineJobId(null);
