@@ -1,7 +1,7 @@
 /**
  * AI TOOLS JOB MANAGER — Centralized module for all AI tool jobs
  * 
- * Uses TOOL_REGISTRY for configuration. Handles:
+ * Uses direct mapping for configuration. Handles:
  * - Check active jobs (1 per user globally)
  * - Create/start jobs with retry logic
  * - Subscribe to realtime updates
@@ -11,7 +11,39 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { ToolId, TOOL_REGISTRY, getToolTable, getToolEdgeFunction } from './toolRegistry';
+
+export type ToolType = 'upscaler' | 'pose_changer' | 'veste_ai' | 'video_upscaler' | 'arcano_cloner' | 'character_generator' | 'flyer_maker' | 'bg_remover' | 'image_generator' | 'video_generator' | 'movieled_maker' | 'flyer_motion';
+
+const TABLE_MAP: Record<ToolType, string> = {
+  upscaler: 'upscaler_jobs',
+  pose_changer: 'pose_changer_jobs',
+  veste_ai: 'veste_ai_jobs',
+  video_upscaler: 'video_upscaler_jobs',
+  arcano_cloner: 'arcano_cloner_jobs',
+  character_generator: 'character_generator_jobs',
+  flyer_maker: 'flyer_maker_jobs',
+  bg_remover: 'bg_remover_jobs',
+  image_generator: 'image_generator_jobs',
+  video_generator: 'video_generator_jobs',
+  movieled_maker: 'movieled_maker_jobs',
+  flyer_motion: 'seedance_jobs',
+};
+
+const EDGE_FUNCTION_MAP: Record<ToolType, string> = {
+  upscaler: 'runninghub-upscaler/run',
+  pose_changer: 'runninghub-pose-changer/run',
+  veste_ai: 'runninghub-veste-ai/run',
+  video_upscaler: 'runninghub-video-upscaler/run',
+  arcano_cloner: 'runninghub-arcano-cloner/run',
+  character_generator: 'runninghub-character-generator/run',
+  flyer_maker: 'runninghub-flyer-maker/run',
+  bg_remover: 'runninghub-bg-remover/run',
+  image_generator: 'runninghub-image-generator/run',
+  video_generator: 'generate-video/run',
+  movieled_maker: 'runninghub-movieled-maker/run',
+  flyer_motion: 'runninghub-flyer-motion',
+};
+
 
 // ==================== TYPES ====================
 
@@ -83,12 +115,18 @@ export async function checkActiveJob(userId: string): Promise<ActiveJobInfo> {
  * Cancel an active job and refund credits if applicable
  */
 export async function cancelJob(
-  toolId: ToolId,
+  toolType: ToolType | string,
   jobId: string
 ): Promise<CancelResult> {
   try {
-    const tableName = getToolTable(toolId);
+    let tableName: string;
+    if ((toolType as ToolType) in TABLE_MAP) {
+      tableName = TABLE_MAP[toolType as ToolType];
+    } else {
+      tableName = toolType;
+    }
     console.log(`[JobManager] Cancelling job ${jobId} in ${tableName}`);
+
     
     const { data, error } = await supabase.rpc('user_cancel_ai_job', {
       p_table_name: tableName,
@@ -121,12 +159,13 @@ export async function cancelJob(
  * Create a job record in the database
  */
 export async function createJob(
-  toolId: ToolId,
+  toolType: ToolType,
   userId: string,
   sessionId: string,
   payload: Record<string, any>
 ): Promise<{ jobId: string | null; error?: string }> {
-  const tableName = getToolTable(toolId);
+  const tableName = TABLE_MAP[toolType];
+
   
   try {
     const insertData = {
@@ -163,12 +202,13 @@ export async function createJob(
  * Start job processing via edge function with retry logic
  */
 export async function startJob(
-  toolId: ToolId,
+  toolType: ToolType,
   jobId: string,
   payload: Record<string, any>
 ): Promise<JobResult> {
-  const edgeFunction = getToolEdgeFunction(toolId);
-  const tableName = getToolTable(toolId);
+  const edgeFunction = EDGE_FUNCTION_MAP[toolType];
+  const tableName = TABLE_MAP[toolType];
+
   
   const MAX_RETRIES = 3;
   const RETRY_DELAYS = [2000, 5000, 10000];
@@ -302,17 +342,18 @@ async function markJobFailed(tableName: string, jobId: string, errorMessage: str
  * Subscribe to job updates via Realtime
  */
 export function subscribeToJob(
-  toolId: ToolId,
+  toolType: ToolType,
   jobId: string,
   onUpdate: (update: JobUpdate) => void,
   onStatusChange?: (status: JobStatus) => void
 ): () => void {
-  const tableName = getToolTable(toolId);
+  const tableName = TABLE_MAP[toolType];
   
   console.log(`[JobManager] Subscribing to ${tableName} job ${jobId}`);
   
   const channel = supabase
-    .channel(`job-${toolId}-${jobId}`)
+    .channel(`job-${toolType}-${jobId}`)
+
     .on(
       'postgres_changes',
       {
@@ -374,7 +415,8 @@ export async function uploadToStorage(
     }
     
     const { data: urlData } = supabase.storage
-      .from('ai-uploads')
+      .from(bucketName)
+
       .getPublicUrl(filePath);
     
     return { url: urlData.publicUrl };
@@ -391,10 +433,11 @@ export async function uploadToStorage(
  * Query job status directly from database (polling fallback)
  */
 export async function queryJobStatus(
-  toolId: ToolId,
+  toolType: ToolType,
   jobId: string
 ): Promise<JobUpdate | null> {
-  const tableName = getToolTable(toolId);
+  const tableName = TABLE_MAP[toolType];
+
   
   try {
     const { data, error } = await supabase
