@@ -1229,7 +1229,6 @@ const FlyerMakerTool: React.FC = () => {
       setStatus('idle');
       endSubmit();
     }
-    }
   };
 
 
