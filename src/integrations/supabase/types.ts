@@ -191,6 +191,44 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_tool_library_items: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_visible: boolean | null
+          source_id: string
+          tool_slug: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean | null
+          source_id: string
+          tool_slug: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean | null
+          source_id?: string
+          tool_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tool_library_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "ai_tool_library_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_tool_settings: {
         Row: {
           api_cost: number
