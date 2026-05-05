@@ -37,8 +37,12 @@ async function startJobOnRunningHub(table: string, job: any) {
       body: JSON.stringify({ nodeInfoList: p.nodeInfoList, instanceType: "default", webhookUrl }),
     });
     const data = await response.json();
+    console.log(`[QueueManager] RunningHub response for ${p.webappId}:`, JSON.stringify(data));
     const taskId = data.taskId || data.data?.taskId;
-    if (!taskId) throw new Error(data.msg || 'No taskId');
+    if (!taskId) {
+      const errorMsg = data.msg || data.error || data.errorMessage || 'No taskId returned from RunningHub';
+      throw new Error(errorMsg);
+    }
 
     await supabase.from(table).update({ status: 'running', task_id: taskId, started_at: new Date().toISOString() }).eq('id', job.id);
     await logStep(table, job.id, 'running', { taskId });
