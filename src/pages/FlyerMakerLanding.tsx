@@ -1235,11 +1235,10 @@ const FlyerMakerLanding: React.FC = () => {
                     <video
                       src={v.video}
                       autoPlay
-                      muted
                       loop
                       playsInline
                       preload="auto"
-                      controls={false}
+                      controls
                       style={{
                         position: "absolute", inset: 0,
                         width: "100%", height: "100%",
