@@ -85,13 +85,13 @@ const PLANS = [
 
 // ─── Motion AI videos (facade pattern: poster WebP + lazy MP4) ──────────────
 const MOTION_VIDEOS = [
-  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/1.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/flyer-motion-1777581676208.mp4" },
+  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/1.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/bfbff170388f4e8598829650eb89a725.mp4" },
   { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/2.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/seedance-_____title____Feriadinho_Promo-1777251036339.mp4" },
-  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/3.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/Seedance%2020%20-%20_%20%20title%20Forr_%20de%20S_o%20Jo_o%20-%20Poster%20Animation_%20%20genre%20Motion%20Design%20%20Event%20Promo_%20%20du-2.mp4" },
+  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/3.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/Seedance%202_0%20-%20_%20%20title%20Monster%20Energy%20Snake%20Promo_%20%20genre%20Motion%20Design%20%20Product%20Promo_%20%20duration%201.mp4" },
   { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/4.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/Seedance%2020%20-%20_%20%20title%20Cavalgada%20Rustic%20Promo_%20%20genre%20Motion%20Design%20%20Event%20Promo_%20%20duration%2010s_%20%20a.mp4" },
   { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/5.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/flyer-motion-1777576682516.mp4" },
-  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/6.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/flyer-motion-1777582255644-2.mp4" },
-  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/7.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/d35b46b9dab548cba27206a1b8d2e047.mp4" },
+  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/6.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/Seedance%202_0%20-%20_%20%20title%20Proximos%20Shows%20Sunset%20Tour_%20%20genre%20Motion%20Design%20%20Event%20Promo_%20%20duration%2010s.mp4" },
+  { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/7.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/Seedance%202_0%20-%20_%20%20title%20Street%20Surrealism%20Cover_%20%20genre%20Motion%20Design%20%20Cinematic%20Poster_%20%20duration%201.mp4" },
   { poster: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/flyermakerlp/8.webp", video: "https://jooojbaljrshgpaxdlou.supabase.co/storage/v1/object/public/videos/seedance-_____title____O__ltimo_Samba_d-1777251989355.mp4" },
 ];
 
