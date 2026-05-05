@@ -100,12 +100,13 @@ export async function cancelJob(
       return { success: false, refundedAmount: 0, errorMessage: error.message };
     }
     
-    const result = Array.isArray(data) ? data[0] : data;
+    const result = (Array.isArray(data) ? data[0] : data) as any;
     return {
       success: result?.success ?? false,
       refundedAmount: result?.refunded_amount ?? 0,
       errorMessage: result?.error_message ?? undefined,
     };
+
   } catch (error) {
     console.error('[JobManager] Cancel exception:', error);
     return {
