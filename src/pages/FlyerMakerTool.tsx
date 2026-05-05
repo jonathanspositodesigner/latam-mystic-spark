@@ -1756,7 +1756,7 @@ const FlyerMakerTool: React.FC = () => {
                             <Button
                               className="w-full py-4 text-sm font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white rounded-xl shadow-md shadow-purple-500/30"
                               onClick={handleGenerateMotion}
-                              disabled={!motionSourceImage || (motionStatus !== 'idle' && motionStatus !== 'completed') || isSubmitting}
+                              disabled={!motionSourceImage}
                             >
                               {isIdle ? (
                                 <div className="flex items-center justify-center gap-2 flex-wrap">
