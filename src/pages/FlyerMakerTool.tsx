@@ -1213,6 +1213,10 @@ const FlyerMakerTool: React.FC = () => {
         setProgress(60);
       }
 
+      // Se não estiver em queue ou processando, volta para idle
+      if (!runResult?.queued && runResult?.status !== 'running') {
+        setStatus('idle');
+      }
       endSubmit();
     } catch (error: any) {
       console.error(`[FlyerMaker ${flyerType}] Process error:`, error);
