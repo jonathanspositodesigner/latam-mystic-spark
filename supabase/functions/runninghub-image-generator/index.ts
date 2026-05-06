@@ -368,6 +368,24 @@ async function handleRun(req: Request) {
     }
   }
 
+  // ========== UNLIMITED PLAN VERIFICATION ==========
+  // Quando creditCost=0 e source for Flyer Maker, validar plano unlimited ativo
+  if (!isByok && creditCost === 0 && source === 'flyer_maker_refine') {
+    const { data: hasUnlimited, error: unlimitedErr } = await supabase.rpc('user_has_unlimited_flyer', {
+      _user_id: verifiedUserId,
+    });
+    if (unlimitedErr || !hasUnlimited) {
+      console.warn(`[ImageGenerator] User ${verifiedUserId} sent creditCost=0 but has no unlimited plan — enforcing minimum`);
+      enforcedCreditCost = minCost;
+    } else {
+      console.log(`[ImageGenerator] User ${verifiedUserId} validated as unlimited flyer plan — bypassing credits`);
+    }
+  } else if (!isByok && creditCost === 0 && source !== 'flyer_maker_refine') {
+    // Para outras sources, creditCost=0 não é permitido (apenas BYOK ou flyer_maker_refine c/ unlimited)
+    console.warn(`[ImageGenerator] User ${verifiedUserId} sent creditCost=0 with source=${source} — enforcing minimum`);
+    enforcedCreditCost = minCost;
+  }
+
   // Validate image URLs are from Supabase storage
   const allowedDomains = ['supabase.co', 'supabase.in', SUPABASE_URL.replace('https://', ''), 'rh-images-1252422369.cos.ap-beijing.myqcloud.com'];
   const imageUrls: string[] = Array.isArray(referenceImageUrls) ? referenceImageUrls : [];

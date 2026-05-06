@@ -46,6 +46,7 @@ import { useAIToolSettings } from '@/hooks/useAIToolSettings';
 import RefinePanel from '@/components/arcano-cloner/RefinePanel';
 import RefinementTimeline, { type RefinementVersion } from '@/components/arcano-cloner/RefinementTimeline';
 import { useCollaboratorAttribution } from '@/hooks/useCollaboratorAttribution';
+import { useUnlimitedFlyer } from '@/hooks/useUnlimitedFlyer';
 
 
 type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'waiting' | 'completed' | 'error';
@@ -65,7 +66,10 @@ const FlyerMakerTool: React.FC = () => {
   const { user } = usePremiumStatus();
   const { balance: credits, isLoading: creditsLoading, refetch: refetchCredits, checkBalance } = useCredits();
   const { getCreditCost } = useAIToolSettings();
-  const creditCost = getCreditCost('Flyer Maker', 100);
+  const baseCreditCost = getCreditCost('Flyer Maker', 100);
+  const { isUnlimited: isUnlimitedFlyer } = useUnlimitedFlyer();
+  // Plano Unlimited libera flyers estáticos e refine; Motion sempre cobra normal
+  const creditCost = isUnlimitedFlyer ? 0 : baseCreditCost;
 
   // Flyer Maker test credits
   const [testCredits, setTestCredits] = useState(0);
@@ -1372,12 +1376,15 @@ const FlyerMakerTool: React.FC = () => {
       return;
     }
 
-    const freshCredits = await checkBalance();
-    if (freshCredits < REFINE_COST) {
-      setNoCreditsReason('insufficient');
-      setShowNoCreditsModal(true);
-      endSubmit();
-      return;
+    const refineCostEffective = isUnlimitedFlyer ? 0 : REFINE_COST;
+    if (refineCostEffective > 0) {
+      const freshCredits = await checkBalance();
+      if (freshCredits < refineCostEffective) {
+        setNoCreditsReason('insufficient');
+        setShowNoCreditsModal(true);
+        endSubmit();
+        return;
+      }
     }
 
     setIsRefining(true);
@@ -1425,7 +1432,7 @@ const FlyerMakerTool: React.FC = () => {
           jobId: job.id,
           referenceImageUrls,
           aspectRatio: imageSize === '9:16' ? '9:16' : '3:4',
-          creditCost: REFINE_COST,
+          creditCost: refineCostEffective,
           prompt: refinePrompt.trim(),
           source: 'flyer_maker_refine',
         },

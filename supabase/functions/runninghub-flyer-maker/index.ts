@@ -99,20 +99,41 @@ serve(async (req) => {
     const type = flyerSubType?.toUpperCase();
     const webappId = RH_CONFIG.WEBAPP_IDS[type as keyof typeof RH_CONFIG.WEBAPP_IDS] || RH_CONFIG.DEFAULT_WEBAPP;
 
+    // ========== UNLIMITED PLAN VERIFICATION ==========
+    // Cliente pode enviar creditCost=0 alegando plano unlimited — valida no servidor
+    let enforcedCreditCost = creditCost;
+    if (creditCost === 0 && body.userId) {
+      const { data: hasUnlimited, error: unlimitedErr } = await supabase.rpc('user_has_unlimited_flyer', {
+        _user_id: body.userId,
+      });
+      if (unlimitedErr || !hasUnlimited) {
+        console.warn(`[FlyerMaker] User ${body.userId} sent creditCost=0 but no unlimited plan — enforcing 100`);
+        enforcedCreditCost = 100;
+      } else {
+        console.log(`[FlyerMaker] User ${body.userId} validated as unlimited — bypassing credits`);
+      }
+    }
+
     // Charge credits if applicable
-    if (creditCost && creditCost > 0) {
-      console.log(`[FlyerMaker] Charging ${creditCost} credits to user ${body.userId}`);
-      const creditResult = await consumeCredits(supabase, body.userId, creditCost, `Flyer Maker (${flyerSubType})`);
+    if (enforcedCreditCost && enforcedCreditCost > 0) {
+      console.log(`[FlyerMaker] Charging ${enforcedCreditCost} credits to user ${body.userId}`);
+      const creditResult = await consumeCredits(supabase, body.userId, enforcedCreditCost, `Flyer Maker (${flyerSubType})`);
       if (!creditResult.success) {
-        return new Response(JSON.stringify({ error: 'INSUFFICIENT_CREDITS', message: creditResult.error }), { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        return new Response(JSON.stringify({ error: 'INSUFFICIENT_CREDITS', message: creditResult.error }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
       // Update job to mark credits as charged
-      await supabase.from(RH_CONFIG.JOB_TABLE).update({ 
-        credits_charged: true, 
-        user_credit_cost: creditCost 
+      await supabase.from(RH_CONFIG.JOB_TABLE).update({
+        credits_charged: true,
+        user_credit_cost: enforcedCreditCost
+      }).eq('id', jobId);
+    } else {
+      // Unlimited plan — registra no job que não foi cobrado
+      await supabase.from(RH_CONFIG.JOB_TABLE).update({
+        credits_charged: false,
+        user_credit_cost: 0
       }).eq('id', jobId);
     }
 
