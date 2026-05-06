@@ -1351,6 +1351,7 @@ const FlyerMakerTool: React.FC = () => {
 
   // Handle refine submission (vía RunningHub queue)
   const handleRefine = async () => {
+    // Muda visualmente o botão instantaneamente para evitar cliques duplos
     if (!startSubmit()) return;
 
     if (!outputImage || !refinePrompt.trim() || !user?.id) {
@@ -1393,10 +1394,10 @@ const FlyerMakerTool: React.FC = () => {
         referenceImageUrls.push(extraUrl);
       }
 
-      // Muda visualmente o botão instantaneamente para evitar cliques duplos
-      if (!startSubmit()) return;
-
-      setIsRefining(true);
+      // If first refinement, seed history with original
+      if (refinementHistory.length === 0) {
+        setRefinementHistory([{ url: outputImage, label: 'Original' }]);
+      }
 
       // Create job in image_generator_jobs
       const { data: job, error: jobError } = await supabase
