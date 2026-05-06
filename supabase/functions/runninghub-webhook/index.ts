@@ -14,15 +14,23 @@ const JOB_TABLES = ['upscaler_jobs', 'flyer_maker_jobs', 'image_generator_jobs',
 
 async function finishJob(jobTable: string, jobId: string, status: 'completed' | 'failed', outputUrl: string | null, errorMessage: string | null, taskId: string) {
   const finishUrl = `${SUPABASE_URL}/functions/v1/runninghub-queue-manager/finish`;
+  
+  // Extraído do ArcanoApp: se falhou, sempre tenta estornar se for seedance_jobs
+  if (status === 'failed' && jobTable === 'seedance_jobs') {
+    console.log(`[webhook] Failure detected for seedance job ${jobId}, triggering refund...`);
+    await supabase.rpc('refund_seedance_job', { _job_id: jobId, _reason: errorMessage || 'Evolink reported failure' });
+  }
+
   const res = await fetch(finishUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
     body: JSON.stringify({ table: jobTable, jobId, status, outputUrl, errorMessage, taskId }),
   });
+  
   console.log(`[webhook] finishJob -> ${jobTable}/${jobId} status=${status} outputUrl=${outputUrl} resp=${res.status}`);
 
   // Fallback: if queue-manager fails, write directly to the table to avoid stuck jobs
-  if (!res.ok && jobTable === 'seedance_jobs') {
+  if (!res.ok) {
     const update: Record<string, unknown> = {
       status,
       completed_at: new Date().toISOString(),
@@ -30,11 +38,8 @@ async function finishJob(jobTable: string, jobId: string, status: 'completed' | 
     };
     if (outputUrl) update.output_url = outputUrl;
     if (errorMessage) update.error_message = errorMessage;
-    await supabase.from('seedance_jobs').update(update).eq('id', jobId);
-    if (status === 'failed') {
-      await supabase.rpc('refund_seedance_job', { _job_id: jobId, _reason: errorMessage || 'Evolink reported failure' });
-    }
-    console.log(`[webhook] direct seedance_jobs update applied (queue-manager failed)`);
+    await supabase.from(jobTable).update(update).eq('id', jobId);
+    console.log(`[webhook] direct ${jobTable} update applied (queue-manager failed)`);
   }
 }
 

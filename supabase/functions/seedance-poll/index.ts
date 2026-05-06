@@ -30,6 +30,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ status: "completed", outputUrl: job.output_url, progress: 100 }), { headers: corsHeaders });
   }
 
+  if (job?.status === "failed") {
+    return new Response(JSON.stringify({ status: "failed", error: job.error_message || "Generation failed" }), { headers: corsHeaders });
+  }
+
   // Use taskId from DB if not provided
   const finalTaskId = taskId || job?.task_id;
   if (!finalTaskId) return new Response(JSON.stringify({ status: "pending", progress: 0 }), { headers: corsHeaders });

@@ -65,17 +65,75 @@ function json(data: unknown, status = 200) {
 }
 
 async function consumeCredits(supabase: any, userId: string, amount: number, description: string) {
+  const { data: creditRow } = await supabase
+    .from("upscaler_credits")
+    .select("monthly_balance, lifetime_balance")
+    .eq("user_id", userId)
+    .single();
+
+  const totalBalance = (creditRow?.monthly_balance || 0) + (creditRow?.lifetime_balance || 0);
+  if (totalBalance < amount) {
+    return { success: false, error: "Créditos insuficientes" };
+  }
+
   const { data: consumeResult, error: consumeError } = await supabase.rpc("consume_upscaler_credits_forced", {
     _user_id: userId,
     _amount: amount,
     _description: description,
   });
 
-  if (consumeError) return { success: false, error: "Error al cobrar créditos" };
-  const result = Array.isArray(consumeResult) ? consumeResult[0] : consumeResult;
-  if (result && result.success === false) {
-    return { success: false, error: result.error_message || "Créditos insuficientes" };
+  if (!consumeError) {
+    const result = Array.isArray(consumeResult) ? consumeResult[0] : consumeResult;
+    if (result && result.success === false) {
+      return { success: false, error: result.error_message || "Créditos insuficientes" };
+    }
+    return { success: true };
   }
+
+  // Fallback se a RPC falhar (copiado do ArcanoApp para resiliência máxima)
+  const monthly = creditRow?.monthly_balance || 0;
+  const lifetime = creditRow?.lifetime_balance || 0;
+  let monthlyDeduct = 0;
+  let lifetimeDeduct = 0;
+  let txCreditType = "monthly";
+
+  if (monthly >= amount) {
+    monthlyDeduct = amount;
+    txCreditType = "monthly";
+  } else if (monthly > 0) {
+    monthlyDeduct = monthly;
+    lifetimeDeduct = amount - monthly;
+    txCreditType = "mixed";
+  } else {
+    lifetimeDeduct = amount;
+    txCreditType = "lifetime";
+  }
+
+  const newMonthly = monthly - monthlyDeduct;
+  const newLifetime = lifetime - lifetimeDeduct;
+  const newBalance = newMonthly + newLifetime;
+
+  const { error: updateErr } = await supabase
+    .from("upscaler_credits")
+    .update({
+      monthly_balance: newMonthly,
+      lifetime_balance: newLifetime,
+      balance: newBalance,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+
+  if (updateErr) return { success: false, error: "Error al cobrar créditos" };
+
+  await supabase.from("upscaler_credit_transactions").insert({
+    user_id: userId,
+    amount: -amount,
+    balance_after: newBalance,
+    transaction_type: "consumption",
+    description,
+    credit_type: txCreditType,
+  });
+
   return { success: true };
 }
 
@@ -116,6 +174,9 @@ serve(async (req) => {
       const parsedDuration = Number(job.duration || 5);
       const parsedQuality = (job.quality === "720p" || job.quality === "480p") ? job.quality : "480p";
 
+      // Custo interno em RH Coins (para bater com R$ 2,80 e R$ 7,20 no admin com taxa 0.002)
+      const rhCost = parsedQuality === "720p" ? 3600 : 1400;
+
       const creditsToCharge = computeCreditCost(
         job.model,
         parsedQuality,
@@ -127,10 +188,17 @@ serve(async (req) => {
       if (!job.credits_charged || job.credits_charged <= 0) {
         const creditResult = await consumeCredits(supabase, job.user_id, creditsToCharge, `Seedance 2 (${job.model})`);
         if (!creditResult.success) {
-          await supabase.from("seedance_jobs").update({ status: "failed", error_message: creditResult.error }).eq("id", jobId);
+          await supabase.from("seedance_jobs").update({ 
+            status: "failed", 
+            error_message: creditResult.error || "Créditos insuficientes" 
+          }).eq("id", jobId);
           return json({ success: false, error: creditResult.error }, 400);
         }
-        await supabase.from("seedance_jobs").update({ credits_charged: creditsToCharge, status: "queued" }).eq("id", jobId);
+        await supabase.from("seedance_jobs").update({ 
+          credits_charged: creditsToCharge, 
+          rh_cost: rhCost,
+          status: "queued" 
+        }).eq("id", jobId);
       }
 
       const normalizedImageUrls = (Array.isArray(job.input_image_urls) ? job.input_image_urls : [job.input_image_urls]).filter(Boolean);

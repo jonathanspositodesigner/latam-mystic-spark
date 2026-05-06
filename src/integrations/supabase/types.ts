@@ -1256,6 +1256,36 @@ export type Database = {
         }
         Relationships: []
       }
+      upscaler_credits: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          id: string
+          lifetime_balance: number | null
+          monthly_balance: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          lifetime_balance?: number | null
+          monthly_balance?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          lifetime_balance?: number | null
+          monthly_balance?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       upscaler_jobs: {
         Row: {
           api_account: string | null
@@ -1549,6 +1579,14 @@ export type Database = {
         }[]
       }
       consume_upscaler_credits: {
+        Args: { _amount: number; _description?: string; _user_id: string }
+        Returns: {
+          error_message: string
+          new_balance: number
+          success: boolean
+        }[]
+      }
+      consume_upscaler_credits_forced: {
         Args: { _amount: number; _description?: string; _user_id: string }
         Returns: {
           error_message: string
