@@ -213,38 +213,49 @@ const EVOLINK_BASE_URL = 'https://api.evolink.ai/v1';
  */
 export async function evolinkGenerate(
   apiKey: string,
-  params: EvolinkGenerateParams
+  params: EvolinkGenerateParams | any // Allow direct payload
 ): Promise<EvolinkResult> {
   if (!apiKey) {
     return { success: false, error: 'EVOLINK_API_KEY not configured' };
   }
 
-  const payload: Record<string, unknown> = {
-    model: params.model,
-    prompt: params.prompt,
-    duration: params.duration ?? 8,
-    quality: params.quality ?? '1080p',
-    aspect_ratio: params.aspectRatio ?? '16:9',
-    generate_audio: params.generateAudio ?? false,
-    webhook_url: params.webhookUrl,
-  };
+  // Use params directly as payload if it's already formatted for Evolink
+  let payload: Record<string, any>;
+  
+  if (params.webhook_url || params.aspect_ratio) {
+    // Already formatted (snake_case)
+    payload = { ...params };
+  } else {
+    // Legacy mapping (camelCase to snake_case)
+    payload = {
+      model: params.model,
+      prompt: params.prompt,
+      duration: params.duration ?? 8,
+      quality: params.quality ?? '1080p',
+      aspect_ratio: params.aspectRatio ?? '16:9',
+      generate_audio: params.generateAudio ?? false,
+      webhook_url: params.webhookUrl,
+    };
+
+    if (params.imageUrls && params.imageUrls.length > 0) payload.image_urls = params.imageUrls;
+    if (params.videoUrls && params.videoUrls.length > 0) payload.video_urls = params.videoUrls;
+    if (params.audioUrls && params.audioUrls.length > 0) payload.audio_urls = params.audioUrls;
+  }
 
   // generation_type (apenas para Veo 3.1 — Seedance NÃO aceita esse campo na API)
-  const isSeedance = params.model.toLowerCase().includes('seedance');
-  if (params.generationType && !isSeedance) {
-    payload.generation_type = params.generationType;
+  const isSeedance = payload.model.toLowerCase().includes('seedance');
+  if (payload.generationType && !isSeedance) {
+    payload.generation_type = payload.generationType;
+    delete payload.generationType;
   }
-
-  // Media URLs
-  if (params.imageUrls && params.imageUrls.length > 0) {
-    payload.image_urls = params.imageUrls;
-  }
-  if (params.videoUrls && params.videoUrls.length > 0) {
-    payload.video_urls = params.videoUrls;
-  }
-  if (params.audioUrls && params.audioUrls.length > 0) {
-    payload.audio_urls = params.audioUrls;
-  }
+  
+  // Final cleanup: Remove any null/undefined or incompatible keys
+  delete (payload as any).aspectRatio;
+  delete (payload as any).generateAudio;
+  delete (payload as any).webhookUrl;
+  delete (payload as any).imageUrls;
+  delete (payload as any).videoUrls;
+  delete (payload as any).audioUrls;
 
   const extOf = (u: string) => {
     try {
