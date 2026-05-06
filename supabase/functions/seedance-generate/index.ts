@@ -174,6 +174,9 @@ serve(async (req) => {
       const parsedDuration = Number(job.duration || 5);
       const parsedQuality = (job.quality === "720p" || job.quality === "480p") ? job.quality : "480p";
 
+      // Custo interno em RH Coins (para bater com R$ 2,80 e R$ 7,20 no admin com taxa 0.002)
+      const rhCost = parsedQuality === "720p" ? 3600 : 1400;
+
       const creditsToCharge = computeCreditCost(
         job.model,
         parsedQuality,
@@ -185,10 +188,17 @@ serve(async (req) => {
       if (!job.credits_charged || job.credits_charged <= 0) {
         const creditResult = await consumeCredits(supabase, job.user_id, creditsToCharge, `Seedance 2 (${job.model})`);
         if (!creditResult.success) {
-          await supabase.from("seedance_jobs").update({ status: "failed", error_message: creditResult.error }).eq("id", jobId);
+          await supabase.from("seedance_jobs").update({ 
+            status: "failed", 
+            error_message: creditResult.error || "Créditos insuficientes" 
+          }).eq("id", jobId);
           return json({ success: false, error: creditResult.error }, 400);
         }
-        await supabase.from("seedance_jobs").update({ credits_charged: creditsToCharge, status: "queued" }).eq("id", jobId);
+        await supabase.from("seedance_jobs").update({ 
+          credits_charged: creditsToCharge, 
+          rh_cost: rhCost,
+          status: "queued" 
+        }).eq("id", jobId);
       }
 
       const normalizedImageUrls = (Array.isArray(job.input_image_urls) ? job.input_image_urls : [job.input_image_urls]).filter(Boolean);
