@@ -113,10 +113,13 @@ serve(async (req) => {
       if (!job) return json({ success: false, error: "Job not found" }, 404);
       if (job.task_id || job.status === "completed") return json({ success: true, taskId: job.task_id });
 
+      const parsedDuration = Number(job.duration || 5);
+      const parsedQuality = (job.quality === "720p" || job.quality === "480p") ? job.quality : "480p";
+
       const creditsToCharge = computeCreditCost(
         job.model,
-        job.quality || "480p",
-        job.duration || 5,
+        parsedQuality,
+        parsedDuration,
         (job as any).generation_type ?? null,
         job.source_tool
       );
@@ -130,18 +133,72 @@ serve(async (req) => {
         await supabase.from("seedance_jobs").update({ credits_charged: creditsToCharge, status: "queued" }).eq("id", jobId);
       }
 
-      console.log(`[seedance-generate] Calling Evolink for jobId: ${jobId}, model: ${job.model}`);
+      const normalizedImageUrls = (Array.isArray(job.input_image_urls) ? job.input_image_urls : [job.input_image_urls]).filter(Boolean);
+      const normalizedVideoUrls = (Array.isArray(job.input_video_urls) ? job.input_video_urls : [job.input_video_urls]).filter(Boolean);
+      const normalizedAudioUrls = (Array.isArray(job.input_audio_urls) ? job.input_audio_urls : [job.input_audio_urls]).filter(Boolean);
+      
+      const isReferenceToVideo = job.model.includes("reference-to-video");
+      const hasAudio = normalizedAudioUrls.length > 0;
+
+      // Seedance 2.0 Reference-to-Video requirements:
+      // If it has audio but the model is not reference-to-video, we should switch it
+      let finalModel = job.model;
+      if (hasAudio && !isReferenceToVideo) {
+        console.log(`[seedance-generate] Switching to r2v model because audio is present`);
+        finalModel = job.model.replace("image-to-video", "reference-to-video");
+      }
+
+      if (normalizedImageUrls.length === 0 && normalizedVideoUrls.length === 0) {
+        const errorMsg = hasAudio 
+          ? "Referência de áudio exige ao menos uma imagem ou vídeo de referência."
+          : "É necessário fornecer ao menos uma imagem para gerar o vídeo.";
+          
+        await refundJob(supabase, jobId, `Estorno - Seedance falhou: sem mídia de referência (${finalModel})`);
+        await supabase.from("seedance_jobs").update({ status: "failed", error_message: errorMsg }).eq("id", jobId);
+        return json({ success: false, error: errorMsg }, 400);
+      }
+
+      // ===== Validação ESTRITA conforme documentação Evolink Seedance 2.0 (igual ArcanoApp) =====
+      const extOf = (u: string) => {
+        const clean = (u || '').split('?')[0];
+        return clean.substring(clean.lastIndexOf('.') + 1).toLowerCase();
+      };
+      const allowedAudioExts = ['mp3', 'wav'];
+      const allowedImageExts = ['jpg', 'jpeg', 'png', 'webp'];
+      const allowedVideoExts = ['mp4', 'mov'];
+
+      const failValidation = async (msg: string) => {
+        await refundJob(supabase, jobId, `Estorno - Seedance: payload inválido (${msg})`);
+        await supabase.from("seedance_jobs").update({ status: "failed", error_message: msg }).eq("id", jobId);
+        return json({ success: false, error: msg }, 400);
+      };
+
+      for (const u of normalizedImageUrls) {
+        if (!allowedImageExts.includes(extOf(u))) return await failValidation(`Imagem com extensão não suportada: .${extOf(u)} (apenas .jpg/.jpeg/.png/.webp)`);
+      }
+      for (const u of normalizedAudioUrls) {
+        if (!allowedAudioExts.includes(extOf(u))) return await failValidation(`Áudio com extensão não suportada: .${extOf(u)} (apenas .mp3/.wav)`);
+      }
+      for (const u of normalizedVideoUrls) {
+        if (!allowedVideoExts.includes(extOf(u))) return await failValidation(`Vídeo com extensão não suportada: .${extOf(u)} (apenas .mp4/.mov)`);
+      }
+      if (normalizedAudioUrls.length > 3) return await failValidation("Máximo de 3 áudios de referência.");
+      if (normalizedImageUrls.length > 9) return await failValidation("Máximo de 9 imagens de referência.");
+      if (normalizedVideoUrls.length > 3) return await failValidation("Máximo de 3 vídeos de referência.");
+      if (parsedDuration < 4 || parsedDuration > 15) return await failValidation("Duração deve estar entre 4 e 15 segundos.");
+
+      console.log(`[seedance-generate] Calling Evolink for jobId: ${jobId}, model: ${finalModel}`);
       const webhookUrl = `${supabaseUrl}/functions/v1/runninghub-webhook`;
       const res = await evolinkGenerate(evolinkKey, {
-        model: job.model,
+        model: finalModel,
         prompt: job.prompt,
-        duration: job.duration || 10,
-        quality: job.quality || "720p",
+        duration: parsedDuration,
+        quality: parsedQuality,
         aspectRatio: job.aspect_ratio || "9:16",
         generateAudio: job.generate_audio !== false,
-        imageUrls: job.input_image_urls,
-        videoUrls: job.input_video_urls,
-        audioUrls: job.input_audio_urls,
+        imageUrls: normalizedImageUrls.length > 0 ? normalizedImageUrls : undefined,
+        videoUrls: normalizedVideoUrls.length > 0 ? normalizedVideoUrls : undefined,
+        audioUrls: normalizedAudioUrls.length > 0 ? normalizedAudioUrls : undefined,
         webhookUrl: webhookUrl,
       });
 
