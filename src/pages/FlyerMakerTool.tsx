@@ -841,7 +841,7 @@ const FlyerMakerTool: React.FC = () => {
     const handleGenerateMotion = async () => {
       if (!motionSourceImage || (motionStatus !== 'idle' && motionStatus !== 'completed') || !user?.id) return;
 
-    // Guard sincrónico contra clic doble
+    // Guard sincrónico contra clic doble - Muda visualmente o botão instantaneamente
     if (!startSubmit()) return;
 
     // Chequeo de saldo ANTES de cualquier débito.
@@ -1101,8 +1101,8 @@ const FlyerMakerTool: React.FC = () => {
 
 
   const handleUnifiedProcess = async () => {
-    // REMOVIDO startSubmit() PARA DEIXAR O BOTÃO SEMPRE CLICÁVEL
-    // if (!startSubmit()) return;
+    // Sincronizar visualmente o botão instantaneamente para evitar cliques duplos
+    if (!startSubmit()) return;
 
     if (!user?.id) {
       setNoCreditsReason('not_logged');
@@ -1351,6 +1351,7 @@ const FlyerMakerTool: React.FC = () => {
 
   // Handle refine submission (vía RunningHub queue)
   const handleRefine = async () => {
+    // Muda visualmente o botão instantaneamente para evitar cliques duplos
     if (!startSubmit()) return;
 
     if (!outputImage || !refinePrompt.trim() || !user?.id) {
