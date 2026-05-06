@@ -353,24 +353,45 @@ Deno.serve(async (req) => {
       } else {
         actions.push("v3_already_active");
       }
-    } else {
-      // Credits product
-      await supabaseAdmin.from("upscaler_credit_transactions").insert({
-        user_id: userId,
-        amount: hotmartProduct.credits,
-        transaction_type: "purchase",
-        description: `Compra Hotmart pack ${hotmartProduct.label} (${hotmartProduct.credits} créditos)`,
+    } else if (hotmartProduct.type === "unlimited") {
+      // Unlimited plan: grant monthly credits for motion, and mark pack
+      await supabaseAdmin.rpc("grant_monthly_credits", {
+        _user_id: userId,
+        _amount: hotmartProduct.credits,
+        _description: `Assinatura Hotmart ${hotmartProduct.label} (${hotmartProduct.credits} créditos mensais)`,
+        _months: 1
       });
 
-      await supabaseAdmin.from("user_pack_purchases").insert({
+      await supabaseAdmin.from("user_pack_purchases").upsert({
         user_id: userId,
         pack_slug: hotmartProduct.slug,
         payment_status: "active",
         gateway: "hotmart",
-        plan_type: hotmartProduct.slug,
+        plan_type: "unlimited",
         external_id: String(transactionId),
         amount: purchaseData.price?.value || purchaseData.original_offer_price?.value || null,
+      }, { onConflict: "user_id, pack_slug" });
+
+      actions.push("unlimited_access_granted");
+    } else {
+      // Monthly Credits product (Standard/Pro/Ultimate/Flyer Pro 7k/etc)
+      await supabaseAdmin.rpc("grant_monthly_credits", {
+        _user_id: userId,
+        _amount: hotmartProduct.credits,
+        _description: `Compra Hotmart pack ${hotmartProduct.label} (${hotmartProduct.credits} créditos)`,
+        _months: 1
       });
+
+      await supabaseAdmin.from("user_pack_purchases").upsert({
+        user_id: userId,
+        pack_slug: hotmartProduct.slug,
+        payment_status: "active",
+        gateway: "hotmart",
+        plan_type: "credits",
+        external_id: String(transactionId),
+        amount: purchaseData.price?.value || purchaseData.original_offer_price?.value || null,
+      }, { onConflict: "user_id, pack_slug" });
+      
       actions.push(`credits_granted_${hotmartProduct.label.toLowerCase()}`);
     }
 
