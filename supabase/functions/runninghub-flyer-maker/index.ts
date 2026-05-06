@@ -13,15 +13,17 @@ const corsHeaders = {
 };
 
 async function consumeCredits(supabase: any, userId: string, amount: number, description: string) {
-  const { data: creditRow } = await supabase
-    .from("upscaler_credits")
-    .select("monthly_balance, lifetime_balance")
-    .eq("user_id", userId)
-    .single();
-
-  const totalBalance = (creditRow?.monthly_balance || 0) + (creditRow?.lifetime_balance || 0);
-  if (totalBalance < amount) {
-    return { success: false, error: "Créditos insuficientes" };
+  // Check if user has unlimited flyer maker plan
+  const { data: hasUnlimited } = await supabase.rpc("user_has_unlimited_flyer", { _user_id: userId });
+  
+  // Motion Standard still costs credits even if unlimited (as per user instruction "14k mensais para motion")
+  // But wait, the user said "estático+refine ilimitados". MOTION_STANDARD is standard motion.
+  // Standard motion is typically cheaper or part of standard tools.
+  // Actually, the user specifically mentioned: "valida user_has_unlimited_flyer no servidor antes de honrar creditCost=0 (anti-burla)"
+  
+  if (hasUnlimited && description.includes("Flyer Maker") && !description.includes("Motion")) {
+    console.log(`[FlyerMaker] User ${userId} has Unlimited plan. Skipping credit consumption.`);
+    return { success: true };
   }
 
   const { data: consumeResult, error: consumeError } = await supabase.rpc("consume_upscaler_credits_forced", {
@@ -38,51 +40,7 @@ async function consumeCredits(supabase: any, userId: string, amount: number, des
     return { success: true };
   }
 
-  const monthly = creditRow?.monthly_balance || 0;
-  const lifetime = creditRow?.lifetime_balance || 0;
-  let monthlyDeduct = 0;
-  let lifetimeDeduct = 0;
-  let txCreditType = "monthly";
-
-  if (monthly >= amount) {
-    monthlyDeduct = amount;
-    txCreditType = "monthly";
-  } else if (monthly > 0) {
-    monthlyDeduct = monthly;
-    lifetimeDeduct = amount - monthly;
-    txCreditType = "mixed";
-  } else {
-    lifetimeDeduct = amount;
-    txCreditType = "lifetime";
-  }
-
-  const newMonthly = monthly - monthlyDeduct;
-  const newLifetime = lifetime - lifetimeDeduct;
-  const newBalance = newMonthly + newLifetime;
-
-  const { error: updateErr } = await supabase
-    .from("upscaler_credits")
-    .update({
-      monthly_balance: newMonthly,
-      lifetime_balance: newLifetime,
-      balance: newBalance,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
-
-  if (updateErr) return { success: false, error: "Erro ao cobrar créditos" };
-
-  await supabase.from("upscaler_credit_transactions").insert({
-    user_id: userId,
-    amount: -amount,
-    balance_after: newBalance,
-    transaction_type: "consumption",
-    description,
-    credit_type: txCreditType,
-    tool_type: "flyer-maker"
-  });
-
-  return { success: true };
+  return { success: false, error: "Erro ao cobrar créditos" };
 }
 
 serve(async (req) => {
