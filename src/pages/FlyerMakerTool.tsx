@@ -1318,10 +1318,13 @@ const FlyerMakerTool: React.FC = () => {
       if (localJobId) {
         await markJobAsFailedInDb(localJobId, 'flyer_maker', error.message || 'Error desconocido');
       }
+      // Se já houver um debugErrorMessage (setado no invoke), não sobrescrevemos com o genérico
+      if (!debugErrorMessage && error.message) {
+        setDebugErrorMessage(error.message);
+      }
       setStatus('error');
       setJobId(null);
       if (typeof window !== 'undefined') localStorage.removeItem('flyer_job_id');
-      setDebugErrorMessage(error.message);
       toast.error(error.message);
       
       endSubmit();
