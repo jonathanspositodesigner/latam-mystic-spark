@@ -8,29 +8,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
- const PRICING: Record<string, number> = {
+const PRICING: Record<string, number> = {
   "fast-480p-i2v": 100,
   "fast-480p-t2v": 100,
   "fast-480p-r2v": 100,
   "fast-720p-i2v": 150,
   "fast-720p-t2v": 150,
   "fast-720p-r2v": 150,
-  "standard-480p-i2v": 100, // 1000 credits for 10s
+  "standard-480p-i2v": 100,
   "standard-480p-t2v": 100,
   "standard-480p-r2v": 100,
-  "standard-720p-i2v": 150, // 1500 credits for 10s
+  "standard-720p-i2v": 150,
   "standard-720p-t2v": 150,
   "standard-720p-r2v": 150,
- };
+};
 
- const FLYER_PRICING: Record<string, number> = {
+const FLYER_PRICING: Record<string, number> = {
   "fast-720p-i2v": 200,
   "fast-720p-t2v": 200,
   "fast-720p-r2v": 200,
   "standard-720p-i2v": 200,
   "standard-720p-t2v": 200,
   "standard-720p-r2v": 200,
- };
+};
 
 function computeCreditCost(
   model: string,
@@ -41,7 +41,6 @@ function computeCreditCost(
 ): number {
   const isFast = model.includes("fast");
   const speed = isFast ? "fast" : "standard";
-  // Prefer explicit generation_type (from the job row); fall back to inference
   let genType: "i2v" | "t2v" | "r2v";
   if (explicitGenType === "i2v" || explicitGenType === "t2v" || explicitGenType === "r2v") {
     genType = explicitGenType;
@@ -65,11 +64,7 @@ function json(data: unknown, status = 200) {
   });
 }
 
-<<<<<<< Updated upstream
 async function consumeCredits(supabase: any, userId: string, amount: number, description: string) {
-=======
-async function consumeCredits(supabase: ReturnType<typeof createClient>, userId: string, amount: number, description: string) {
->>>>>>> Stashed changes
   const { data: creditRow } = await supabase
     .from("upscaler_credits")
     .select("monthly_balance, lifetime_balance")
@@ -90,19 +85,11 @@ async function consumeCredits(supabase: ReturnType<typeof createClient>, userId:
   if (!consumeError) {
     const result = Array.isArray(consumeResult) ? consumeResult[0] : consumeResult;
     if (result && result.success === false) {
-<<<<<<< Updated upstream
-      return { success: false, error: result.error_message || "Créditos insuficientes" };
-=======
       return { success: false, error: result.error_message || "Erro ao cobrar créditos" };
->>>>>>> Stashed changes
     }
     return { success: true };
   }
 
-<<<<<<< Updated upstream
-  // Fallback se a RPC falhar (copiado do ArcanoApp para resiliência máxima)
-=======
->>>>>>> Stashed changes
   const monthly = creditRow?.monthly_balance || 0;
   const lifetime = creditRow?.lifetime_balance || 0;
   let monthlyDeduct = 0;
@@ -135,11 +122,7 @@ async function consumeCredits(supabase: ReturnType<typeof createClient>, userId:
     })
     .eq("user_id", userId);
 
-<<<<<<< Updated upstream
-  if (updateErr) return { success: false, error: "Error al cobrar créditos" };
-=======
   if (updateErr) return { success: false, error: "Erro ao cobrar créditos" };
->>>>>>> Stashed changes
 
   await supabase.from("upscaler_credit_transactions").insert({
     user_id: userId,
@@ -154,7 +137,7 @@ async function consumeCredits(supabase: ReturnType<typeof createClient>, userId:
 }
 
 async function refundJob(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   jobId: string,
   reason: string,
 ) {
@@ -201,14 +184,6 @@ serve(async (req) => {
 
       const parsedDuration = Number(job.duration || 5);
       const parsedQuality = (job.quality === "720p" || job.quality === "480p") ? job.quality : "480p";
-
-      // Custo interno em RH Coins (para bater com R$ 2,80 e R$ 7,20 no admin com taxa 0.002)
-      const rhCost = parsedQuality === "720p" ? 3600 : 1400;
-
-      const parsedDuration = Number(job.duration || 5);
-      const parsedQuality = (job.quality === "720p" || job.quality === "480p") ? job.quality : "480p";
-
-      // Custo interno em RH Coins (para bater com R$ 2,80 e R$ 7,20 no admin com taxa 0.002)
       const rhCost = parsedQuality === "720p" ? 3600 : 1400;
 
       const creditsToCharge = computeCreditCost(
@@ -222,19 +197,6 @@ serve(async (req) => {
       if (!job.credits_charged || job.credits_charged <= 0) {
         const creditResult = await consumeCredits(supabase, job.user_id, creditsToCharge, `Seedance 2 (${job.model})`);
         if (!creditResult.success) {
-<<<<<<< Updated upstream
-          await supabase.from("seedance_jobs").update({ 
-            status: "failed", 
-            error_message: creditResult.error || "Créditos insuficientes" 
-          }).eq("id", jobId);
-          return json({ success: false, error: creditResult.error }, 400);
-        }
-        await supabase.from("seedance_jobs").update({ 
-          credits_charged: creditsToCharge, 
-          rh_cost: rhCost,
-          status: "queued" 
-=======
-          // NÃO debitamos nada aqui — apenas marca como falho. Não há nada a estornar.
           await supabase.from("seedance_jobs").update({
             status: "failed",
             error_message: creditResult.error || "Créditos insuficientes",
@@ -247,72 +209,30 @@ serve(async (req) => {
           rh_cost: rhCost,
           status: "queued",
           error_message: null,
->>>>>>> Stashed changes
         }).eq("id", jobId);
       }
 
       const normalizedImageUrls = (Array.isArray(job.input_image_urls) ? job.input_image_urls : [job.input_image_urls]).filter(Boolean);
       const normalizedVideoUrls = (Array.isArray(job.input_video_urls) ? job.input_video_urls : [job.input_video_urls]).filter(Boolean);
       const normalizedAudioUrls = (Array.isArray(job.input_audio_urls) ? job.input_audio_urls : [job.input_audio_urls]).filter(Boolean);
-<<<<<<< Updated upstream
-      
+
       const isReferenceToVideo = job.model.includes("reference-to-video");
       const hasAudio = normalizedAudioUrls.length > 0;
 
-      // Seedance 2.0 Reference-to-Video requirements:
-      // If it has audio but the model is not reference-to-video, we should switch it
-=======
-
-      const isReferenceToVideo = job.model.includes("reference-to-video");
-      const isImageToVideo = job.model.includes("image-to-video");
-      const hasAudio = normalizedAudioUrls.length > 0;
-
-      // Seedance 2.0 Reference-to-Video requirements:
-      // 1. Cannot have ONLY audio_urls. Need at least 1 image or 1 video.
-      // 2. If it has audio but the model is not reference-to-video, we should switch it
->>>>>>> Stashed changes
       let finalModel = job.model;
       if (hasAudio && !isReferenceToVideo) {
-        console.log(`[seedance-generate] Switching to r2v model because audio is present`);
         finalModel = job.model.replace("image-to-video", "reference-to-video");
       }
 
       if (normalizedImageUrls.length === 0 && normalizedVideoUrls.length === 0) {
-<<<<<<< Updated upstream
         const errorMsg = hasAudio 
           ? "Referência de áudio exige ao menos uma imagem ou vídeo de referência."
           : "É necessário fornecer ao menos uma imagem para gerar o vídeo.";
-          
         await refundJob(supabase, jobId, `Estorno - Seedance falhou: sem mídia de referência (${finalModel})`);
         await supabase.from("seedance_jobs").update({ status: "failed", error_message: errorMsg }).eq("id", jobId);
         return json({ success: false, error: errorMsg }, 400);
       }
 
-      // ===== Validação ESTRITA conforme documentação Evolink Seedance 2.0 (igual ArcanoApp) =====
-=======
-        const errorMsg = hasAudio
-          ? "Referência de áudio exige ao menos uma imagem ou vídeo de referência."
-          : "É necessário fornecer ao menos uma imagem para gerar o vídeo.";
-
-        await refundJob(supabase, jobId, `Estorno - Seedance falhou: sem mídia de referência (${finalModel})`);
-        await supabase.from("seedance_jobs").update({
-          status: "failed",
-          error_message: errorMsg,
-        }).eq("id", jobId);
-        return json({ success: false, error: errorMsg }, 400);
-      }
-
-      if (isImageToVideo && normalizedImageUrls.length === 0) {
-        await refundJob(supabase, jobId, `Estorno - Seedance falhou: sem imagem inicial (${job.model})`);
-        await supabase.from("seedance_jobs").update({
-          status: "failed",
-          error_message: "Image-to-video requires at least one input image",
-        }).eq("id", jobId);
-        return json({ success: false, error: "Adicione a imagem inicial para gerar o vídeo." }, 400);
-      }
-
-      // ===== Validação ESTRITA conforme documentação Evolink Seedance 2.0 =====
->>>>>>> Stashed changes
       const extOf = (u: string) => {
         const clean = (u || '').split('?')[0];
         return clean.substring(clean.lastIndexOf('.') + 1).toLowerCase();
@@ -320,24 +240,14 @@ serve(async (req) => {
       const allowedAudioExts = ['mp3', 'wav'];
       const allowedImageExts = ['jpg', 'jpeg', 'png', 'webp'];
       const allowedVideoExts = ['mp4', 'mov'];
-<<<<<<< Updated upstream
 
       const failValidation = async (msg: string) => {
         await refundJob(supabase, jobId, `Estorno - Seedance: payload inválido (${msg})`);
         await supabase.from("seedance_jobs").update({ status: "failed", error_message: msg }).eq("id", jobId);
-=======
-      const failValidation = async (msg: string) => {
-        await refundJob(supabase, jobId, `Estorno - Seedance: payload inválido (${msg})`);
-        await supabase.from("seedance_jobs").update({
-          status: "failed",
-          error_message: msg,
-        }).eq("id", jobId);
->>>>>>> Stashed changes
         return json({ success: false, error: msg }, 400);
       };
 
       for (const u of normalizedImageUrls) {
-<<<<<<< Updated upstream
         if (!allowedImageExts.includes(extOf(u))) return await failValidation(`Imagem com extensão não suportada: .${extOf(u)} (apenas .jpg/.jpeg/.png/.webp)`);
       }
       for (const u of normalizedAudioUrls) {
@@ -345,31 +255,14 @@ serve(async (req) => {
       }
       for (const u of normalizedVideoUrls) {
         if (!allowedVideoExts.includes(extOf(u))) return await failValidation(`Vídeo com extensão não suportada: .${extOf(u)} (apenas .mp4/.mov)`);
-=======
-        if (!allowedImageExts.includes(extOf(u))) {
-          return await failValidation(`Imagem com extensão não suportada: .${extOf(u)} (apenas .jpg/.jpeg/.png/.webp)`);
-        }
       }
-      for (const u of normalizedAudioUrls) {
-        if (!allowedAudioExts.includes(extOf(u))) {
-          return await failValidation(`Áudio com extensão não suportada: .${extOf(u)} (apenas .mp3/.wav)`);
-        }
-      }
-      for (const u of normalizedVideoUrls) {
-        if (!allowedVideoExts.includes(extOf(u))) {
-          return await failValidation(`Vídeo com extensão não suportada: .${extOf(u)} (apenas .mp4/.mov)`);
-        }
->>>>>>> Stashed changes
-      }
+
       if (normalizedAudioUrls.length > 3) return await failValidation("Máximo de 3 áudios de referência.");
       if (normalizedImageUrls.length > 9) return await failValidation("Máximo de 9 imagens de referência.");
       if (normalizedVideoUrls.length > 3) return await failValidation("Máximo de 3 vídeos de referência.");
       if (parsedDuration < 4 || parsedDuration > 15) return await failValidation("Duração deve estar entre 4 e 15 segundos.");
 
-<<<<<<< Updated upstream
-      console.log(`[seedance-generate] Calling Evolink for jobId: ${jobId}, model: ${finalModel}`);
       const webhookUrl = `${supabaseUrl}/functions/v1/runninghub-webhook`;
-      
       const payload: any = {
         model: finalModel,
         prompt: job.prompt,
@@ -384,12 +277,9 @@ serve(async (req) => {
       if (normalizedVideoUrls.length > 0) payload.video_urls = normalizedVideoUrls;
       if (normalizedAudioUrls.length > 0) payload.audio_urls = normalizedAudioUrls;
 
-      console.log(`[seedance-generate] Calling Evolink for jobId: ${jobId}, model: ${finalModel}. Payload keys: ${Object.keys(payload)}`);
-      
       const res = await evolinkGenerate(evolinkKey, payload);
 
       if (!res.success) {
-        console.error(`[seedance-generate] Evolink error for jobId ${jobId}: ${res.error}`);
         await refundJob(supabase, jobId, `Estorno - Evolink falhou: ${res.error}`);
         await supabase.from("seedance_jobs").update({ 
           status: "failed", 
@@ -398,114 +288,37 @@ serve(async (req) => {
         return json({ success: false, error: res.error }, 400);
       }
 
-      console.log(`[seedance-generate] Evolink Success! TaskId: ${res.taskId}`);
-      
-      // Retry database update to ensure task_id is NEVER lost
       let updateSuccess = false;
       for (let i = 0; i < 3; i++) {
         const { error: updateError } = await supabase
           .from("seedance_jobs")
           .update({ task_id: res.taskId, status: "running", updated_at: new Date().toISOString() })
           .eq("id", jobId);
-          
         if (!updateError) {
           updateSuccess = true;
           break;
         }
-        console.error(`[seedance-generate] Database update attempt ${i+1} failed for jobId ${jobId}:`, updateError);
         await new Promise(r => setTimeout(r, 1000));
       }
 
-      if (!updateSuccess) {
-        // Even if DB update failed after retries, we return success but log a critical error
-        console.error(`[seedance-generate] CRITICAL: Failed to save task_id ${res.taskId} for jobId ${jobId} after retries.`);
-      }
-
       return json({ success: true, taskId: res.taskId, jobId });
-=======
-      const result = await evolinkGenerate(evolinkKey, {
-        model: finalModel,
-        prompt: job.prompt,
-        duration: job.duration || 5,
-        quality: (job.quality === "720p" || job.quality === "480p") ? job.quality : "480p",
-        aspectRatio: job.aspect_ratio || "16:9",
-        generateAudio: job.generate_audio !== false,
-        imageUrls: normalizedImageUrls.length > 0 ? normalizedImageUrls : undefined,
-        videoUrls: normalizedVideoUrls.length > 0 ? normalizedVideoUrls : undefined,
-        audioUrls: normalizedAudioUrls.length > 0 ? normalizedAudioUrls : undefined,
-        // NOTE: Seedance NÃO aceita generation_type na API (documentação Evolink).
-        // O cliente já filtra esse campo para modelos seedance, mas não enviamos aqui mesmo.
-      });
-
-       if (!result.success) {
-         await refundJob(supabase, jobId, `Estorno - Seedance falhou na criação da task (${job.model})`);
-         await supabase.from("seedance_jobs").update({
-           status: "failed",
-           error_message: result.error,
-         }).eq("id", jobId);
-         return json({ success: false, error: result.error }, 400);
-       }
-
-      await supabase.from("seedance_jobs").update({
-        task_id: result.taskId,
-        status: "running",
-        error_message: null,
-      }).eq("id", jobId);
-
-      return json({ success: true, taskId: result.taskId, jobId });
->>>>>>> Stashed changes
     }
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ success: false, error: "No auth" }, 401);
+    const authHeader = req.headers.get("Authorization") || "";
+    if (!authHeader) return json({ error: "No auth" }, 401);
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !user) return json({ success: false, error: "Invalid token" }, 401);
+    const { jobId } = await req.json();
+    if (!jobId) return json({ error: "Missing jobId" }, 400);
 
-    const body = await req.json();
-    const jobId = body.jobId as string | undefined;
-    if (!body.model || !body.prompt || !jobId) return json({ success: false, error: "Missing required fields" }, 400);
-
-    const { data: job } = await supabase
-      .from("seedance_jobs")
-      .select("id, user_id, model, duration, quality, task_id, status, credits_charged")
-      .eq("id", jobId)
-      .maybeSingle();
-
-    if (!job || job.user_id !== user.id) return json({ success: false, error: "Job not found" }, 404);
-    if (job.task_id) return json({ success: true, taskId: job.task_id, jobId, queued: false });
-
-    await supabase.from("seedance_jobs").update({ status: "pending", error_message: null }).eq("id", jobId);
-
-    const processUrl = `${supabaseUrl}/functions/v1/seedance-generate/process`;
-    console.log(`[seedance-generate] Triggering background process for jobId: ${jobId}`);
-    
-    fetch(processUrl, {
+    fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
       method: "POST",
-<<<<<<< Updated upstream
-      headers: { 
-        "Content-Type": "application/json", 
-        "Authorization": `Bearer ${supabaseKey}` 
-      },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
       body: JSON.stringify({ jobId }),
-    }).then(async res => {
-      const text = await res.text();
-      console.log(`[seedance-generate] Background trigger response status: ${res.status}, body: ${text}`);
-    }).catch(err => console.error("[seedance-generate] background trigger failed:", err));
-=======
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({ jobId }),
-    }).catch((err) => console.error("[seedance-generate] background process failed:", err));
->>>>>>> Stashed changes
+    }).catch(err => console.error("[seedance-generate] background trigger error:", err));
 
     return json({ success: true, queued: true, jobId });
-  } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    console.error("[seedance-generate] Unhandled error:", errMsg);
-    return json({ success: false, error: errMsg }, 500);
+
+  } catch (err: any) {
+    return json({ error: err.message || "Internal server error" }, 500);
   }
 });
