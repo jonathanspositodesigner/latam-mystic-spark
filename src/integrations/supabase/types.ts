@@ -1612,14 +1612,14 @@ export type Database = {
       }
       get_flyer_test_credits: { Args: { _user_id: string }; Returns: number }
       get_upscaler_credits: { Args: { _user_id: string }; Returns: number }
-      grant_monthly_credits: {
+      grant_flyer_monthly_credits: {
         Args: {
           _amount: number
-          _product_id: string
+          _description: string
+          _months?: number
           _user_id: string
-          _valid_days?: number
         }
-        Returns: Json
+        Returns: undefined
       }
       has_role: {
         Args: {
@@ -1666,7 +1666,7 @@ export type Database = {
         Args: { p_fingerprint: string; p_user_id: string }
         Returns: undefined
       }
-      revoke_monthly_credits: {
+      revoke_flyer_monthly_credits: {
         Args: { _description: string; _user_id: string }
         Returns: undefined
       }

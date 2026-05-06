@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
           .eq("gateway", "hotmart");
 
         // Revoke monthly credits
-        await supabaseAdmin.rpc("revoke_monthly_credits", {
+        await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
           _user_id: profile.id,
           _description: `Cancelamento Hotmart (${event})`
         });
@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
       }
     } else if (hotmartProduct.type === "unlimited") {
       // Unlimited plan: grant monthly credits for motion, and mark pack
-      await supabaseAdmin.rpc("grant_monthly_credits", {
+      await supabaseAdmin.rpc("grant_flyer_monthly_credits", {
         _user_id: userId,
         _amount: hotmartProduct.credits,
         _description: `Assinatura Hotmart ${hotmartProduct.label} (${hotmartProduct.credits} créditos mensais)`,
@@ -375,7 +375,7 @@ Deno.serve(async (req) => {
       actions.push("unlimited_access_granted");
     } else {
       // Monthly Credits product (Standard/Pro/Ultimate/Flyer Pro 7k/etc)
-      await supabaseAdmin.rpc("grant_monthly_credits", {
+      await supabaseAdmin.rpc("grant_flyer_monthly_credits", {
         _user_id: userId,
         _amount: hotmartProduct.credits,
         _description: `Compra Hotmart pack ${hotmartProduct.label} (${hotmartProduct.credits} créditos)`,
