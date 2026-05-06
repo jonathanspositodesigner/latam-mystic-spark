@@ -30,84 +30,38 @@ function jsonResponse(data: unknown, status = 200) {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const url = new URL(req.url);
   const path = url.pathname.split("/").pop();
 
   try {
-    if (!runningHubApiKey) {
-      console.error("[flyer-motion] RUNNINGHUB_API_KEY missing");
-      return jsonResponse({ error: "RUNNINGHUB_API_KEY not configured" }, 500);
-    }
+    if (!runningHubApiKey) return jsonResponse({ error: "RUNNINGHUB_API_KEY not configured" }, 500);
 
     // Background process for internal calls
     if (path === "process") {
       const authHeader = req.headers.get("Authorization") || "";
-      if (authHeader !== `Bearer ${supabaseKey}`) {
-        console.error("[flyer-motion] Unauthorized background request");
-        return jsonResponse({ error: "Unauthorized" }, 401);
-      }
+      if (authHeader !== `Bearer ${supabaseKey}`) return jsonResponse({ error: "Unauthorized" }, 401);
 
       const { jobId, imageUrl } = await req.json();
-      console.log(`[flyer-motion] Processing background task for jobId: ${jobId}`);
-      
-      if (!jobId || !imageUrl) {
-        console.error("[flyer-motion] Missing parameters in process");
-        return jsonResponse({ error: "Missing jobId or imageUrl" }, 400);
-      }
+      if (!jobId || !imageUrl) return jsonResponse({ error: "Missing jobId or imageUrl" }, 400);
 
       console.log(`[flyer-motion-bg] Processing Job ${jobId} for Image: ${imageUrl.substring(0, 50)}...`);
-
+      
       try {
-        console.log(`[flyer-motion] Analyzing flyer: ${imageUrl}`);
         const prompt = await analyzeFlyer(imageUrl);
-<<<<<<< Updated upstream
-        console.log(`[flyer-motion] Analysis complete. Prompt: ${prompt.substring(0, 50)}...`);
         
-=======
-
         // Update the job with the generated prompt
->>>>>>> Stashed changes
         const { error: updateError } = await supabase
           .from("seedance_jobs")
           .update({ prompt, status: "pending" })
           .eq("id", jobId);
-<<<<<<< Updated upstream
-          
-        if (updateError) {
-          console.error(`[flyer-motion] DB Update error: ${updateError.message}`);
-          throw updateError;
-        }
-        
-        // Trigger refined generation
-        console.log(`[flyer-motion] Triggering seedance-generate for jobId: ${jobId}`);
-        const genRes = await fetch(`${supabaseUrl}/functions/v1/seedance-generate`, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json", 
-            "Authorization": req.headers.get("Authorization") || `Bearer ${supabaseKey}`
-          },
-          body: JSON.stringify({ jobId }),
-        });
-        
-        const genText = await genRes.text();
-        console.log(`[flyer-motion] seedance-generate trigger response: ${genRes.status} - ${genText}`);
-        
-        return jsonResponse({ success: true });
-      } catch (err: any) {
-        console.error(`[flyer-motion] Process failed: ${err.message}`);
-        await supabase.from("seedance_jobs").update({ 
-          status: "failed", 
-          error_message: `Flyer analysis failed: ${err.message}` 
-        }).eq("id", jobId);
-=======
 
         if (updateError) throw updateError;
 
         // Trigger the next step: seedance-generate/process
         console.log(`[flyer-motion-bg] Analysis done for Job ${jobId}. Triggering generation...`);
-
+        
         fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
           method: "POST",
           headers: {
@@ -121,7 +75,6 @@ serve(async (req) => {
       } catch (err: any) {
         console.error(`[flyer-motion-bg] Error processing job ${jobId}:`, err.message);
         await supabase.from("seedance_jobs").update({ status: "failed", error_message: err.message }).eq("id", jobId);
->>>>>>> Stashed changes
         return jsonResponse({ success: false, error: err.message }, 500);
       }
     }
@@ -140,24 +93,6 @@ serve(async (req) => {
     const { imageUrl, jobId } = body;
     if (!imageUrl || !jobId) return jsonResponse({ error: "imageUrl and jobId are required" }, 400);
 
-<<<<<<< Updated upstream
-    console.log(`[flyer-motion] Queueing background process for jobId: ${jobId}`);
-
-    // Run background process
-    const processUrl = `${supabaseUrl}/functions/v1/runninghub-flyer-motion/process`;
-    
-    fetch(processUrl, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json", 
-        "Authorization": `Bearer ${supabaseKey}` 
-      },
-      body: JSON.stringify({ jobId, imageUrl }),
-    }).then(async res => {
-      const text = await res.text();
-      console.log(`[flyer-motion] Background trigger response status: ${res.status}, body: ${text}`);
-    }).catch(err => console.error("[flyer-motion] background error:", err));
-=======
     console.log("[flyer-motion-v3] Queuing analysis for Job:", jobId);
 
     // Fire and forget background process
@@ -169,16 +104,11 @@ serve(async (req) => {
       },
       body: JSON.stringify({ jobId, imageUrl }),
     }).catch(err => console.error("[flyer-motion-v3] background process trigger failed:", err));
->>>>>>> Stashed changes
 
     return jsonResponse({ success: true, queued: true, jobId });
 
   } catch (err: any) {
-<<<<<<< Updated upstream
-    console.error(`[flyer-motion] Fatal error: ${err.message}`);
-=======
     console.error("[flyer-motion-v3] FATAL:", err.message, err.stack);
->>>>>>> Stashed changes
     return jsonResponse({ error: err.message || "Internal server error" }, 500);
   }
 });

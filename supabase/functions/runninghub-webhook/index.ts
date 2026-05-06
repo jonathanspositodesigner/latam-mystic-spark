@@ -4,8 +4,12 @@ import { normalizeAIError } from "../_shared/error-normalizer.ts";
 
 /**
  * RUNNINGHUB WEBHOOK - CENTRALIZED
- *
- * Webhook ÚNICO que recebe callbacks do RunningHub.
+ * 
+ * Webhook ÚNICO que recebe callbacks do RunningHub para:
+ * - Upscaler Arcano (upscaler_jobs)
+ * - Pose Changer (pose_changer_jobs)
+ * - Veste AI (veste_ai_jobs)
+ * 
  * Quando um job termina, delega para o Queue Manager /finish
  * que cuida de:
  * - Finalizar job
@@ -18,69 +22,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-<<<<<<< Updated upstream
-const JOB_TABLES = ['upscaler_jobs', 'flyer_maker_jobs', 'image_generator_jobs', 'seedance_jobs'];
-
-async function finishJob(jobTable: string, jobId: string, status: 'completed' | 'failed', outputUrl: string | null, errorMessage: string | null, taskId: string) {
-  const finishUrl = `${SUPABASE_URL}/functions/v1/runninghub-queue-manager/finish`;
-  
-  // Extraído do ArcanoApp: se falhou, sempre tenta estornar se for seedance_jobs
-  if (status === 'failed' && jobTable === 'seedance_jobs') {
-    console.log(`[webhook] Failure detected for seedance job ${jobId}, triggering refund...`);
-    await supabase.rpc('refund_seedance_job', { _job_id: jobId, _reason: errorMessage || 'Evolink reported failure' });
-  }
-
-  const res = await fetch(finishUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
-    body: JSON.stringify({ table: jobTable, jobId, status, outputUrl, errorMessage, taskId }),
-  });
-  
-  console.log(`[webhook] finishJob -> ${jobTable}/${jobId} status=${status} outputUrl=${outputUrl} resp=${res.status}`);
-
-  // Fallback: if queue-manager fails, write directly to the table to avoid stuck jobs
-  if (!res.ok) {
-    const update: Record<string, unknown> = {
-      status,
-      completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    if (outputUrl) update.output_url = outputUrl;
-    if (errorMessage) update.error_message = errorMessage;
-    await supabase.from(jobTable).update(update).eq('id', jobId);
-    console.log(`[webhook] direct ${jobTable} update applied (queue-manager failed)`);
-  }
-}
-
-async function findJobByTaskId(taskId: string) {
-  for (const table of JOB_TABLES) {
-    const { data } = await supabase.from(table).select('id, status').eq('task_id', taskId).maybeSingle();
-    if (data) return { table, job: data };
-  }
-  return null;
-}
-
-function extractEvolinkOutput(data: any): string | null {
-  // Evolink returns results as array of URLs (strings) or objects
-  if (Array.isArray(data?.results) && data.results.length > 0) {
-    const first = data.results[0];
-    if (typeof first === 'string') return first;
-    if (first?.url) return first.url;
-    if (first?.output_url) return first.output_url;
-  }
-  return data?.output_url || data?.video_url || data?.url || null;
-}
-=======
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// TODO LATAM: tabelas removidas pois não existem no schema LATAM:
-// 'pose_changer_jobs', 'veste_ai_jobs', 'arcano_cloner_jobs',
-// 'character_generator_jobs', 'bg_remover_jobs', 'video_generator_jobs', 'movieled_maker_jobs'
-// Adicionado 'seedance_jobs' para suportar webhooks de jobs Seedance (correção crítica vs versão BR original).
-const IMAGE_JOB_TABLES = ['upscaler_jobs', 'flyer_maker_jobs', 'image_generator_jobs', 'seedance_jobs'] as const;
+// LATAM: Apenas tabelas que existem no schema deste projeto (BR tem mais tools)
+const IMAGE_JOB_TABLES = ['upscaler_jobs', 'flyer_maker_jobs', 'image_generator_jobs'] as const;
 
 // De Longe → Standard fallback configuration
 const WEBAPP_ID_STANDARD = '2017030861371219969';
@@ -97,17 +45,17 @@ async function logStep(
 ): Promise<void> {
   const timestamp = new Date().toISOString();
   const entry = { step, timestamp, ...details };
-
+  
   try {
     const { data: job } = await supabase
       .from(table)
       .select('step_history')
       .eq('id', jobId)
       .maybeSingle();
-
+    
     const currentHistory = (job?.step_history as any[]) || [];
     const newHistory = [...currentHistory, entry];
-
+    
     await supabase
       .from(table)
       .update({
@@ -115,13 +63,12 @@ async function logStep(
         step_history: newHistory,
       })
       .eq('id', jobId);
-
+    
     console.log(`[Webhook] ${table} Job ${jobId}: ${step}`, details || '');
   } catch (e) {
     console.error(`[logStep] Error:`, e);
   }
 }
->>>>>>> Stashed changes
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -130,62 +77,13 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-<<<<<<< Updated upstream
-    console.log(`[webhook] Received payload:`, JSON.stringify(payload).slice(0, 1000));
-
-    // ============ EVOLINK FORMAT ============
-    // Evolink posts task object directly: { id, status, results, error, progress, ... }
-    // Detect by presence of `id` + `status` (and absence of `event`)
-    const isEvolink = !payload.event && (payload.id || payload.task_id) && payload.status;
-    if (isEvolink) {
-      const taskId = payload.id || payload.task_id;
-      const status = String(payload.status).toLowerCase();
-      console.log(`[webhook] Evolink format detected. taskId=${taskId} status=${status}`);
-
-      const found = await findJobByTaskId(taskId);
-      if (!found) {
-        console.warn(`[webhook] Evolink job not found for taskId=${taskId}`);
-        return new Response(JSON.stringify({ ok: true, found: false }), { headers: corsHeaders });
-      }
-
-      if (found.job.status === 'completed' || found.job.status === 'failed') {
-        console.log(`[webhook] Job ${found.job.id} already in terminal state (${found.job.status}), skipping`);
-        return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: corsHeaders });
-      }
-
-      if (status === 'completed' || status === 'success' || status === 'succeeded') {
-        const outputUrl = extractEvolinkOutput(payload);
-        if (!outputUrl) {
-          console.error(`[webhook] Evolink completed but no outputUrl in payload`);
-          await finishJob(found.table, found.job.id, 'failed', null, 'Evolink completed without output URL', taskId);
-        } else {
-          await finishJob(found.table, found.job.id, 'completed', outputUrl, null, taskId);
-        }
-      } else if (status === 'failed' || status === 'error' || status === 'cancelled') {
-        const errMsg = payload.error?.message || payload.error || payload.failure_reason || 'Evolink generation failed';
-        await finishJob(found.table, found.job.id, 'failed', null, typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg), taskId);
-      } else {
-        // intermediate (processing/pending) — just ack
-        console.log(`[webhook] Evolink intermediate status=${status}, no action`);
-      }
-
-      return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders });
-    }
-
-    // ============ RUNNINGHUB FORMAT ============
-    const { event, taskId, eventData } = payload;
-    if (event !== 'TASK_END') return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-
-    const found = await findJobByTaskId(taskId);
-    if (!found) return new Response(JSON.stringify({ error: 'Job not found' }), { status: 200, headers: corsHeaders });
-=======
     console.log('[Webhook] Received:', JSON.stringify(payload));
 
     const event = payload.event;
     const taskId = payload.taskId;
     const eventData = payload.eventData || {};
     const taskStatus = eventData.status;
-
+    
     console.log(`[Webhook] Event: ${event}, TaskId: ${taskId}, Status: ${taskStatus}`);
 
     // Só processa TASK_END
@@ -203,27 +101,18 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
->>>>>>> Stashed changes
 
     // Extrair output
     let outputUrl: string | null = null;
     let errorMessage: string | null = null;
 
-<<<<<<< Updated upstream
-    await finishJob(found.table, found.job.id, errorMessage ? 'failed' : 'completed', outputUrl, errorMessage, taskId);
-
-    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-  } catch (error: any) {
-    console.error(`[webhook] error:`, error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
-=======
     const results = eventData.results || [];
     if (Array.isArray(results) && results.length > 0) {
       // Check for video outputs first, then images
-      const videoResult = results.find((r: any) =>
+      const videoResult = results.find((r: any) => 
         ['mp4', 'webm', 'mov', 'avi'].includes(r.outputType)
       );
-      const imageResult = results.find((r: any) =>
+      const imageResult = results.find((r: any) => 
         ['png', 'jpg', 'jpeg', 'webp'].includes(r.outputType)
       );
       outputUrl = videoResult?.url || imageResult?.url || results[0]?.url || null;
@@ -253,12 +142,12 @@ serve(async (req) => {
       'connection reset',
     ];
 
-    const isTransientInfraError = errorMessage && TRANSIENT_INFRA_ERRORS.some(pattern =>
+    const isTransientInfraError = errorMessage && TRANSIENT_INFRA_ERRORS.some(pattern => 
       errorMessage!.toLowerCase().includes(pattern)
     );
     const failedNodeName = eventData.failedReason?.node_name || '';
     const isLoadImageFailure = failedNodeName === 'LoadImage' || failedNodeName === 'LoadVideo';
-
+    
 
     // Encontrar job - minimal select that works for ALL tables
     let jobTable: string | null = null;
@@ -280,7 +169,7 @@ serve(async (req) => {
         jobTable = table;
         jobData = job;
         console.log(`[Webhook] Found job in ${table}: ${job.id}, status: ${job.status}`);
-
+        
         // IDEMPOTENCY: If job is already terminal, return 200 immediately
         if (['completed', 'failed', 'cancelled'].includes(job.status)) {
           console.log(`[Webhook] Job ${job.id} already terminal (${job.status}), skipping duplicate webhook`);
@@ -289,7 +178,7 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-
+        
         // Enrich with upscaler-specific columns only for upscaler_jobs (fallback logic)
         if (table === 'upscaler_jobs') {
           const { data: enriched } = await supabase
@@ -318,11 +207,11 @@ serve(async (req) => {
       .from(jobTable)
       .update({ raw_webhook_payload: payload })
       .eq('id', jobData.id);
-
-    await logStep(jobTable, jobData.id, 'webhook_received', {
-      event,
-      taskStatus,
-      hasOutput: !!outputUrl
+    
+    await logStep(jobTable, jobData.id, 'webhook_received', { 
+      event, 
+      taskStatus, 
+      hasOutput: !!outputUrl 
     });
 
     // ========================================
@@ -336,19 +225,19 @@ serve(async (req) => {
         .select('step_history, job_payload')
         .eq('id', jobData.id)
         .maybeSingle();
-
+      
       const history = (jobHistory?.step_history as any[]) || [];
       const retryCount = history.filter((h: any) => h.step === 'auto_retry').length;
-
+      
       if (retryCount < 2 && jobHistory?.job_payload) {
         console.log(`[Webhook] AUTO-RETRY ${retryCount + 1}/2 for transient infra error on job ${jobData.id}: ${errorMessage}`);
-
-        await logStep(jobTable, jobData.id, 'auto_retry', {
+        
+        await logStep(jobTable, jobData.id, 'auto_retry', { 
           attempt: retryCount + 1,
           originalError: errorMessage,
           failedNode: failedNodeName,
         });
-
+        
         // Re-submit via queue manager
         try {
           const retryUrl = `${SUPABASE_URL}/functions/v1/runninghub-queue-manager/retry`;
@@ -363,16 +252,16 @@ serve(async (req) => {
               jobId: jobData.id,
             }),
           });
-
+          
           const retryResult = await retryResponse.json();
           console.log(`[Webhook] Auto-retry response:`, JSON.stringify(retryResult));
-
+          
           if (retryResult.success) {
-            return new Response(JSON.stringify({
-              success: true,
+            return new Response(JSON.stringify({ 
+              success: true, 
               autoRetry: true,
               attempt: retryCount + 1,
-              message: 'Transient error detected, auto-retrying'
+              message: 'Transient error detected, auto-retrying' 
             }), {
               status: 200,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -431,11 +320,11 @@ serve(async (req) => {
         });
         const statusData = await statusResponse.json();
         console.log(`[Webhook] Auto-reconcile status for ${taskId}:`, JSON.stringify(statusData));
-
+        
         if (statusData.code === 0 && statusData.data) {
           const reconResults = statusData.data.outputFileList || statusData.data.results || [];
           if (Array.isArray(reconResults) && reconResults.length > 0) {
-            const reconImage = reconResults.find((r: any) =>
+            const reconImage = reconResults.find((r: any) => 
               ['png', 'jpg', 'jpeg', 'webp'].includes(r.outputType || r.fileType)
             );
             outputUrl = reconImage?.fileUrl || reconImage?.url || reconResults[0]?.fileUrl || reconResults[0]?.url || null;
@@ -463,27 +352,27 @@ serve(async (req) => {
       jobData.input_file_name
     ) {
       console.log(`[Webhook] FALLBACK TRIGGERED for De Longe job ${jobData.id}`);
-
+      
       // Marcar que vamos tentar fallback
       await supabase
         .from('upscaler_jobs')
-        .update({
+        .update({ 
           fallback_attempted: true,
           original_task_id: taskId,
           current_step: 'fallback_starting',
           error_message: null, // Limpar erro anterior
         })
         .eq('id', jobData.id);
-
-      await logStep('upscaler_jobs', jobData.id, 'fallback_starting', {
+      
+      await logStep('upscaler_jobs', jobData.id, 'fallback_starting', { 
         originalError: finalError,
-        originalTaskId: taskId
+        originalTaskId: taskId 
       });
-
+      
       // Chamar edge function /fallback para retry com workflow Standard
       try {
         const fallbackUrl = `${SUPABASE_URL}/functions/v1/runninghub-upscaler/fallback`;
-
+        
         const fallbackResponse = await fetch(fallbackUrl, {
           method: 'POST',
           headers: {
@@ -498,16 +387,16 @@ serve(async (req) => {
             prompt: jobData.prompt,
           }),
         });
-
+        
         const fallbackResult = await fallbackResponse.json();
         console.log('[Webhook] Fallback response:', JSON.stringify(fallbackResult));
-
+        
         if (fallbackResult.success) {
           // Fallback iniciado com sucesso - não finaliza o job ainda
-          return new Response(JSON.stringify({
-            success: true,
+          return new Response(JSON.stringify({ 
+            success: true, 
             fallback: true,
-            message: 'Fallback triggered, retrying with Standard workflow'
+            message: 'Fallback triggered, retrying with Standard workflow' 
           }), {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -515,14 +404,14 @@ serve(async (req) => {
         } else {
           // Fallback falhou ao iniciar - continua com a falha normal
           console.error('[Webhook] Fallback failed to start:', fallbackResult.error);
-          await logStep('upscaler_jobs', jobData.id, 'fallback_failed', {
-            error: fallbackResult.error
+          await logStep('upscaler_jobs', jobData.id, 'fallback_failed', { 
+            error: fallbackResult.error 
           });
         }
       } catch (fallbackError) {
         console.error('[Webhook] Fallback call failed:', fallbackError);
-        await logStep('upscaler_jobs', jobData.id, 'fallback_error', {
-          error: String(fallbackError)
+        await logStep('upscaler_jobs', jobData.id, 'fallback_error', { 
+          error: String(fallbackError) 
         });
       }
     }
@@ -530,7 +419,7 @@ serve(async (req) => {
     // Delegar para Queue Manager /finish (com payload do webhook)
     try {
       const finishUrl = `${SUPABASE_URL}/functions/v1/runninghub-queue-manager/finish`;
-
+      
       const response = await fetch(finishUrl, {
         method: 'POST',
         headers: {
@@ -548,14 +437,14 @@ serve(async (req) => {
           webhookPayload: payload,
         }),
       });
-
+      
       if (response.ok) {
         const result = await response.json();
         console.log('[Webhook] Queue Manager /finish response:', JSON.stringify(result));
       } else {
         const errorBody = await response.text();
         console.error(`[Webhook] /finish FAILED for ${jobTable}/${jobData.id}. HTTP ${response.status}: ${errorBody}`);
-
+        
         // FALLBACK: Persist completed/failed status directly when /finish fails
         console.log(`[Webhook] Applying direct fallback update for ${jobTable}/${jobData.id} -> ${newStatus}`);
         const fallbackData: Record<string, any> = {
@@ -569,19 +458,19 @@ serve(async (req) => {
           fallbackData.error_message = finalError;
           fallbackData.failed_at_step = 'webhook_received';
         }
-
+        
         const { error: fallbackError } = await supabase
           .from(jobTable)
           .update(fallbackData)
           .eq('id', jobData.id);
-
+        
         if (fallbackError) {
           console.error(`[Webhook] Fallback update ALSO failed for ${jobData.id}:`, fallbackError.message);
         } else {
           console.log(`[Webhook] Fallback update SUCCESS for ${jobData.id} -> ${newStatus}`);
           await logStep(jobTable, jobData.id, newStatus, { outputUrl, error: finalError, via: 'webhook_fallback' });
         }
-
+        
         // Still trigger process-next even on fallback
         fetch(`${SUPABASE_URL}/functions/v1/runninghub-queue-manager/process-next`, {
           method: 'POST',
@@ -594,7 +483,7 @@ serve(async (req) => {
       }
     } catch (queueError) {
       console.error('[Webhook] Error calling Queue Manager /finish:', queueError);
-
+      
       // Fallback: atualizar diretamente (network-level failure)
       await supabase
         .from(jobTable)
@@ -608,9 +497,9 @@ serve(async (req) => {
           rh_cost: rhCost > 0 ? rhCost : null
         })
         .eq('task_id', taskId);
-
+      
       await logStep(jobTable, jobData.id, newStatus, { outputUrl, error: finalError, via: 'webhook_network_fallback' });
-
+      
       // Trigger process-next
       fetch(`${SUPABASE_URL}/functions/v1/runninghub-queue-manager/process-next`, {
         method: 'POST',
@@ -633,6 +522,5 @@ serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
->>>>>>> Stashed changes
   }
 });

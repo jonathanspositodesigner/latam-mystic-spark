@@ -8,51 +8,8 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-<<<<<<< Updated upstream
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const evolinkKey = Deno.env.get("EVOLINK_API_KEY");
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const { taskId, jobId } = await req.json();
-
-  if (!jobId && !taskId) return new Response(JSON.stringify({ error: "Missing jobId or taskId" }), { status: 400, headers: corsHeaders });
-
-  // 1. Check database first - maybe webhook already finished it
-  const { data: job } = await supabase
-    .from("seedance_jobs")
-    .select("status, output_url, task_id")
-    .eq("id", jobId)
-    .maybeSingle();
-
-  if (job?.status === "completed" && job?.output_url) {
-    return new Response(JSON.stringify({ status: "completed", outputUrl: job.output_url, progress: 100 }), { headers: corsHeaders });
-  }
-
-  if (job?.status === "failed") {
-    return new Response(JSON.stringify({ status: "failed", error: job.error_message || "Generation failed" }), { headers: corsHeaders });
-  }
-
-  // Use taskId from DB if not provided
-  const finalTaskId = taskId || job?.task_id;
-  if (!finalTaskId) return new Response(JSON.stringify({ status: "pending", progress: 0 }), { headers: corsHeaders });
-
-  const pollResult = await evolinkPoll(evolinkKey!, finalTaskId);
-
-  if (pollResult.status === "completed") {
-    await supabase.from("seedance_jobs").update({
-      status: "completed",
-      output_url: pollResult.outputUrl,
-      completed_at: new Date().toISOString(),
-    }).eq("id", jobId);
-    
-    return new Response(JSON.stringify({ status: "completed", outputUrl: pollResult.outputUrl, progress: 100 }), { headers: corsHeaders });
-=======
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
->>>>>>> Stashed changes
   }
 
   try {
@@ -125,7 +82,7 @@ serve(async (req) => {
       // COLLABORATOR TOOL EARNINGS - Register if partner prompt was used
       try {
         const { data: jobData } = await supabase.from("seedance_jobs").select("reference_prompt_id").eq("id", jobId).maybeSingle();
-        console.log(`[seedance-poll] AUDIT: Job ${jobId} reference_prompt_id = "${jobData?.reference_prompt_id}" | will_register=${!!jobData?.reference_prompt_id}`);
+        console.log(`[seedance-poll] 🔍 AUDIT: Job ${jobId} reference_prompt_id = "${jobData?.reference_prompt_id}" | will_register=${!!jobData?.reference_prompt_id}`);
         if (jobData?.reference_prompt_id) {
           const { data: earningResult } = await supabase.rpc('register_collaborator_tool_earning', {
             _job_id: jobId,
