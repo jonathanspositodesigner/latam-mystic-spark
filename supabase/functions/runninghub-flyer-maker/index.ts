@@ -18,7 +18,6 @@ async function consumeCredits(supabase: any, userId: string, amount: number, des
   
   // Motion Standard still costs credits even if unlimited (as per user instruction "14k mensais para motion")
   // But wait, the user said "estático+refine ilimitados". MOTION_STANDARD is standard motion.
-  // Standard motion is typically cheaper or part of standard tools.
   // Actually, the user specifically mentioned: "valida user_has_unlimited_flyer no servidor antes de honrar creditCost=0 (anti-burla)"
   
   if (hasUnlimited && description.includes("Flyer Maker") && !description.includes("Motion")) {
