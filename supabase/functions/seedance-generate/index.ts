@@ -130,12 +130,13 @@ serve(async (req) => {
         await supabase.from("seedance_jobs").update({ credits_charged: creditsToCharge, status: "queued" }).eq("id", jobId);
       }
 
+      console.log(`[seedance-generate] Calling Evolink for jobId: ${jobId}, model: ${job.model}`);
       const res = await evolinkGenerate(evolinkKey, {
         model: job.model,
         prompt: job.prompt,
-        duration: job.duration || 5,
-        quality: job.quality || "480p",
-        aspectRatio: job.aspect_ratio || "16:9",
+        duration: job.duration || 10,
+        quality: job.quality || "720p",
+        aspectRatio: job.aspect_ratio || "9:16",
         generateAudio: job.generate_audio !== false,
         imageUrls: job.input_image_urls,
         videoUrls: job.input_video_urls,
@@ -143,11 +144,16 @@ serve(async (req) => {
       });
 
       if (!res.success) {
+        console.error(`[seedance-generate] Evolink error for jobId ${jobId}: ${res.error}`);
         await refundJob(supabase, jobId, `Estorno - Evolink falhou: ${res.error}`);
-        await supabase.from("seedance_jobs").update({ status: "failed", error_message: res.error }).eq("id", jobId);
+        await supabase.from("seedance_jobs").update({ 
+          status: "failed", 
+          error_message: `Evolink generation error: ${res.error}` 
+        }).eq("id", jobId);
         return json({ success: false, error: res.error }, 400);
       }
 
+      console.log(`[seedance-generate] Evolink Success! TaskId: ${res.taskId}`);
       await supabase.from("seedance_jobs").update({ task_id: res.taskId, status: "running" }).eq("id", jobId);
       return json({ success: true, taskId: res.taskId, jobId });
     }
@@ -160,7 +166,7 @@ serve(async (req) => {
     if (!jobId) return json({ success: false, error: "Missing jobId" }, 400);
 
     const processUrl = `${supabaseUrl}/functions/v1/seedance-generate/process`;
-    console.log(`[seedance-generate] Triggering background process: ${processUrl}`);
+    console.log(`[seedance-generate] Triggering background process for jobId: ${jobId}`);
     
     fetch(processUrl, {
       method: "POST",
