@@ -21,6 +21,7 @@ export interface EvolinkGenerateParams {
   imageUrls?: string[];
   videoUrls?: string[];
   audioUrls?: string[];
+  webhookUrl?: string;
 }
 
 export interface EvolinkImageGenerateParams {
@@ -225,6 +226,7 @@ export async function evolinkGenerate(
     quality: params.quality ?? '1080p',
     aspect_ratio: params.aspectRatio ?? '16:9',
     generate_audio: params.generateAudio ?? false,
+    webhook_url: params.webhookUrl,
   };
 
   // generation_type (apenas para Veo 3.1 — Seedance NÃO aceita esse campo na API)

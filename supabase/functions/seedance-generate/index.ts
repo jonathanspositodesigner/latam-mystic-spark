@@ -131,6 +131,7 @@ serve(async (req) => {
       }
 
       console.log(`[seedance-generate] Calling Evolink for jobId: ${jobId}, model: ${job.model}`);
+      const webhookUrl = `${supabaseUrl}/functions/v1/runninghub-webhook`;
       const res = await evolinkGenerate(evolinkKey, {
         model: job.model,
         prompt: job.prompt,
@@ -141,6 +142,7 @@ serve(async (req) => {
         imageUrls: job.input_image_urls,
         videoUrls: job.input_video_urls,
         audioUrls: job.input_audio_urls,
+        webhookUrl: webhookUrl,
       });
 
       if (!res.success) {
