@@ -8,52 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-<<<<<<< Updated upstream
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const evolinkKey = Deno.env.get("EVOLINK_API_KEY");
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const { taskId, jobId } = await req.json();
-
-  if (!jobId && !taskId) return new Response(JSON.stringify({ error: "Missing jobId or taskId" }), { status: 400, headers: corsHeaders });
-
-  // 1. Check database first - maybe webhook already finished it
-  const { data: job } = await supabase
-    .from("seedance_jobs")
-    .select("status, output_url, task_id")
-    .eq("id", jobId)
-    .maybeSingle();
-
-  if (job?.status === "completed" && job?.output_url) {
-    return new Response(JSON.stringify({ status: "completed", outputUrl: job.output_url, progress: 100 }), { headers: corsHeaders });
-  }
-
-  if (job?.status === "failed") {
-    return new Response(JSON.stringify({ status: "failed", error: job.error_message || "Generation failed" }), { headers: corsHeaders });
-  }
-
-  // Use taskId from DB if not provided
-  const finalTaskId = taskId || job?.task_id;
-  if (!finalTaskId) return new Response(JSON.stringify({ status: "pending", progress: 0 }), { headers: corsHeaders });
-
-  const pollResult = await evolinkPoll(evolinkKey!, finalTaskId);
-
-  if (pollResult.status === "completed") {
-    await supabase.from("seedance_jobs").update({
-      status: "completed",
-      output_url: pollResult.outputUrl,
-      completed_at: new Date().toISOString(),
-    }).eq("id", jobId);
-    
-    return new Response(JSON.stringify({ status: "completed", outputUrl: pollResult.outputUrl, progress: 100 }), { headers: corsHeaders });
-=======
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
->>>>>>> Stashed changes
-  }
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -85,14 +40,27 @@ serve(async (req) => {
 
     const { taskId, jobId } = await req.json();
 
-    if (!taskId || !jobId) {
-      return new Response(JSON.stringify({ error: "Missing taskId or jobId" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!jobId && !taskId) return new Response(JSON.stringify({ error: "Missing jobId or taskId" }), { status: 400, headers: corsHeaders });
+
+    // 1. Check database first - maybe webhook already finished it
+    const { data: job } = await supabase
+      .from("seedance_jobs")
+      .select("status, output_url, task_id, reference_prompt_id")
+      .eq("id", jobId)
+      .maybeSingle();
+
+    if (job?.status === "completed" && job?.output_url) {
+      return new Response(JSON.stringify({ status: "completed", outputUrl: job.output_url, progress: 100 }), { headers: corsHeaders });
     }
 
-    // Poll using shared Evolink client
-    const pollResult = await evolinkPoll(evolinkKey, taskId);
+    if (job?.status === "failed") {
+      return new Response(JSON.stringify({ status: "failed", error: "Generation failed" }), { headers: corsHeaders });
+    }
+
+    const finalTaskId = taskId || job?.task_id;
+    if (!finalTaskId) return new Response(JSON.stringify({ status: "pending", progress: 0 }), { headers: corsHeaders });
+
+    const pollResult = await evolinkPoll(evolinkKey, finalTaskId);
     console.log("[seedance-poll] Status:", pollResult.status, "Progress:", pollResult.progress);
 
     if (pollResult.status === "completed") {
@@ -102,35 +70,22 @@ serve(async (req) => {
         completed_at: new Date().toISOString(),
       }).eq("id", jobId);
 
-      // Trigger thumbnail generation (fire-and-forget)
       try {
         fetch(`${supabaseUrl}/functions/v1/generate-thumbnail`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({
-            jobId: jobId,
-            tableName: "seedance_jobs",
-            outputUrl: pollResult.outputUrl,
-          }),
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+          body: JSON.stringify({ jobId: jobId, tableName: "seedance_jobs", outputUrl: pollResult.outputUrl }),
         }).catch(err => console.error("[seedance-poll] Thumbnail trigger failed:", err));
       } catch (e) {
         console.error("[seedance-poll] Thumbnail error:", e);
       }
 
-      // Credits already charged on generate - no action needed on completion
-
-      // COLLABORATOR TOOL EARNINGS - Register if partner prompt was used
       try {
-        const { data: jobData } = await supabase.from("seedance_jobs").select("reference_prompt_id").eq("id", jobId).maybeSingle();
-        console.log(`[seedance-poll] AUDIT: Job ${jobId} reference_prompt_id = "${jobData?.reference_prompt_id}" | will_register=${!!jobData?.reference_prompt_id}`);
-        if (jobData?.reference_prompt_id) {
+        if (job?.reference_prompt_id) {
           const { data: earningResult } = await supabase.rpc('register_collaborator_tool_earning', {
             _job_id: jobId,
             _tool_table: 'seedance_jobs',
-            _prompt_id: jobData.reference_prompt_id,
+            _prompt_id: job.reference_prompt_id,
             _user_id: user.id,
           });
           console.log("[seedance-poll] Tool earning result:", earningResult);
@@ -149,17 +104,13 @@ serve(async (req) => {
     }
 
     if (pollResult.status === "failed") {
-      // Estorno idempotente via função central — segura contra chamadas concorrentes
       const { data: refundData, error: refundError } = await supabase.rpc("refund_seedance_job", {
         _job_id: jobId,
         _reason: "Estorno - Seedance 2 falhou (poll)",
       });
 
-      if (refundError) {
-        console.error(`[seedance-poll] refund_seedance_job error for ${jobId}:`, refundError);
-      } else {
-        console.log(`[seedance-poll] refund_seedance_job result for ${jobId}:`, refundData);
-      }
+      if (refundError) console.error(`[seedance-poll] refund_seedance_job error for ${jobId}:`, refundError);
+      else console.log(`[seedance-poll] refund_seedance_job result for ${jobId}:`, refundData);
 
       await supabase.from("seedance_jobs").update({
         status: "failed",
@@ -174,7 +125,6 @@ serve(async (req) => {
       });
     }
 
-    // Still processing
     return new Response(JSON.stringify({
       status: pollResult.status,
       progress: pollResult.progress,
