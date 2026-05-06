@@ -1269,6 +1269,7 @@ export type Database = {
           id: string
           lifetime_balance: number | null
           monthly_balance: number | null
+          monthly_expires_at: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1278,6 +1279,7 @@ export type Database = {
           id?: string
           lifetime_balance?: number | null
           monthly_balance?: number | null
+          monthly_expires_at?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1287,6 +1289,7 @@ export type Database = {
           id?: string
           lifetime_balance?: number | null
           monthly_balance?: number | null
+          monthly_expires_at?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1585,20 +1588,16 @@ export type Database = {
         }[]
       }
       consume_upscaler_credits: {
-        Args: { _amount: number; _description?: string; _user_id: string }
-        Returns: {
-          error_message: string
-          new_balance: number
-          success: boolean
-        }[]
+        Args: { _amount: number; _description: string; _user_id: string }
+        Returns: Json
       }
       consume_upscaler_credits_forced: {
-        Args: { _amount: number; _description?: string; _user_id: string }
-        Returns: {
-          error_message: string
-          new_balance: number
-          success: boolean
-        }[]
+        Args: { _amount: number; _description: string; _user_id: string }
+        Returns: Json
+      }
+      expire_monthly_credits_if_due: {
+        Args: { _user_id: string }
+        Returns: undefined
       }
       get_ai_tools_cost_averages: {
         Args: never
@@ -1613,6 +1612,15 @@ export type Database = {
       }
       get_flyer_test_credits: { Args: { _user_id: string }; Returns: number }
       get_upscaler_credits: { Args: { _user_id: string }; Returns: number }
+      grant_monthly_credits: {
+        Args: {
+          _amount: number
+          _description: string
+          _months?: number
+          _user_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1658,10 +1666,15 @@ export type Database = {
         Args: { p_fingerprint: string; p_user_id: string }
         Returns: undefined
       }
+      revoke_monthly_credits: {
+        Args: { _description: string; _user_id: string }
+        Returns: undefined
+      }
       user_cancel_ai_job: {
         Args: { p_job_id: string; p_table_name: string }
         Returns: Json
       }
+      user_has_unlimited_flyer: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
