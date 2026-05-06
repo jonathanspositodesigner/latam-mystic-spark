@@ -1101,8 +1101,8 @@ const FlyerMakerTool: React.FC = () => {
 
 
   const handleUnifiedProcess = async () => {
-    // REMOVIDO startSubmit() PARA DEIXAR O BOTÃO SEMPRE CLICÁVEL
-    // if (!startSubmit()) return;
+    // Sincronizar visualmente o botão instantaneamente para evitar cliques duplos
+    if (!startSubmit()) return;
 
     if (!user?.id) {
       setNoCreditsReason('not_logged');
