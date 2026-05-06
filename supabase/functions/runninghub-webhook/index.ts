@@ -27,7 +27,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// LATAM: Apenas tabelas que existem no schema deste projeto (BR tem mais tools)
+// LATAM: apenas tabelas que existem neste projeto
 const IMAGE_JOB_TABLES = ['upscaler_jobs', 'flyer_maker_jobs', 'image_generator_jobs'] as const;
 
 // De Longe → Standard fallback configuration
