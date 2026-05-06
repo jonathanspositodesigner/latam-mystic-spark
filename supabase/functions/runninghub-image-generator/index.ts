@@ -344,6 +344,16 @@ async function handleRun(req: Request) {
   const finalAspectRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : '4:3';
 
   // ========== SERVER-SIDE CREDIT COST ENFORCEMENT ==========
+  // Check for unlimited plan for flyer_maker_refine
+  let finalCreditCost = creditCost;
+  if (source === 'flyer_maker_refine') {
+    const { data: hasUnlimited } = await supabase.rpc("user_has_unlimited_flyer", { _user_id: verifiedUserId });
+    if (hasUnlimited) {
+      console.log(`[ImageGenerator] User ${verifiedUserId} has Unlimited plan for Flyer Maker Refine.`);
+      finalCreditCost = 0;
+    }
+  }
+
   // Minimum costs per source — client cannot send less than these values
   const MIN_COSTS: Record<string, number> = {
     'arcano_cloner_refine': 100,
@@ -355,16 +365,15 @@ async function handleRun(req: Request) {
   const minCost = MIN_COSTS[source] ?? 100;
 
   // Enforce: if client sent less than minimum (and not BYOK/Unlimited), override to minimum
-  let enforcedCreditCost = creditCost;
-  if (!isByok && creditCost !== 0) {
-    if (typeof creditCost !== 'number' || creditCost < 1 || creditCost > 500) {
+  if (!isByok && finalCreditCost !== 0) {
+    if (typeof finalCreditCost !== 'number' || finalCreditCost < 1 || finalCreditCost > 500) {
       return new Response(JSON.stringify({ error: 'Invalid credit cost', code: 'INVALID_CREDIT_COST' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (creditCost < minCost) {
-      console.warn(`[ImageGenerator] Client sent creditCost=${creditCost}, enforcing minimum=${minCost} for source=${source}`);
-      enforcedCreditCost = minCost;
+    if (finalCreditCost < minCost) {
+      console.warn(`[ImageGenerator] Client sent creditCost=${finalCreditCost}, enforcing minimum=${minCost} for source=${source}`);
+      finalCreditCost = minCost;
     }
   }
 
@@ -486,11 +495,11 @@ async function handleRun(req: Request) {
   if (isByok) {
     console.log(`[ImageGenerator] BYOK mode — skipping platform credit consumption for user ${verifiedUserId}`);
     await logStep(jobId, 'byok_skip_credits');
-  } else if (enforcedCreditCost === 0) {
+  } else if (finalCreditCost === 0) {
     console.log(`[ImageGenerator] Unlimited user — skipping credit consumption for user ${verifiedUserId}`);
     await logStep(jobId, 'unlimited_skip_credits');
   } else {
-    await logStep(jobId, 'consuming_credits', { amount: enforcedCreditCost });
+    await logStep(jobId, 'consuming_credits', { amount: finalCreditCost });
     
     // Determine credit description based on source
     let creditDescription = 'Gerar Imagem';
@@ -499,7 +508,7 @@ async function handleRun(req: Request) {
 
     const { data: creditResult, error: creditError } = await supabase.rpc(
       'consume_upscaler_credits',
-      { _user_id: verifiedUserId, _amount: enforcedCreditCost, _description: creditDescription }
+      { _user_id: verifiedUserId, _amount: finalCreditCost, _description: creditDescription }
     );
 
     if (creditError) {
@@ -510,15 +519,16 @@ async function handleRun(req: Request) {
       });
     }
 
-    if (!creditResult || creditResult.length === 0 || !creditResult[0].success) {
-      const errorMsg = creditResult?.[0]?.error_message || 'Saldo insuficiente';
+    const result = Array.isArray(creditResult) ? creditResult[0] : (creditResult as any);
+    if (!result || !result.success) {
+      const errorMsg = result?.error_message || 'Saldo insuficiente';
       await logStepFailure(jobId, 'consume_credits', errorMsg);
-      return new Response(JSON.stringify({ error: errorMsg, code: 'INSUFFICIENT_CREDITS', currentBalance: creditResult?.[0]?.new_balance }), {
+      return new Response(JSON.stringify({ error: errorMsg, code: 'INSUFFICIENT_CREDITS', currentBalance: result?.new_balance }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[ImageGenerator] Credits consumed. New balance: ${creditResult[0].new_balance}`);
+    console.log(`[ImageGenerator] Credits consumed. New balance: ${result.new_balance}`);
   }
 
   // ========== SAVE JOB PAYLOAD ==========
@@ -532,7 +542,7 @@ async function handleRun(req: Request) {
 
   await supabase.from(TABLE_NAME).update({
     credits_charged: true,
-    user_credit_cost: enforcedCreditCost,
+    user_credit_cost: finalCreditCost,
     input_urls: imageUrls,
     job_payload: {
       prompt: prompt.trim(),

@@ -86,9 +86,11 @@ export const useUpscalerCredits = (userId: string | undefined) => {
       });
 
       if (error) return { success: false as const, error: error.message };
-      if (!data || data.length === 0) return { success: false as const, error: 'Error al procesar créditos' };
+      if (!data) return { success: false as const, error: 'Error al procesar créditos' };
 
-      const result = data[0];
+      // O Postgres pode retornar o JSON direto ou um array com um elemento dependendo de como o RPC é chamado
+      const result = Array.isArray(data) ? data[0] : (data as any);
+      
       if (!result.success) {
         return { success: false as const, error: result.error_message || 'Saldo insuficiente', currentBalance: result.new_balance };
       }

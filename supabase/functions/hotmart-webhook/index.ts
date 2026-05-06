@@ -12,11 +12,14 @@ const json = (body: unknown, status = 200) =>
   });
 
 // ── Product mapping (Hotmart product IDs) ──
-const HOTMART_PRODUCTS: Record<string, { slug: string; credits: number; label: string; type: "vitalicio" | "creditos" }> = {
+const HOTMART_PRODUCTS: Record<string, { slug: string; credits: number; label: string; type: "vitalicio" | "creditos" | "unlimited" }> = {
   "7521432": { slug: "upscaller-arcano-v3", credits: 0, label: "Vitalício", type: "vitalicio" },
   "7521921": { slug: "upscaler-creditos-starter", credits: 1500, label: "Starter", type: "creditos" },
   "7545929": { slug: "upscaler-creditos-pro", credits: 4200, label: "Pro", type: "creditos" },
   "7545977": { slug: "upscaler-creditos-ultimate", credits: 14000, label: "Ultimate", type: "creditos" },
+  "7689776": { slug: "flyer-maker-pro-7k", credits: 7000, label: "Flyer Pro 7k", type: "creditos" },
+  "7689837": { slug: "flyer-maker-ultimate-14k", credits: 14000, label: "Flyer Ultimate 14k", type: "creditos" },
+  "7689893": { slug: "flyer-maker-unlimited", credits: 14000, label: "Flyer Unlimited", type: "unlimited" },
 };
 
 // ── SendPulse token cache ──
@@ -243,6 +246,12 @@ Deno.serve(async (req) => {
           .eq("user_id", profile.id)
           .eq("gateway", "hotmart");
 
+        // Revoke monthly credits
+        await supabaseAdmin.rpc("revoke_monthly_credits", {
+          _user_id: profile.id,
+          _description: `Cancelamento Hotmart (${event})`
+        });
+
         console.log(`[hotmart-webhook] Access revoked for user ${profile.id} due to ${event}`);
       }
     }
@@ -344,24 +353,45 @@ Deno.serve(async (req) => {
       } else {
         actions.push("v3_already_active");
       }
-    } else {
-      // Credits product
-      await supabaseAdmin.from("upscaler_credit_transactions").insert({
-        user_id: userId,
-        amount: hotmartProduct.credits,
-        transaction_type: "purchase",
-        description: `Compra Hotmart pack ${hotmartProduct.label} (${hotmartProduct.credits} créditos)`,
+    } else if (hotmartProduct.type === "unlimited") {
+      // Unlimited plan: grant monthly credits for motion, and mark pack
+      await supabaseAdmin.rpc("grant_monthly_credits", {
+        _user_id: userId,
+        _amount: hotmartProduct.credits,
+        _description: `Assinatura Hotmart ${hotmartProduct.label} (${hotmartProduct.credits} créditos mensais)`,
+        _months: 1
       });
 
-      await supabaseAdmin.from("user_pack_purchases").insert({
+      await supabaseAdmin.from("user_pack_purchases").upsert({
         user_id: userId,
         pack_slug: hotmartProduct.slug,
         payment_status: "active",
         gateway: "hotmart",
-        plan_type: hotmartProduct.slug,
+        plan_type: "unlimited",
         external_id: String(transactionId),
         amount: purchaseData.price?.value || purchaseData.original_offer_price?.value || null,
+      }, { onConflict: "user_id, pack_slug" });
+
+      actions.push("unlimited_access_granted");
+    } else {
+      // Monthly Credits product (Standard/Pro/Ultimate/Flyer Pro 7k/etc)
+      await supabaseAdmin.rpc("grant_monthly_credits", {
+        _user_id: userId,
+        _amount: hotmartProduct.credits,
+        _description: `Compra Hotmart pack ${hotmartProduct.label} (${hotmartProduct.credits} créditos)`,
+        _months: 1
       });
+
+      await supabaseAdmin.from("user_pack_purchases").upsert({
+        user_id: userId,
+        pack_slug: hotmartProduct.slug,
+        payment_status: "active",
+        gateway: "hotmart",
+        plan_type: "credits",
+        external_id: String(transactionId),
+        amount: purchaseData.price?.value || purchaseData.original_offer_price?.value || null,
+      }, { onConflict: "user_id, pack_slug" });
+      
       actions.push(`credits_granted_${hotmartProduct.label.toLowerCase()}`);
     }
 
