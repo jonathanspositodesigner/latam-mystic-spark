@@ -841,7 +841,7 @@ const FlyerMakerTool: React.FC = () => {
     const handleGenerateMotion = async () => {
       if (!motionSourceImage || (motionStatus !== 'idle' && motionStatus !== 'completed') || !user?.id) return;
 
-    // Guard sincrónico contra clic doble
+    // Guard sincrónico contra clic doble - Muda visualmente o botão instantaneamente
     if (!startSubmit()) return;
 
     // Chequeo de saldo ANTES de cualquier débito.
