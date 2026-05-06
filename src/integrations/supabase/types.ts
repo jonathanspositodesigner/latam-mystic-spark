@@ -1595,10 +1595,10 @@ export type Database = {
         Args: { _amount: number; _description: string; _user_id: string }
         Returns: Json
       }
-      expire_monthly_credits_if_due: {
-        Args: { _user_id: string }
-        Returns: undefined
-      }
+      expire_monthly_credits_if_due:
+        | { Args: never; Returns: undefined }
+        | { Args: { _user_id: string }; Returns: undefined }
+      find_user_id_by_email: { Args: { _email: string }; Returns: string }
       get_ai_tools_cost_averages: {
         Args: never
         Returns: {
@@ -1615,19 +1615,25 @@ export type Database = {
       grant_flyer_monthly_credits: {
         Args: {
           _amount: number
-          _description: string
+          _description?: string
           _months?: number
           _user_id: string
         }
         Returns: undefined
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
+      grant_lifetime_credits: {
+        Args: { _amount: number; _description?: string; _user_id: string }
+        Returns: undefined
       }
+      has_role:
+        | {
+            Args: {
+              _role: Database["public"]["Enums"]["app_role"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { role_name: string }; Returns: boolean }
       mark_pending_job_as_failed:
         | {
             Args: { p_job_id: string; p_table_name: string }
@@ -1667,7 +1673,11 @@ export type Database = {
         Returns: undefined
       }
       revoke_flyer_monthly_credits: {
-        Args: { _description: string; _user_id: string }
+        Args: { _description?: string; _user_id: string }
+        Returns: undefined
+      }
+      revoke_lifetime_credits: {
+        Args: { _description?: string; _user_id: string }
         Returns: undefined
       }
       user_cancel_ai_job: {
