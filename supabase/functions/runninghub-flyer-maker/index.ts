@@ -99,6 +99,23 @@ serve(async (req) => {
     const type = flyerSubType?.toUpperCase();
     const webappId = RH_CONFIG.WEBAPP_IDS[type as keyof typeof RH_CONFIG.WEBAPP_IDS] || RH_CONFIG.DEFAULT_WEBAPP;
 
+    // Charge credits if applicable
+    if (creditCost && creditCost > 0) {
+      console.log(`[FlyerMaker] Charging ${creditCost} credits to user ${body.userId}`);
+      const creditResult = await consumeCredits(supabase, body.userId, creditCost, `Flyer Maker (${flyerSubType})`);
+      if (!creditResult.success) {
+        return new Response(JSON.stringify({ error: 'INSUFFICIENT_CREDITS', message: creditResult.error }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+      // Update job to mark credits as charged
+      await supabase.from(RH_CONFIG.JOB_TABLE).update({ 
+        credits_charged: true, 
+        user_credit_cost: creditCost 
+      }).eq('id', jobId);
+    }
+
     await logStep(RH_CONFIG.JOB_TABLE, jobId, 'starting', { flyerSubType, webappId });
 
     const artistFileNames: string[] = [];
