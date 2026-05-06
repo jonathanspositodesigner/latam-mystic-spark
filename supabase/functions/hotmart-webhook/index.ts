@@ -318,14 +318,14 @@ Deno.serve(async (req) => {
 
         // 3) Revoga créditos mensais (Flyer Maker monthly_credits + unlimited)
         if (cancelProduct?.family === "flyer") {
-          const { data: revokedAmount } = await supabaseAdmin.rpc("revoke_monthly_credits", {
+          const { data: revokedAmount } = await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
             _user_id: profile.id,
             _description: `Reembolso/cancelación Hotmart — ${cancelProduct.productName}`,
           });
           console.log(`[hotmart-webhook] Revoked ${revokedAmount} monthly credits for user ${profile.id}`);
         } else if (!cancelProduct) {
           // Sem product específico — revoga monthly por garantia
-          const { data: revokedAmount } = await supabaseAdmin.rpc("revoke_monthly_credits", {
+          const { data: revokedAmount } = await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
             _user_id: profile.id,
             _description: `Reembolso/cancelación Hotmart (${event})`,
           });
@@ -468,8 +468,8 @@ Deno.serve(async (req) => {
       });
       actions.push(`credits_granted_${hotmartProduct.label.toLowerCase()}`);
     } else if (hotmartProduct.type === "monthly_credits" || hotmartProduct.type === "unlimited") {
-      // Flyer Maker — créditos mensais com expiração via RPC grant_monthly_credits
-      const { error: grantError } = await supabaseAdmin.rpc("grant_monthly_credits", {
+      // Flyer Maker — créditos mensais com expiração via RPC grant_flyer_monthly_credits
+      const { error: grantError } = await supabaseAdmin.rpc("grant_flyer_monthly_credits", {
         _user_id: userId,
         _amount: hotmartProduct.credits,
         _description: `Compra Hotmart ${hotmartProduct.productName} (${hotmartProduct.credits} créditos mensales)`,
@@ -477,7 +477,7 @@ Deno.serve(async (req) => {
       });
 
       if (grantError) {
-        console.error(`[hotmart-webhook] grant_monthly_credits error:`, grantError);
+        console.error(`[hotmart-webhook] grant_flyer_monthly_credits error:`, grantError);
         throw grantError;
       }
 

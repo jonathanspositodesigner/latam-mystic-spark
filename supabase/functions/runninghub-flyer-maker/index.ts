@@ -100,9 +100,11 @@ serve(async (req) => {
     const webappId = RH_CONFIG.WEBAPP_IDS[type as keyof typeof RH_CONFIG.WEBAPP_IDS] || RH_CONFIG.DEFAULT_WEBAPP;
 
     // ========== UNLIMITED PLAN VERIFICATION ==========
-    // Cliente pode enviar creditCost=0 alegando plano unlimited — valida no servidor
+    // Plano Unlimited libera APENAS flyers estáticos (e refine no image-generator).
+    // Motion (motion_standard, motion_pro, motion_premium) sempre cobra preço normal.
+    const isMotionFlow = typeof flyerSubType === 'string' && flyerSubType.toLowerCase().startsWith('motion');
     let enforcedCreditCost = creditCost;
-    if (creditCost === 0 && body.userId) {
+    if (creditCost === 0 && body.userId && !isMotionFlow) {
       const { data: hasUnlimited, error: unlimitedErr } = await supabase.rpc('user_has_unlimited_flyer', {
         _user_id: body.userId,
       });
@@ -110,8 +112,12 @@ serve(async (req) => {
         console.warn(`[FlyerMaker] User ${body.userId} sent creditCost=0 but no unlimited plan — enforcing 100`);
         enforcedCreditCost = 100;
       } else {
-        console.log(`[FlyerMaker] User ${body.userId} validated as unlimited — bypassing credits`);
+        console.log(`[FlyerMaker] User ${body.userId} validated as unlimited — bypassing credits for ${flyerSubType}`);
       }
+    } else if (creditCost === 0 && isMotionFlow) {
+      // Motion nunca pode ser bypassed — força mínimo seguro
+      console.warn(`[FlyerMaker] User ${body.userId} sent creditCost=0 for motion (${flyerSubType}) — blocking bypass`);
+      enforcedCreditCost = 700; // motion_standard = 700 mínimo
     }
 
     // Charge credits if applicable
