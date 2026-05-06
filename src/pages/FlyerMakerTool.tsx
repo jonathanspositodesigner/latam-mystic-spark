@@ -1279,8 +1279,9 @@ const FlyerMakerTool: React.FC = () => {
       if (runError) {
         setStatus('idle');
         endSubmit();
-        const errorDetails = `HTTP ${runError.status || 'Unknown'} - ${runError.message}\nPayload: ${JSON.stringify(requestBody, null, 2)}`;
+        const errorDetails = `HTTP ${runError.status || 'Unknown'} - ${runError.message || 'Erro ao invocar a função'}\nPayload: ${JSON.stringify(requestBody, null, 2)}`;
         setDebugErrorMessage(errorDetails);
+        console.error('[FlyerMaker] Edge Function invocation failed:', runError);
         throw new Error(runError.message || 'Error al iniciar el procesamiento');
       }
 
@@ -1295,16 +1296,22 @@ const FlyerMakerTool: React.FC = () => {
         return;
       }
 
+      if (runResult?.error && !runResult?.success && !runResult?.queued) {
+        setStatus('idle');
+        endSubmit();
+        const errorMsg = runResult.error || 'Error reportado por el servidor';
+        setDebugErrorMessage(`Server Logic Error: ${errorMsg}\nPayload: ${JSON.stringify(requestBody, null, 2)}`);
+        throw new Error(errorMsg);
+      }
+
       if (runResult?.queued) {
         setStatus('waiting');
         setQueuePosition(runResult.position || 1);
       } else {
-        // Removemos o setStatus('processing') daqui para não travar o botão
+        setStatus('processing'); // AGORA TRAVA O STATUS EM PROCESSING PARA ATIVAR O REALTIME
         setProgress(60);
       }
 
-      // FORÇA O BOTÃO A FICAR CLICÁVEL SEMPRE APÓS O CLIQUE INICIAL
-      setStatus('idle');
       endSubmit();
     } catch (error: any) {
       console.error(`[FlyerMaker ${flyerType}] Process error:`, error);
@@ -1317,8 +1324,6 @@ const FlyerMakerTool: React.FC = () => {
       setDebugErrorMessage(error.message);
       toast.error(error.message);
       
-      // GARANTE QUE O BOTÃO SEJA DESTRAVADO EM QUALQUER ERRO
-      setStatus('idle');
       endSubmit();
     }
   };
