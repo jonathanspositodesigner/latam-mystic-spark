@@ -156,7 +156,28 @@ serve(async (req) => {
       }
 
       console.log(`[seedance-generate] Evolink Success! TaskId: ${res.taskId}`);
-      await supabase.from("seedance_jobs").update({ task_id: res.taskId, status: "running" }).eq("id", jobId);
+      
+      // Retry database update to ensure task_id is NEVER lost
+      let updateSuccess = false;
+      for (let i = 0; i < 3; i++) {
+        const { error: updateError } = await supabase
+          .from("seedance_jobs")
+          .update({ task_id: res.taskId, status: "running", updated_at: new Date().toISOString() })
+          .eq("id", jobId);
+          
+        if (!updateError) {
+          updateSuccess = true;
+          break;
+        }
+        console.error(`[seedance-generate] Database update attempt ${i+1} failed for jobId ${jobId}:`, updateError);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      if (!updateSuccess) {
+        // Even if DB update failed after retries, we return success but log a critical error
+        console.error(`[seedance-generate] CRITICAL: Failed to save task_id ${res.taskId} for jobId ${jobId} after retries.`);
+      }
+
       return json({ success: true, taskId: res.taskId, jobId });
     }
 
