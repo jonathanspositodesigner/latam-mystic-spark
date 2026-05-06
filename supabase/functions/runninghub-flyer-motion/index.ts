@@ -29,30 +29,68 @@ function jsonResponse(data: unknown, status = 200) {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response("ok", { headers: corsHeaders });
 
   const url = new URL(req.url);
   const path = url.pathname.split("/").pop();
 
   try {
-    if (!runningHubApiKey) return jsonResponse({ error: "RUNNINGHUB_API_KEY not configured" }, 500);
+    if (!runningHubApiKey) {
+      console.error("[flyer-motion] RUNNINGHUB_API_KEY missing");
+      return jsonResponse({ error: "RUNNINGHUB_API_KEY not configured" }, 500);
+    }
 
     if (path === "process") {
       const authHeader = req.headers.get("Authorization") || "";
-      if (authHeader !== `Bearer ${supabaseKey}`) return jsonResponse({ error: "Unauthorized" }, 401);
+      if (authHeader !== `Bearer ${supabaseKey}`) {
+        console.error("[flyer-motion] Unauthorized background request");
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
 
       const { jobId, imageUrl } = await req.json();
-      if (!jobId || !imageUrl) return jsonResponse({ error: "Missing jobId or imageUrl" }, 400);
+      console.log(`[flyer-motion] Processing background task for jobId: ${jobId}`);
+      
+      if (!jobId || !imageUrl) {
+        console.error("[flyer-motion] Missing parameters in process");
+        return jsonResponse({ error: "Missing jobId or imageUrl" }, 400);
+      }
 
       try {
+        console.log(`[flyer-motion] Analyzing flyer: ${imageUrl}`);
         const prompt = await analyzeFlyer(imageUrl);
-        const { error: updateError } = await supabase.from("image_generator_jobs").update({ prompt, status: "pending" }).eq("id", jobId);
-        if (updateError) throw updateError;
+        console.log(`[flyer-motion] Analysis complete. Prompt: ${prompt.substring(0, 50)}...`);
+        
+        const { error: updateError } = await supabase
+          .from("seedance_jobs")
+          .update({ prompt, status: "pending" })
+          .eq("id", jobId);
+          
+        if (updateError) {
+          console.error(`[flyer-motion] DB Update error: ${updateError.message}`);
+          throw updateError;
+        }
         
         // Trigger refined generation
+        console.log(`[flyer-motion] Triggering seedance-generate for jobId: ${jobId}`);
+        const genRes = await fetch(`${supabaseUrl}/functions/v1/seedance-generate`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json", 
+            "Authorization": req.headers.get("Authorization") || `Bearer ${supabaseKey}`
+          },
+          body: JSON.stringify({ jobId }),
+        });
+        
+        const genText = await genRes.text();
+        console.log(`[flyer-motion] seedance-generate trigger response: ${genRes.status} - ${genText}`);
+        
         return jsonResponse({ success: true });
       } catch (err: any) {
-        await supabase.from("image_generator_jobs").update({ status: "failed", error_message: err.message }).eq("id", jobId);
+        console.error(`[flyer-motion] Process failed: ${err.message}`);
+        await supabase.from("seedance_jobs").update({ 
+          status: "failed", 
+          error_message: `Flyer analysis failed: ${err.message}` 
+        }).eq("id", jobId);
         return jsonResponse({ success: false, error: err.message }, 500);
       }
     }
@@ -60,9 +98,10 @@ serve(async (req) => {
     const { imageUrl, jobId } = await req.json();
     if (!imageUrl || !jobId) return jsonResponse({ error: "imageUrl and jobId are required" }, 400);
 
+    console.log(`[flyer-motion] Queueing background process for jobId: ${jobId}`);
+
     // Run background process
     const processUrl = `${supabaseUrl}/functions/v1/runninghub-flyer-motion/process`;
-    console.log(`[flyer-motion] Triggering background process: ${processUrl}`);
     
     fetch(processUrl, {
       method: "POST",
@@ -79,6 +118,7 @@ serve(async (req) => {
     return jsonResponse({ success: true, queued: true, jobId });
 
   } catch (err: any) {
+    console.error(`[flyer-motion] Fatal error: ${err.message}`);
     return jsonResponse({ error: err.message || "Internal server error" }, 500);
   }
 });
