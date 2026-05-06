@@ -495,11 +495,11 @@ async function handleRun(req: Request) {
   if (isByok) {
     console.log(`[ImageGenerator] BYOK mode — skipping platform credit consumption for user ${verifiedUserId}`);
     await logStep(jobId, 'byok_skip_credits');
-  } else if (enforcedCreditCost === 0) {
+  } else if (finalCreditCost === 0) {
     console.log(`[ImageGenerator] Unlimited user — skipping credit consumption for user ${verifiedUserId}`);
     await logStep(jobId, 'unlimited_skip_credits');
   } else {
-    await logStep(jobId, 'consuming_credits', { amount: enforcedCreditCost });
+    await logStep(jobId, 'consuming_credits', { amount: finalCreditCost });
     
     // Determine credit description based on source
     let creditDescription = 'Gerar Imagem';
@@ -508,7 +508,7 @@ async function handleRun(req: Request) {
 
     const { data: creditResult, error: creditError } = await supabase.rpc(
       'consume_upscaler_credits',
-      { _user_id: verifiedUserId, _amount: enforcedCreditCost, _description: creditDescription }
+      { _user_id: verifiedUserId, _amount: finalCreditCost, _description: creditDescription }
     );
 
     if (creditError) {
@@ -519,15 +519,16 @@ async function handleRun(req: Request) {
       });
     }
 
-    if (!creditResult || creditResult.length === 0 || !creditResult[0].success) {
-      const errorMsg = creditResult?.[0]?.error_message || 'Saldo insuficiente';
+    const result = Array.isArray(creditResult) ? creditResult[0] : (creditResult as any);
+    if (!result || !result.success) {
+      const errorMsg = result?.error_message || 'Saldo insuficiente';
       await logStepFailure(jobId, 'consume_credits', errorMsg);
-      return new Response(JSON.stringify({ error: errorMsg, code: 'INSUFFICIENT_CREDITS', currentBalance: creditResult?.[0]?.new_balance }), {
+      return new Response(JSON.stringify({ error: errorMsg, code: 'INSUFFICIENT_CREDITS', currentBalance: result?.new_balance }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[ImageGenerator] Credits consumed. New balance: ${creditResult[0].new_balance}`);
+    console.log(`[ImageGenerator] Credits consumed. New balance: ${result.new_balance}`);
   }
 
   // ========== SAVE JOB PAYLOAD ==========
@@ -541,7 +542,7 @@ async function handleRun(req: Request) {
 
   await supabase.from(TABLE_NAME).update({
     credits_charged: true,
-    user_credit_cost: enforcedCreditCost,
+    user_credit_cost: finalCreditCost,
     input_urls: imageUrls,
     job_payload: {
       prompt: prompt.trim(),
