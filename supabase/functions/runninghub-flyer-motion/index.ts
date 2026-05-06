@@ -61,10 +61,19 @@ serve(async (req) => {
     if (!imageUrl || !jobId) return jsonResponse({ error: "imageUrl and jobId are required" }, 400);
 
     // Run background process
-    fetch(`${supabaseUrl}/functions/v1/runninghub-flyer-motion/process`, {
+    const processUrl = `${supabaseUrl}/functions/v1/runninghub-flyer-motion/process`;
+    console.log(`[flyer-motion] Triggering background process: ${processUrl}`);
+    
+    fetch(processUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+      headers: { 
+        "Content-Type": "application/json", 
+        "Authorization": `Bearer ${supabaseKey}` 
+      },
       body: JSON.stringify({ jobId, imageUrl }),
+    }).then(async res => {
+      const text = await res.text();
+      console.log(`[flyer-motion] Background trigger response status: ${res.status}, body: ${text}`);
     }).catch(err => console.error("[flyer-motion] background error:", err));
 
     return jsonResponse({ success: true, queued: true, jobId });
