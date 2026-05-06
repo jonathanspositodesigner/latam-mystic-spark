@@ -132,6 +132,7 @@ async function consumeCredits(supabase: ReturnType<typeof createClient>, userId:
     transaction_type: "consumption",
     description,
     credit_type: txCreditType,
+    tool_type: "seedance"
   });
 
   return { success: true };

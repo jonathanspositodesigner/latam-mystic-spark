@@ -1229,7 +1229,9 @@ export type Database = {
       upscaler_credit_transactions: {
         Row: {
           amount: number
+          balance_after: number | null
           created_at: string | null
+          credit_type: string | null
           description: string | null
           id: string
           tool_type: string | null
@@ -1238,7 +1240,9 @@ export type Database = {
         }
         Insert: {
           amount: number
+          balance_after?: number | null
           created_at?: string | null
+          credit_type?: string | null
           description?: string | null
           id?: string
           tool_type?: string | null
@@ -1247,7 +1251,9 @@ export type Database = {
         }
         Update: {
           amount?: number
+          balance_after?: number | null
           created_at?: string | null
+          credit_type?: string | null
           description?: string | null
           id?: string
           tool_type?: string | null
