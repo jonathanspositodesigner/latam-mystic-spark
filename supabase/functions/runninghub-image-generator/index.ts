@@ -344,6 +344,16 @@ async function handleRun(req: Request) {
   const finalAspectRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : '4:3';
 
   // ========== SERVER-SIDE CREDIT COST ENFORCEMENT ==========
+  // Check for unlimited plan for flyer_maker_refine
+  let finalCreditCost = creditCost;
+  if (source === 'flyer_maker_refine') {
+    const { data: hasUnlimited } = await supabase.rpc("user_has_unlimited_flyer", { _user_id: verifiedUserId });
+    if (hasUnlimited) {
+      console.log(`[ImageGenerator] User ${verifiedUserId} has Unlimited plan for Flyer Maker Refine.`);
+      finalCreditCost = 0;
+    }
+  }
+
   // Minimum costs per source — client cannot send less than these values
   const MIN_COSTS: Record<string, number> = {
     'arcano_cloner_refine': 100,
@@ -355,16 +365,15 @@ async function handleRun(req: Request) {
   const minCost = MIN_COSTS[source] ?? 100;
 
   // Enforce: if client sent less than minimum (and not BYOK/Unlimited), override to minimum
-  let enforcedCreditCost = creditCost;
-  if (!isByok && creditCost !== 0) {
-    if (typeof creditCost !== 'number' || creditCost < 1 || creditCost > 500) {
+  if (!isByok && finalCreditCost !== 0) {
+    if (typeof finalCreditCost !== 'number' || finalCreditCost < 1 || finalCreditCost > 500) {
       return new Response(JSON.stringify({ error: 'Invalid credit cost', code: 'INVALID_CREDIT_COST' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (creditCost < minCost) {
-      console.warn(`[ImageGenerator] Client sent creditCost=${creditCost}, enforcing minimum=${minCost} for source=${source}`);
-      enforcedCreditCost = minCost;
+    if (finalCreditCost < minCost) {
+      console.warn(`[ImageGenerator] Client sent creditCost=${finalCreditCost}, enforcing minimum=${minCost} for source=${source}`);
+      finalCreditCost = minCost;
     }
   }
 
