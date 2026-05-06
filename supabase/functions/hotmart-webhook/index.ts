@@ -12,11 +12,14 @@ const json = (body: unknown, status = 200) =>
   });
 
 // ── Product mapping (Hotmart product IDs) ──
-const HOTMART_PRODUCTS: Record<string, { slug: string; credits: number; label: string; type: "vitalicio" | "creditos" }> = {
+const HOTMART_PRODUCTS: Record<string, { slug: string; credits: number; label: string; type: "vitalicio" | "creditos" | "unlimited" }> = {
   "7521432": { slug: "upscaller-arcano-v3", credits: 0, label: "Vitalício", type: "vitalicio" },
   "7521921": { slug: "upscaler-creditos-starter", credits: 1500, label: "Starter", type: "creditos" },
   "7545929": { slug: "upscaler-creditos-pro", credits: 4200, label: "Pro", type: "creditos" },
   "7545977": { slug: "upscaler-creditos-ultimate", credits: 14000, label: "Ultimate", type: "creditos" },
+  "7689776": { slug: "flyer-maker-pro-7k", credits: 7000, label: "Flyer Pro 7k", type: "creditos" },
+  "7689837": { slug: "flyer-maker-ultimate-14k", credits: 14000, label: "Flyer Ultimate 14k", type: "creditos" },
+  "7689893": { slug: "flyer-maker-unlimited", credits: 14000, label: "Flyer Unlimited", type: "unlimited" },
 };
 
 // ── SendPulse token cache ──
