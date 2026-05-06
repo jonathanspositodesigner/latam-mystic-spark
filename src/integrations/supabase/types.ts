@@ -1677,7 +1677,7 @@ export type Database = {
         Returns: undefined
       }
       revoke_lifetime_credits: {
-        Args: { _description?: string; _user_id: string }
+        Args: { _amount: number; _description?: string; _user_id: string }
         Returns: undefined
       }
       user_cancel_ai_job: {
