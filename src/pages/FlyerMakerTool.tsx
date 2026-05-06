@@ -1393,10 +1393,10 @@ const FlyerMakerTool: React.FC = () => {
         referenceImageUrls.push(extraUrl);
       }
 
-      // If first refinement, seed history with original
-      if (refinementHistory.length === 0) {
-        setRefinementHistory([{ url: outputImage, label: 'Original' }]);
-      }
+      // Muda visualmente o botão instantaneamente para evitar cliques duplos
+      if (!startSubmit()) return;
+
+      setIsRefining(true);
 
       // Create job in image_generator_jobs
       const { data: job, error: jobError } = await supabase
