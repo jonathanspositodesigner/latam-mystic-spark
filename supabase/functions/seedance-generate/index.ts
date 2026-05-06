@@ -189,18 +189,24 @@ serve(async (req) => {
 
       console.log(`[seedance-generate] Calling Evolink for jobId: ${jobId}, model: ${finalModel}`);
       const webhookUrl = `${supabaseUrl}/functions/v1/runninghub-webhook`;
-      const res = await evolinkGenerate(evolinkKey, {
+      
+      const payload: any = {
         model: finalModel,
         prompt: job.prompt,
         duration: parsedDuration,
         quality: parsedQuality,
-        aspectRatio: job.aspect_ratio || "9:16",
-        generateAudio: job.generate_audio !== false,
-        imageUrls: normalizedImageUrls.length > 0 ? normalizedImageUrls : undefined,
-        videoUrls: normalizedVideoUrls.length > 0 ? normalizedVideoUrls : undefined,
-        audioUrls: normalizedAudioUrls.length > 0 ? normalizedAudioUrls : undefined,
-        webhookUrl: webhookUrl,
-      });
+        aspect_ratio: job.aspect_ratio || "9:16",
+        generate_audio: job.generate_audio !== false,
+        webhook_url: webhookUrl,
+      };
+
+      if (normalizedImageUrls.length > 0) payload.image_urls = normalizedImageUrls;
+      if (normalizedVideoUrls.length > 0) payload.video_urls = normalizedVideoUrls;
+      if (normalizedAudioUrls.length > 0) payload.audio_urls = normalizedAudioUrls;
+
+      console.log(`[seedance-generate] Calling Evolink for jobId: ${jobId}, model: ${finalModel}. Payload keys: ${Object.keys(payload)}`);
+      
+      const res = await evolinkGenerate(evolinkKey, payload);
 
       if (!res.success) {
         console.error(`[seedance-generate] Evolink error for jobId ${jobId}: ${res.error}`);
