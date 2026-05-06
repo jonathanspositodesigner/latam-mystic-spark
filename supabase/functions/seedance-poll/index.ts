@@ -17,7 +17,24 @@ serve(async (req) => {
 
   const { taskId, jobId } = await req.json();
 
-  const pollResult = await evolinkPoll(evolinkKey!, taskId);
+  if (!jobId && !taskId) return new Response(JSON.stringify({ error: "Missing jobId or taskId" }), { status: 400, headers: corsHeaders });
+
+  // 1. Check database first - maybe webhook already finished it
+  const { data: job } = await supabase
+    .from("seedance_jobs")
+    .select("status, output_url, task_id")
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (job?.status === "completed" && job?.output_url) {
+    return new Response(JSON.stringify({ status: "completed", outputUrl: job.output_url, progress: 100 }), { headers: corsHeaders });
+  }
+
+  // Use taskId from DB if not provided
+  const finalTaskId = taskId || job?.task_id;
+  if (!finalTaskId) return new Response(JSON.stringify({ status: "pending", progress: 0 }), { headers: corsHeaders });
+
+  const pollResult = await evolinkPoll(evolinkKey!, finalTaskId);
 
   if (pollResult.status === "completed") {
     await supabase.from("seedance_jobs").update({
