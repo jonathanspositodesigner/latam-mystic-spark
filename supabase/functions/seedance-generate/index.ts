@@ -159,10 +159,19 @@ serve(async (req) => {
     const { jobId } = await req.json();
     if (!jobId) return json({ success: false, error: "Missing jobId" }, 400);
 
-    fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
+    const processUrl = `${supabaseUrl}/functions/v1/seedance-generate/process`;
+    console.log(`[seedance-generate] Triggering background process: ${processUrl}`);
+    
+    fetch(processUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+      headers: { 
+        "Content-Type": "application/json", 
+        "Authorization": `Bearer ${supabaseKey}` 
+      },
       body: JSON.stringify({ jobId }),
+    }).then(async res => {
+      const text = await res.text();
+      console.log(`[seedance-generate] Background trigger response status: ${res.status}, body: ${text}`);
     }).catch(err => console.error("[seedance-generate] background trigger failed:", err));
 
     return json({ success: true, queued: true, jobId });
