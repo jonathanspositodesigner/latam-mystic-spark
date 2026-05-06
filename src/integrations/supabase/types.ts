@@ -1588,7 +1588,7 @@ export type Database = {
         }[]
       }
       consume_upscaler_credits: {
-        Args: { _amount: number; _description: string; _user_id: string }
+        Args: { _amount: number; _description?: string; _user_id: string }
         Returns: Json
       }
       consume_upscaler_credits_forced: {
@@ -1615,11 +1615,11 @@ export type Database = {
       grant_monthly_credits: {
         Args: {
           _amount: number
-          _description: string
-          _months?: number
+          _product_id: string
           _user_id: string
+          _valid_days?: number
         }
-        Returns: undefined
+        Returns: Json
       }
       has_role: {
         Args: {
@@ -1651,7 +1651,7 @@ export type Database = {
       }
       refund_upscaler_credits: {
         Args: { _amount: number; _description?: string; _user_id: string }
-        Returns: undefined
+        Returns: Json
       }
       register_collaborator_tool_earning: {
         Args: {
