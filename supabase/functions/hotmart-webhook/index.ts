@@ -38,6 +38,9 @@ const HOTMART_PRODUCTS: Record<string, HotmartProduct> = {
   "7689893": { slug: "flyer-maker-unlimited", credits: 14000, label: "Unlimited", type: "unlimited", family: "flyer", productName: "Flyer Maker Unlimited" },
 };
 
+const FLYER_PACK_SLUGS = ["flyer-maker-pro-7k", "flyer-maker-ultimate-14k", "flyer-maker-unlimited"];
+const MONTHLY_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
+
 // ── SendPulse token cache ──
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
@@ -80,7 +83,6 @@ function buildWelcomeEmailHtml(appUrl: string, product: HotmartProduct): string 
       `;
     }
   } else {
-    // Flyer Maker family
     if (product.type === "unlimited") {
       intro = `Tu compra del plan <strong style="color:#ffffff;">${product.productName}</strong> fue confirmada. ¡Ya tienes acceso completo!`;
       benefitsList = `
@@ -153,25 +155,23 @@ function buildWelcomeEmailHtml(appUrl: string, product: HotmartProduct): string 
 </html>`;
 }
 
-// ── Ensure user exists ──
+// ── Ensure user exists (case-insensitive lookup, creates if missing) ──
 async function ensureUser(supabaseAdmin: any, customerEmail: string, customerName?: string): Promise<string> {
-  const { data: existingProfile } = await supabaseAdmin
-    .from("profiles")
-    .select("id")
-    .eq("email", customerEmail)
-    .maybeSingle();
+  // Lookup case-insensitive via RPC
+  const { data: existingUserId } = await supabaseAdmin.rpc("find_user_id_by_email", { _email: customerEmail });
 
-  if (existingProfile) {
+  if (existingUserId) {
     if (customerName) {
       await supabaseAdmin.from("profiles")
         .update({ name: customerName })
-        .eq("id", existingProfile.id)
+        .eq("id", existingUserId)
         .is("name", null);
     }
-    console.log(`[hotmart-webhook] Existing user: ${existingProfile.id}`);
-    return existingProfile.id;
+    console.log(`[hotmart-webhook] Existing user (case-insensitive match): ${existingUserId}`);
+    return existingUserId;
   }
 
+  // Try to create user
   const tempPassword = customerEmail;
   const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email: customerEmail,
@@ -183,10 +183,17 @@ async function ensureUser(supabaseAdmin: any, customerEmail: string, customerNam
   let userId: string;
 
   if (createError) {
+    // Race: user might have been created between our check and createUser
     if (createError.message?.includes("already") || createError.message?.includes("exists")) {
+      // Re-check via case-insensitive RPC
+      const { data: foundId } = await supabaseAdmin.rpc("find_user_id_by_email", { _email: customerEmail });
+      if (foundId) {
+        return foundId;
+      }
+      // Fallback: list users (slow but reliable)
       const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
       const found = authUsers?.users?.find(
-        (u: any) => u.email?.toLowerCase() === customerEmail
+        (u: any) => u.email?.toLowerCase() === customerEmail.toLowerCase()
       );
       if (found) {
         userId = found.id;
@@ -201,24 +208,43 @@ async function ensureUser(supabaseAdmin: any, customerEmail: string, customerNam
     console.log(`[hotmart-webhook] New user created: ${userId}`);
   }
 
-  await supabaseAdmin.from("profiles").upsert(
-    {
+  // Upsert profile — só seta password_changed=false e has_logged_in=false se profile NÃO existir
+  // (evita resetar flags de user existente em race condition)
+  const { data: existingProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("id, password_changed, has_logged_in")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (!existingProfile) {
+    await supabaseAdmin.from("profiles").insert({
       id: userId,
       email: customerEmail,
       name: customerName || null,
       email_verified: true,
       password_changed: false,
       has_logged_in: false,
-    },
-    { onConflict: "id" }
-  );
+    });
+  } else {
+    // Profile já existe — só atualiza email/name se vazios
+    const updates: any = {};
+    if (customerName) updates.name = customerName;
+    updates.email_verified = true;
+    if (Object.keys(updates).length > 0) {
+      await supabaseAdmin.from("profiles").update(updates).eq("id", userId);
+    }
+  }
 
   return userId;
 }
 
-// ── Build email subject ──
 function buildEmailSubject(product: HotmartProduct): string {
   return `🎉 ¡Bienvenido a Arcano App! Tu plan ${product.productName} está listo`;
+}
+
+async function updateLog(supabaseAdmin: any, logId: string | null, patch: Record<string, any>) {
+  if (!logId) return;
+  await supabaseAdmin.from("webhook_logs").update(patch).eq("id", logId);
 }
 
 // ── Main handler ──
@@ -262,13 +288,15 @@ Deno.serve(async (req) => {
   const productData = payload.data?.product || {};
   const subscriptionData = payload.data?.subscription || {};
 
-  await supabaseAdmin.from("webhook_logs").insert({
+  // ── Insert log capturing ID for safe updates later ──
+  const { data: logRow } = await supabaseAdmin.from("webhook_logs").insert({
     source: "hotmart",
     event_type: event,
     payload: payload,
     status: "received",
     processed: false,
-  });
+  }).select("id").single();
+  const logId = logRow?.id ?? null;
 
   // ── Handle cancellation / chargeback / refund / dispute events ──
   const cancellationEvents = [
@@ -286,61 +314,67 @@ Deno.serve(async (req) => {
       buyerData.email || purchaseData.buyer?.email || payload.data?.email || ""
     ).trim().toLowerCase();
 
-    // Identifica produto cancelado para revogar créditos da família correta
     const cancelProductId = String(
       productData.id || purchaseData.product?.id || payload.data?.product_id || ""
     );
     const cancelProduct = HOTMART_PRODUCTS[cancelProductId];
 
     if (cancelEmail) {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles").select("id").eq("email", cancelEmail).maybeSingle();
+      const { data: profileId } = await supabaseAdmin.rpc("find_user_id_by_email", { _email: cancelEmail });
 
-      if (profile) {
+      if (profileId) {
         // 1) Desativa premium_artes_users
         await supabaseAdmin.from("premium_artes_users")
           .update({ is_active: false })
-          .eq("user_id", profile.id)
+          .eq("user_id", profileId)
           .eq("payment_gateway", "hotmart");
 
         // 2) Marca pack purchases como cancelled
-        const updateQuery = supabaseAdmin.from("user_pack_purchases")
-          .update({ payment_status: "cancelled" })
-          .eq("user_id", profile.id)
-          .eq("gateway", "hotmart");
-
-        // Se temos slug específico, revoga só esse pack; senão revoga tudo
         if (cancelProduct?.slug) {
-          await updateQuery.eq("pack_slug", cancelProduct.slug);
+          await supabaseAdmin.from("user_pack_purchases")
+            .update({ payment_status: "cancelled" })
+            .eq("user_id", profileId)
+            .eq("gateway", "hotmart")
+            .eq("pack_slug", cancelProduct.slug);
         } else {
-          await updateQuery;
+          await supabaseAdmin.from("user_pack_purchases")
+            .update({ payment_status: "cancelled" })
+            .eq("user_id", profileId)
+            .eq("gateway", "hotmart");
         }
 
-        // 3) Revoga créditos mensais (Flyer Maker monthly_credits + unlimited)
+        // 3) Revoga créditos conforme família do produto
         if (cancelProduct?.family === "flyer") {
           const { data: revokedAmount } = await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
-            _user_id: profile.id,
+            _user_id: profileId,
             _description: `Reembolso/cancelación Hotmart — ${cancelProduct.productName}`,
           });
-          console.log(`[hotmart-webhook] Revoked ${revokedAmount} monthly credits for user ${profile.id}`);
+          console.log(`[hotmart-webhook] Revoked ${revokedAmount} monthly credits for user ${profileId}`);
+        } else if (cancelProduct?.family === "upscaler" && cancelProduct.type === "creditos" && cancelProduct.credits > 0) {
+          // Revoga créditos lifetime na quantidade comprada
+          const { data: revokedAmount } = await supabaseAdmin.rpc("revoke_lifetime_credits", {
+            _user_id: profileId,
+            _amount: cancelProduct.credits,
+            _description: `Reembolso/cancelación Hotmart — ${cancelProduct.productName}`,
+          });
+          console.log(`[hotmart-webhook] Revoked ${revokedAmount} lifetime credits for user ${profileId}`);
         } else if (!cancelProduct) {
-          // Sem product específico — revoga monthly por garantia
+          // Produto desconhecido — revoga monthly por garantia mínima
           const { data: revokedAmount } = await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
-            _user_id: profile.id,
+            _user_id: profileId,
             _description: `Reembolso/cancelación Hotmart (${event})`,
           });
-          console.log(`[hotmart-webhook] Revoked ${revokedAmount} monthly credits (no product info) for user ${profile.id}`);
+          console.log(`[hotmart-webhook] Revoked ${revokedAmount} monthly credits (unknown product) for user ${profileId}`);
         }
 
-        console.log(`[hotmart-webhook] Access revoked for user ${profile.id} due to ${event}`);
+        console.log(`[hotmart-webhook] Access revoked for user ${profileId} due to ${event}`);
       }
     }
 
-    await supabaseAdmin.from("webhook_logs")
-      .update({ status: `processed_${event.toLowerCase()}`, processed: true })
-      .eq("source", "hotmart")
-      .order("created_at", { ascending: false })
-      .limit(1);
+    await updateLog(supabaseAdmin, logId, {
+      status: `processed_${event.toLowerCase()}`,
+      processed: true,
+    });
 
     return json({ received: true, action: `access_revoked_${event.toLowerCase()}` });
   }
@@ -351,11 +385,10 @@ Deno.serve(async (req) => {
 
   if (!approvedEvents.includes(event) && purchaseStatus !== "APPROVED" && purchaseStatus !== "COMPLETE") {
     console.log(`[hotmart-webhook] Event not actionable: ${event} / status: ${purchaseStatus}`);
-    await supabaseAdmin.from("webhook_logs")
-      .update({ status: `skipped_event_${event}`, processed: true })
-      .eq("source", "hotmart")
-      .order("created_at", { ascending: false })
-      .limit(1);
+    await updateLog(supabaseAdmin, logId, {
+      status: `skipped_event_${event}`,
+      processed: true,
+    });
     return json({ received: true, action: "skipped" });
   }
 
@@ -365,6 +398,7 @@ Deno.serve(async (req) => {
 
   if (!customerEmail) {
     console.error("[hotmart-webhook] No customer email found");
+    await updateLog(supabaseAdmin, logId, { status: "error_no_email", processed: true });
     return json({ received: true, warning: "no_email" });
   }
 
@@ -380,25 +414,51 @@ Deno.serve(async (req) => {
 
   if (!hotmartProduct) {
     console.log(`[hotmart-webhook] Unknown product ID: ${productId}`);
-    await supabaseAdmin.from("webhook_logs")
-      .update({ status: "skipped_unknown_product", processed: true })
-      .eq("source", "hotmart")
-      .order("created_at", { ascending: false })
-      .limit(1);
+    await updateLog(supabaseAdmin, logId, {
+      status: "skipped_unknown_product",
+      processed: true,
+    });
     return json({ received: true, action: "skipped_unknown_product" });
   }
 
-  const transactionId = purchaseData.transaction || purchaseData.transaction_id ||
-    subscriptionData.subscriber?.code || `hotmart_${Date.now()}`;
-  const purchaseAmount = purchaseData.price?.value || purchaseData.original_offer_price?.value || null;
+  const transactionId = String(
+    purchaseData.transaction || purchaseData.transaction_id ||
+    subscriptionData.subscriber?.code || `hotmart_${Date.now()}`
+  );
+  const purchaseAmount = purchaseData.price?.value ?? purchaseData.original_offer_price?.value ?? null;
+
+  // ========== IDEMPOTENCY CHECK ==========
+  // Hotmart re-envia webhook em timeout. Se já processamos este transaction_id
+  // com sucesso, retornamos cedo sem duplicar nada.
+  const { data: existingProcessed } = await supabaseAdmin
+    .from("user_pack_purchases")
+    .select("id, user_id")
+    .eq("gateway", "hotmart")
+    .eq("external_id", transactionId)
+    .in("payment_status", ["active", "superseded", "cancelled"])
+    .maybeSingle();
+
+  if (existingProcessed) {
+    console.log(`[hotmart-webhook] Transaction ${transactionId} already processed (pack ${existingProcessed.id}). Idempotent skip.`);
+    await updateLog(supabaseAdmin, logId, {
+      status: "idempotent_duplicate",
+      processed: true,
+    });
+    return json({
+      received: true,
+      action: "idempotent_skip",
+      user_id: existingProcessed.user_id,
+      transaction_id: transactionId,
+    });
+  }
 
   try {
     const userId = await ensureUser(supabaseAdmin, customerEmail, customerName);
     const actions: string[] = [];
 
-    // Calcula expiração mensal (1 mês a partir de agora) para planos monthly_credits e unlimited
+    // Mesmo timestamp para pack.expires_at e monthly_expires_at (consistência)
     const isMonthly = hotmartProduct.type === "monthly_credits" || hotmartProduct.type === "unlimited";
-    const expiresAt = isMonthly ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null;
+    const expiresAt = isMonthly ? new Date(Date.now() + MONTHLY_DURATION_MS).toISOString() : null;
 
     if (hotmartProduct.type === "vitalicio") {
       const { data: existingPurchase } = await supabaseAdmin
@@ -416,7 +476,7 @@ Deno.serve(async (req) => {
           payment_status: "active",
           gateway: "hotmart",
           plan_type: "v3",
-          external_id: String(transactionId),
+          external_id: transactionId,
           amount: purchaseAmount,
         });
         actions.push("v3_access_granted");
@@ -424,37 +484,15 @@ Deno.serve(async (req) => {
         actions.push("v3_already_active");
       }
     } else if (hotmartProduct.type === "creditos") {
-      // Upscaler créditos lifetime — insere transação + sincroniza upscaler_credits
-      await supabaseAdmin.from("upscaler_credit_transactions").insert({
-        user_id: userId,
-        amount: hotmartProduct.credits,
-        transaction_type: "purchase",
-        description: `Compra Hotmart pack ${hotmartProduct.label} (${hotmartProduct.credits} créditos)`,
-        credit_type: "lifetime",
+      // Upscaler créditos lifetime via RPC atomic
+      const { error: grantError } = await supabaseAdmin.rpc("grant_lifetime_credits", {
+        _user_id: userId,
+        _amount: hotmartProduct.credits,
+        _description: `Compra Hotmart pack ${hotmartProduct.label} (${hotmartProduct.credits} créditos)`,
       });
-
-      // Sincronizar lifetime_balance em upscaler_credits
-      await supabaseAdmin.rpc("expire_monthly_credits_if_due", { _user_id: userId });
-      const { data: existing } = await supabaseAdmin
-        .from("upscaler_credits")
-        .select("lifetime_balance, monthly_balance")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (existing) {
-        const newLifetime = (existing.lifetime_balance || 0) + hotmartProduct.credits;
-        await supabaseAdmin.from("upscaler_credits").update({
-          lifetime_balance: newLifetime,
-          balance: newLifetime + (existing.monthly_balance || 0),
-          updated_at: new Date().toISOString(),
-        }).eq("user_id", userId);
-      } else {
-        await supabaseAdmin.from("upscaler_credits").insert({
-          user_id: userId,
-          balance: hotmartProduct.credits,
-          monthly_balance: 0,
-          lifetime_balance: hotmartProduct.credits,
-        });
+      if (grantError) {
+        console.error(`[hotmart-webhook] grant_lifetime_credits error:`, grantError);
+        throw grantError;
       }
 
       await supabaseAdmin.from("user_pack_purchases").insert({
@@ -463,31 +501,30 @@ Deno.serve(async (req) => {
         payment_status: "active",
         gateway: "hotmart",
         plan_type: hotmartProduct.slug,
-        external_id: String(transactionId),
+        external_id: transactionId,
         amount: purchaseAmount,
       });
       actions.push(`credits_granted_${hotmartProduct.label.toLowerCase()}`);
     } else if (hotmartProduct.type === "monthly_credits" || hotmartProduct.type === "unlimited") {
-      // Flyer Maker — créditos mensais com expiração via RPC grant_flyer_monthly_credits
+      // Flyer Maker — concede créditos mensais (substitui anterior se houver)
       const { error: grantError } = await supabaseAdmin.rpc("grant_flyer_monthly_credits", {
         _user_id: userId,
         _amount: hotmartProduct.credits,
         _description: `Compra Hotmart ${hotmartProduct.productName} (${hotmartProduct.credits} créditos mensales)`,
         _months: 1,
       });
-
       if (grantError) {
         console.error(`[hotmart-webhook] grant_flyer_monthly_credits error:`, grantError);
         throw grantError;
       }
 
-      // Cancela qualquer outro pack ativo da mesma família flyer (evita stacking)
+      // Cancela qualquer outro pack flyer ativo (evita stacking de planos)
       await supabaseAdmin.from("user_pack_purchases")
         .update({ payment_status: "superseded" })
         .eq("user_id", userId)
         .eq("gateway", "hotmart")
         .eq("payment_status", "active")
-        .in("pack_slug", ["flyer-maker-pro-7k", "flyer-maker-ultimate-14k", "flyer-maker-unlimited"]);
+        .in("pack_slug", FLYER_PACK_SLUGS);
 
       await supabaseAdmin.from("user_pack_purchases").insert({
         user_id: userId,
@@ -495,14 +532,14 @@ Deno.serve(async (req) => {
         payment_status: "active",
         gateway: "hotmart",
         plan_type: hotmartProduct.slug,
-        external_id: String(transactionId),
+        external_id: transactionId,
         amount: purchaseAmount,
         expires_at: expiresAt,
       });
       actions.push(`flyer_${hotmartProduct.type}_granted_${hotmartProduct.label.toLowerCase()}`);
     }
 
-    // ── Send welcome email ──
+    // ── Send welcome email (best effort, não bloqueia venda) ──
     let emailSent = false;
     try {
       const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
@@ -531,34 +568,45 @@ Deno.serve(async (req) => {
 
       emailSent = emailRes.ok;
       const emailResBody = await emailRes.text();
-      console.log(`[hotmart-webhook] SendPulse: status=${emailRes.status} ok=${emailSent} body=${emailResBody}`);
+      console.log(`[hotmart-webhook] SendPulse: status=${emailRes.status} ok=${emailSent} body=${emailResBody.substring(0, 200)}`);
     } catch (emailErr: any) {
-      console.error(`[hotmart-webhook] Email error:`, emailErr.message);
+      console.error(`[hotmart-webhook] Email error (não bloqueia venda):`, emailErr.message);
     }
 
     if (emailSent) {
       await supabaseAdmin.from("user_pack_purchases")
         .update({ welcome_email_sent: true, welcome_email_sent_at: new Date().toISOString() })
         .eq("user_id", userId)
-        .eq("external_id", String(transactionId));
+        .eq("external_id", transactionId);
     }
 
-    await supabaseAdmin.from("webhook_logs")
-      .update({ status: "processed", processed: true })
-      .eq("source", "hotmart")
-      .order("created_at", { ascending: false })
-      .limit(1);
+    await updateLog(supabaseAdmin, logId, {
+      status: emailSent ? "processed" : "processed_email_failed",
+      processed: true,
+    });
 
-    console.log(`[hotmart-webhook] Done: ${userId} / ${actions.join(", ")}`);
-    return json({ received: true, user_id: userId, actions });
+    console.log(`[hotmart-webhook] Done: ${userId} / ${actions.join(", ")} / email=${emailSent}`);
+    return json({ received: true, user_id: userId, actions, email_sent: emailSent });
 
   } catch (err: any) {
     console.error("[hotmart-webhook] Error:", err);
-    await supabaseAdmin.from("webhook_logs")
-      .update({ status: "error", error_message: err.message, processed: true })
-      .eq("source", "hotmart")
-      .order("created_at", { ascending: false })
-      .limit(1);
+
+    // Detecta erro de unique violation no external_id (= duplicado, não é erro real)
+    const isDuplicate = err?.code === "23505" || err?.message?.includes("uniq_user_pack_purchases_gateway_external_id");
+    if (isDuplicate) {
+      console.log(`[hotmart-webhook] Unique constraint hit on external_id ${transactionId} — idempotent skip`);
+      await updateLog(supabaseAdmin, logId, {
+        status: "idempotent_duplicate_unique",
+        processed: true,
+      });
+      return json({ received: true, action: "idempotent_unique_violation" });
+    }
+
+    await updateLog(supabaseAdmin, logId, {
+      status: "error",
+      error_message: err.message,
+      processed: true,
+    });
     return json({ received: true, error: err.message }, 500);
   }
 });
