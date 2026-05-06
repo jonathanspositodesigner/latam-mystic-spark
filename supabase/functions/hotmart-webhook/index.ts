@@ -246,6 +246,12 @@ Deno.serve(async (req) => {
           .eq("user_id", profile.id)
           .eq("gateway", "hotmart");
 
+        // Revoke monthly credits
+        await supabaseAdmin.rpc("revoke_monthly_credits", {
+          _user_id: profile.id,
+          _description: `Cancelamento Hotmart (${event})`
+        });
+
         console.log(`[hotmart-webhook] Access revoked for user ${profile.id} due to ${event}`);
       }
     }
