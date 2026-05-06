@@ -9,16 +9,16 @@ const corsHeaders = {
 };
 
  const PRICING: Record<string, number> = {
-  "fast-480p-i2v": 100,
-  "fast-480p-t2v": 100,
-  "fast-480p-r2v": 100,
+  "fast-480p-i2v": 120, // 1200 créditos para 10s (conforme solicitado pelo usuário)
+  "fast-480p-t2v": 120,
+  "fast-480p-r2v": 120,
   "fast-720p-i2v": 150,
   "fast-720p-t2v": 150,
   "fast-720p-r2v": 150,
-  "standard-480p-i2v": 100, // 1000 credits for 10s
-  "standard-480p-t2v": 100,
-  "standard-480p-r2v": 100,
-  "standard-720p-i2v": 150, // 1500 credits for 10s
+  "standard-480p-i2v": 120,
+  "standard-480p-t2v": 120,
+  "standard-480p-r2v": 120,
+  "standard-720p-i2v": 150,
   "standard-720p-t2v": 150,
   "standard-720p-r2v": 150,
  };
