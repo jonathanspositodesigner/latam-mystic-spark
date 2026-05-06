@@ -10,7 +10,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const JOB_TABLES = ['upscaler_jobs', 'flyer_maker_jobs', 'image_generator_jobs'];
+const JOB_TABLES = ['upscaler_jobs', 'flyer_maker_jobs', 'image_generator_jobs', 'seedance_jobs'];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
