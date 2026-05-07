@@ -153,22 +153,28 @@ const Dashboard = () => {
         <div className="max-w-5xl mx-auto space-y-6">
           <VideoBanner />
 
-          {/* ── STATE: vitalicio ── */}
-          {purchaseState === "vitalicio" && (
+          {/* ── STATE: active (has any purchase) ── */}
+          {purchaseState === "active" && (
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpscalerArcanoCard hasAccess={true} isLoading={false} />
-              </div>
-            </div>
-          )}
-
-          {/* ── STATE: creditos (sem vitalício) ── */}
-          {purchaseState === "creditos" && (
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpscalerCreditosCard hasAccess={true} isLoading={false} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {upscalerAccess.hasAccess && (
+                  <>
+                    {upscalerAccess.type === "vitalicio" ? (
+                      <UpscalerArcanoCard hasAccess={true} isLoading={false} />
+                    ) : (
+                      <UpscalerCreditosCard hasAccess={true} isLoading={false} />
+                    )}
+                  </>
+                )}
+                {flyerAccess.hasAccess && (
+                  <FlyerMakerCard 
+                    hasAccess={true} 
+                    isUnlimited={flyerAccess.isUnlimited} 
+                    label={flyerAccess.label}
+                    isLoading={false} 
+                  />
+                )}
               </div>
             </div>
           )}
@@ -177,9 +183,13 @@ const Dashboard = () => {
           {purchaseState === "none" && (
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Nuestros Productos</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <UpscalerCreditosCard
-                  hasAccess={true}
+                  hasAccess={false}
+                  isLoading={false}
+                />
+                <FlyerMakerCard
+                  hasAccess={false}
                   isLoading={false}
                 />
               </div>
