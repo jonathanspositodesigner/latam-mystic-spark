@@ -13,6 +13,7 @@ import {
 import VideoBanner from "@/components/dashboard/VideoBanner";
 import UpscalerArcanoCard from "@/components/dashboard/UpscalerArcanoCard";
 import UpscalerCreditosCard from "@/components/dashboard/UpscalerCreditosCard";
+import FlyerMakerCard from "@/components/dashboard/FlyerMakerCard";
 
 const VITALICIO_SLUGS = [
   "upscaller-arcano-v3",
@@ -26,6 +27,12 @@ const CREDITOS_SLUGS = [
   "upscaler-creditos-ultimate",
 ];
 
+const FLYER_SLUGS = [
+  "flyer-maker-pro-7k",
+  "flyer-maker-ultimate-14k",
+  "flyer-maker-unlimited",
+];
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isPremium, planType, logout } = usePremiumStatus();
@@ -34,14 +41,32 @@ const Dashboard = () => {
   const [userProfile, setUserProfile] = useState<{ name?: string; phone?: string } | null>(null);
 
   // Centralised purchase state — single source of truth
-  const purchaseState = useMemo(() => {
-    if (premiumArtesLoading) return "loading" as const;
+  const upscalerAccess = useMemo(() => {
     const hasVitalicio = VITALICIO_SLUGS.some((slug) => hasAccessToPack(slug));
     const hasCreditos = CREDITOS_SLUGS.some((slug) => hasAccessToPack(slug));
-    if (hasVitalicio) return "vitalicio" as const;
-    if (hasCreditos) return "creditos" as const;
+    return {
+      hasAccess: hasVitalicio || hasCreditos,
+      type: hasVitalicio ? "vitalicio" : hasCreditos ? "creditos" : "none"
+    };
+  }, [hasAccessToPack]);
+
+  const flyerAccess = useMemo(() => {
+    const hasPro = hasAccessToPack("flyer-maker-pro-7k");
+    const hasUltimate = hasAccessToPack("flyer-maker-ultimate-14k");
+    const hasUnlimited = hasAccessToPack("flyer-maker-unlimited");
+    
+    return {
+      hasAccess: hasPro || hasUltimate || hasUnlimited,
+      isUnlimited: hasUnlimited,
+      label: hasUnlimited ? "Plan Unlimited" : hasUltimate ? "Plan Ultimate" : hasPro ? "Plan Pro" : ""
+    };
+  }, [hasAccessToPack]);
+
+  const purchaseState = useMemo(() => {
+    if (premiumArtesLoading) return "loading" as const;
+    if (upscalerAccess.hasAccess || flyerAccess.hasAccess) return "active" as const;
     return "none" as const;
-  }, [premiumArtesLoading, hasAccessToPack, packSlugs]);
+  }, [premiumArtesLoading, upscalerAccess, flyerAccess]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -128,22 +153,28 @@ const Dashboard = () => {
         <div className="max-w-5xl mx-auto space-y-6">
           <VideoBanner />
 
-          {/* ── STATE: vitalicio ── */}
-          {purchaseState === "vitalicio" && (
+          {/* ── STATE: active (has any purchase) ── */}
+          {purchaseState === "active" && (
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpscalerArcanoCard hasAccess={true} isLoading={false} />
-              </div>
-            </div>
-          )}
-
-          {/* ── STATE: creditos (sem vitalício) ── */}
-          {purchaseState === "creditos" && (
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpscalerCreditosCard hasAccess={true} isLoading={false} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {upscalerAccess.hasAccess && (
+                  <>
+                    {upscalerAccess.type === "vitalicio" ? (
+                      <UpscalerArcanoCard hasAccess={true} isLoading={false} />
+                    ) : (
+                      <UpscalerCreditosCard hasAccess={true} isLoading={false} />
+                    )}
+                  </>
+                )}
+                {flyerAccess.hasAccess && (
+                  <FlyerMakerCard 
+                    hasAccess={true} 
+                    isUnlimited={flyerAccess.isUnlimited} 
+                    label={flyerAccess.label}
+                    isLoading={false} 
+                  />
+                )}
               </div>
             </div>
           )}
@@ -152,9 +183,13 @@ const Dashboard = () => {
           {purchaseState === "none" && (
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Nuestros Productos</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <UpscalerCreditosCard
-                  hasAccess={true}
+                  hasAccess={false}
+                  isLoading={false}
+                />
+                <FlyerMakerCard
+                  hasAccess={false}
                   isLoading={false}
                 />
               </div>
