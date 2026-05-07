@@ -13,6 +13,7 @@ import {
 import VideoBanner from "@/components/dashboard/VideoBanner";
 import UpscalerArcanoCard from "@/components/dashboard/UpscalerArcanoCard";
 import UpscalerCreditosCard from "@/components/dashboard/UpscalerCreditosCard";
+import FlyerMakerCard from "@/components/dashboard/FlyerMakerCard";
 
 const VITALICIO_SLUGS = [
   "upscaller-arcano-v3",
@@ -24,6 +25,12 @@ const CREDITOS_SLUGS = [
   "upscaler-creditos-starter",
   "upscaler-creditos-pro",
   "upscaler-creditos-ultimate",
+];
+
+const FLYER_SLUGS = [
+  "flyer-maker-pro-7k",
+  "flyer-maker-ultimate-14k",
+  "flyer-maker-unlimited",
 ];
 
 const Dashboard = () => {
@@ -41,6 +48,20 @@ const Dashboard = () => {
     if (hasVitalicio) return "vitalicio" as const;
     if (hasCreditos) return "creditos" as const;
     return "none" as const;
+  }, [premiumArtesLoading, hasAccessToPack, packSlugs]);
+
+  // Flyer Maker access — independente do estado Upscaler
+  const flyerAccess = useMemo(() => {
+    if (premiumArtesLoading) return { hasAccess: false, isUnlimited: false, label: undefined as string | undefined };
+    const isUnlimited = hasAccessToPack("flyer-maker-unlimited");
+    const isUltimate = hasAccessToPack("flyer-maker-ultimate-14k");
+    const isPro = hasAccessToPack("flyer-maker-pro-7k");
+    const hasAccess = isUnlimited || isUltimate || isPro;
+    let label: string | undefined;
+    if (isUnlimited) label = "Unlimited";
+    else if (isUltimate) label = "Ultimate";
+    else if (isPro) label = "Pro";
+    return { hasAccess, isUnlimited, label };
   }, [premiumArtesLoading, hasAccessToPack, packSlugs]);
 
   useEffect(() => {
@@ -128,43 +149,44 @@ const Dashboard = () => {
         <div className="max-w-5xl mx-auto space-y-6">
           <VideoBanner />
 
-          {/* ── STATE: vitalicio ── */}
-          {purchaseState === "vitalicio" && (
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpscalerArcanoCard hasAccess={true} isLoading={false} />
-              </div>
-            </div>
-          )}
-
-          {/* ── STATE: creditos (sem vitalício) ── */}
-          {purchaseState === "creditos" && (
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpscalerCreditosCard hasAccess={true} isLoading={false} />
-              </div>
-            </div>
-          )}
-
-          {/* ── STATE: none (sem compra) ── */}
-          {purchaseState === "none" && (
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Nuestros Productos</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <UpscalerCreditosCard
-                  hasAccess={true}
-                  isLoading={false}
-                />
-              </div>
-            </div>
-          )}
-
           {/* ── STATE: loading ── */}
           {purchaseState === "loading" && (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-fuchsia-500" />
+            </div>
+          )}
+
+          {/* ── STATE: any compra ativa (Upscaler ou Flyer) ── */}
+          {purchaseState !== "loading" && (purchaseState !== "none" || flyerAccess.hasAccess) && (
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Tus Compras</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {purchaseState === "vitalicio" && (
+                  <UpscalerArcanoCard hasAccess={true} isLoading={false} />
+                )}
+                {purchaseState === "creditos" && (
+                  <UpscalerCreditosCard hasAccess={true} isLoading={false} />
+                )}
+                {flyerAccess.hasAccess && (
+                  <FlyerMakerCard
+                    hasAccess={true}
+                    isLoading={false}
+                    isUnlimited={flyerAccess.isUnlimited}
+                    planLabel={flyerAccess.label}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── STATE: none (sem nenhuma compra) ── */}
+          {purchaseState === "none" && !flyerAccess.hasAccess && (
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Nuestros Productos</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <UpscalerCreditosCard hasAccess={true} isLoading={false} />
+                <FlyerMakerCard hasAccess={false} isLoading={false} />
+              </div>
             </div>
           )}
         </div>
