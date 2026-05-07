@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(git rebase *)",
+      "Bash(git checkout *)",
+      "Bash(git restore *)",
+      "Bash(git reset *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git fetch *)",
+      "Bash(git branch *)",
+      "Bash(git merge *)",
+      "Bash(git tag *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git status *)",
+      "Bash(git remote *)",
+      "Bash(git config *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx supabase *)",
+      "Bash(supabase *)",
+      "Bash(supabase.exe *)",
+      "Bash(gh pr *)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(gh auth *)",
+      "Bash(curl *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(git grep *)",
+      "WebFetch(domain:nqebjeyyslscxnjvsysb.supabase.co)",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}
