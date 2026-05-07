@@ -1527,6 +1527,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      arcano_find_user_id_by_email: {
+        Args: { _email: string }
+        Returns: string
+      }
+      arcano_grant_lifetime_credits: {
+        Args: { _amount: number; _description?: string; _user_id: string }
+        Returns: undefined
+      }
+      arcano_revoke_lifetime_credits: {
+        Args: { _amount: number; _description?: string; _user_id: string }
+        Returns: number
+      }
       check_device_signup_limit: {
         Args: { p_fingerprint: string }
         Returns: boolean
@@ -1598,7 +1610,6 @@ export type Database = {
       expire_monthly_credits_if_due:
         | { Args: never; Returns: undefined }
         | { Args: { _user_id: string }; Returns: undefined }
-      find_user_id_by_email: { Args: { _email: string }; Returns: string }
       get_ai_tools_cost_averages: {
         Args: never
         Returns: {
@@ -1619,10 +1630,6 @@ export type Database = {
           _months?: number
           _user_id: string
         }
-        Returns: undefined
-      }
-      grant_lifetime_credits: {
-        Args: { _amount: number; _description?: string; _user_id: string }
         Returns: undefined
       }
       has_role:
@@ -1674,10 +1681,6 @@ export type Database = {
       }
       revoke_flyer_monthly_credits: {
         Args: { _description?: string; _user_id: string }
-        Returns: undefined
-      }
-      revoke_lifetime_credits: {
-        Args: { _amount: number; _description?: string; _user_id: string }
         Returns: undefined
       }
       user_cancel_ai_job: {

@@ -97,24 +97,24 @@ function buildWelcomeEmailHtml(appUrl: string, productType: "vitalicio" | "credi
 </html>`;
 }
 
+// ... keep existing code
 // ── Ensure user exists ──
 async function ensureUser(supabaseAdmin: any, customerEmail: string, customerName?: string): Promise<string> {
-  const { data: existingProfile } = await supabaseAdmin
-    .from("profiles")
-    .select("id")
-    .eq("email", customerEmail)
-    .maybeSingle();
+  // Use arcano_find_user_id_by_email instead of direct query or profiles selection if needed
+  const { data: userIdFromRpc, error: rpcError } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", {
+    _email: customerEmail
+  });
 
-  if (existingProfile) {
-    // Update name if provided and not set
+  if (userIdFromRpc) {
+    // Update name if provided
     if (customerName) {
       await supabaseAdmin.from("profiles")
         .update({ name: customerName })
-        .eq("id", existingProfile.id)
+        .eq("id", userIdFromRpc)
         .is("name", null);
     }
-    console.log(`[hotmart-webhook] Existing user: ${existingProfile.id}`);
-    return existingProfile.id;
+    console.log(`[hotmart-webhook] Existing user found via RPC: ${userIdFromRpc}`);
+    return userIdFromRpc;
   }
 
   const tempPassword = customerEmail;
@@ -129,12 +129,12 @@ async function ensureUser(supabaseAdmin: any, customerEmail: string, customerNam
 
   if (createError) {
     if (createError.message?.includes("already") || createError.message?.includes("exists")) {
-      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const found = authUsers?.users?.find(
-        (u: any) => u.email?.toLowerCase() === customerEmail
-      );
-      if (found) {
-        userId = found.id;
+      // Re-fetch since it was just created or exists
+      const { data: retryUserId } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", {
+        _email: customerEmail
+      });
+      if (retryUserId) {
+        userId = retryUserId;
       } else {
         throw createError;
       }
@@ -160,6 +160,7 @@ async function ensureUser(supabaseAdmin: any, customerEmail: string, customerNam
 
   return userId;
 }
+
 
 // ── Main handler ──
 Deno.serve(async (req) => {
@@ -223,6 +224,7 @@ Deno.serve(async (req) => {
     "SUBSCRIPTION_CANCELLATION",
   ];
 
+// ... keep existing code
   if (cancellationEvents.includes(event)) {
     console.log(`[hotmart-webhook] Cancellation event: ${event}`);
     const cancelEmail = (
@@ -230,31 +232,41 @@ Deno.serve(async (req) => {
     ).trim().toLowerCase();
 
     if (cancelEmail) {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles").select("id").eq("email", cancelEmail).maybeSingle();
+      const { data: profileId } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", {
+        _email: cancelEmail
+      });
 
-      if (profile) {
+      if (profileId) {
         // Deactivate premium_artes_users
         await supabaseAdmin.from("premium_artes_users")
           .update({ is_active: false })
-          .eq("user_id", profile.id)
+          .eq("user_id", profileId)
           .eq("payment_gateway", "hotmart");
 
         // Deactivate user_pack_purchases
         await supabaseAdmin.from("user_pack_purchases")
           .update({ payment_status: "cancelled" })
-          .eq("user_id", profile.id)
+          .eq("user_id", profileId)
           .eq("gateway", "hotmart");
 
         // Revoke monthly credits
         await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
-          _user_id: profile.id,
+          _user_id: profileId,
           _description: `Cancelamento Hotmart (${event})`
         });
 
-        console.log(`[hotmart-webhook] Access revoked for user ${profile.id} due to ${event}`);
+        // Revoke lifetime credits if it was a lifetime product
+        await supabaseAdmin.rpc("arcano_revoke_lifetime_credits", {
+          _user_id: profileId,
+          _amount: 1, // Assuming 1 unit of "lifetime" or similar
+          _description: `Estorno Hotmart (${event})`
+        });
+
+        console.log(`[hotmart-webhook] Access revoked for user ${profileId} due to ${event}`);
       }
     }
+// ... keep existing code
+
 
     await supabaseAdmin.from("webhook_logs")
       .update({ status: `processed_${event.toLowerCase()}`, processed: true })
@@ -329,6 +341,7 @@ Deno.serve(async (req) => {
     const userId = await ensureUser(supabaseAdmin, customerEmail, customerName);
     const actions: string[] = [];
 
+// ... keep existing code
     if (hotmartProduct.type === "vitalicio") {
       // Check if already has active v3
       const { data: existingPurchase } = await supabaseAdmin
@@ -340,6 +353,13 @@ Deno.serve(async (req) => {
         .limit(1);
 
       if (!existingPurchase || existingPurchase.length === 0) {
+        // Grant lifetime credits
+        await supabaseAdmin.rpc("arcano_grant_lifetime_credits", {
+          _user_id: userId,
+          _amount: 1,
+          _description: "Compra Hotmart Upscaler Arcano V3 (Vitalício)"
+        });
+
         await supabaseAdmin.from("user_pack_purchases").insert({
           user_id: userId,
           pack_slug: "upscaller-arcano-v3",
@@ -354,6 +374,8 @@ Deno.serve(async (req) => {
         actions.push("v3_already_active");
       }
     } else if (hotmartProduct.type === "unlimited") {
+// ... keep existing code
+
       // Unlimited plan: grant monthly credits for motion, and mark pack
       await supabaseAdmin.rpc("grant_flyer_monthly_credits", {
         _user_id: userId,
