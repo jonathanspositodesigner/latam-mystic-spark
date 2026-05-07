@@ -158,7 +158,7 @@ function buildWelcomeEmailHtml(appUrl: string, product: HotmartProduct): string 
 // ── Ensure user exists (case-insensitive lookup, creates if missing) ──
 async function ensureUser(supabaseAdmin: any, customerEmail: string, customerName?: string): Promise<string> {
   // Lookup case-insensitive via RPC
-  const { data: existingUserId } = await supabaseAdmin.rpc("find_user_id_by_email", { _email: customerEmail });
+  const { data: existingUserId } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", { _email: customerEmail });
 
   if (existingUserId) {
     if (customerName) {
@@ -186,7 +186,7 @@ async function ensureUser(supabaseAdmin: any, customerEmail: string, customerNam
     // Race: user might have been created between our check and createUser
     if (createError.message?.includes("already") || createError.message?.includes("exists")) {
       // Re-check via case-insensitive RPC
-      const { data: foundId } = await supabaseAdmin.rpc("find_user_id_by_email", { _email: customerEmail });
+      const { data: foundId } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", { _email: customerEmail });
       if (foundId) {
         return foundId;
       }
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
     const cancelProduct = HOTMART_PRODUCTS[cancelProductId];
 
     if (cancelEmail) {
-      const { data: profileId } = await supabaseAdmin.rpc("find_user_id_by_email", { _email: cancelEmail });
+      const { data: profileId } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", { _email: cancelEmail });
 
       if (profileId) {
         // 1) Desativa premium_artes_users
@@ -352,7 +352,7 @@ Deno.serve(async (req) => {
           console.log(`[hotmart-webhook] Revoked ${revokedAmount} monthly credits for user ${profileId}`);
         } else if (cancelProduct?.family === "upscaler" && cancelProduct.type === "creditos" && cancelProduct.credits > 0) {
           // Revoga créditos lifetime na quantidade comprada
-          const { data: revokedAmount } = await supabaseAdmin.rpc("revoke_lifetime_credits", {
+          const { data: revokedAmount } = await supabaseAdmin.rpc("arcano_revoke_lifetime_credits", {
             _user_id: profileId,
             _amount: cancelProduct.credits,
             _description: `Reembolso/cancelación Hotmart — ${cancelProduct.productName}`,
@@ -485,7 +485,7 @@ Deno.serve(async (req) => {
       }
     } else if (hotmartProduct.type === "creditos") {
       // Upscaler créditos lifetime via RPC atomic
-      const { error: grantError } = await supabaseAdmin.rpc("grant_lifetime_credits", {
+      const { error: grantError } = await supabaseAdmin.rpc("arcano_grant_lifetime_credits", {
         _user_id: userId,
         _amount: hotmartProduct.credits,
         _description: `Compra Hotmart pack ${hotmartProduct.label} (${hotmartProduct.credits} créditos)`,
