@@ -12,7 +12,7 @@ const json = (body: unknown, status = 200) =>
   });
 
 // ── Product mapping (Hotmart product IDs) ──
-const HOTMART_PRODUCTS: Record<string, { slug: string; credits: number; label: string; type: "vitalicio" | "creditos" | "unlimited" }> = {
+const HOTMART_PRODUCTS: Record<string, { slug: string; credits: number; label: string; type: "vitalicio" | "creditos" | "unlimited" | "creditos_vitalicio" }> = {
   "7521432": { slug: "upscaller-arcano-v3", credits: 0, label: "Vitalício", type: "vitalicio" },
   "7521921": { slug: "upscaler-creditos-starter", credits: 1500, label: "Starter", type: "creditos" },
   "7545929": { slug: "upscaler-creditos-pro", credits: 4200, label: "Pro", type: "creditos" },
@@ -20,6 +20,10 @@ const HOTMART_PRODUCTS: Record<string, { slug: string; credits: number; label: s
   "7689776": { slug: "flyer-maker-pro-7k", credits: 7000, label: "Flyer Pro 7k", type: "creditos" },
   "7689837": { slug: "flyer-maker-ultimate-14k", credits: 14000, label: "Flyer Ultimate 14k", type: "creditos" },
   "7689893": { slug: "flyer-maker-unlimited", credits: 14000, label: "Flyer Unlimited", type: "unlimited" },
+  // Recarga de créditos vitalícios (sem data de validade) — Arcano App LATAM
+  "7699742": { slug: "recarga-creditos-7k", credits: 7000, label: "Recarga 7k", type: "creditos_vitalicio" },
+  "7699822": { slug: "recarga-creditos-14k", credits: 14000, label: "Recarga 14k", type: "creditos_vitalicio" },
+  "7699842": { slug: "recarga-creditos-25k", credits: 25000, label: "Recarga 25k", type: "creditos_vitalicio" },
 };
 
 // ── SendPulse token cache ──
@@ -97,16 +101,15 @@ function buildWelcomeEmailHtml(appUrl: string, productType: "vitalicio" | "credi
 </html>`;
 }
 
-// ... keep existing code
-// ── Ensure user exists ──
-async function ensureUser(supabaseAdmin: any, customerEmail: string, customerName?: string): Promise<string> {
-  // Use arcano_find_user_id_by_email instead of direct query or profiles selection if needed
-  const { data: userIdFromRpc, error: rpcError } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", {
+// ── Ensure user exists. Returns { userId, isNewUser }. Existing users are NEVER touched
+// (no password reset, no email/profile rewrite — only optional name fill if it was null). ──
+async function ensureUser(supabaseAdmin: any, customerEmail: string, customerName?: string): Promise<{ userId: string; isNewUser: boolean }> {
+  const { data: userIdFromRpc } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", {
     _email: customerEmail
   });
 
   if (userIdFromRpc) {
-    // Update name if provided
+    // Update name only if it was null (idempotent, safe for existing users)
     if (customerName) {
       await supabaseAdmin.from("profiles")
         .update({ name: customerName })
@@ -114,7 +117,7 @@ async function ensureUser(supabaseAdmin: any, customerEmail: string, customerNam
         .is("name", null);
     }
     console.log(`[hotmart-webhook] Existing user found via RPC: ${userIdFromRpc}`);
-    return userIdFromRpc;
+    return { userId: userIdFromRpc, isNewUser: false };
   }
 
   const tempPassword = customerEmail;
@@ -158,7 +161,7 @@ async function ensureUser(supabaseAdmin: any, customerEmail: string, customerNam
     { onConflict: "id" }
   );
 
-  return userId;
+  return { userId, isNewUser: true };
 }
 
 
@@ -338,7 +341,7 @@ Deno.serve(async (req) => {
     subscriptionData.subscriber?.code || `hotmart_${Date.now()}`;
 
   try {
-    const userId = await ensureUser(supabaseAdmin, customerEmail, customerName);
+    const { userId, isNewUser } = await ensureUser(supabaseAdmin, customerEmail, customerName);
     const actions: string[] = [];
 
 // ... keep existing code
@@ -373,6 +376,27 @@ Deno.serve(async (req) => {
       } else {
         actions.push("v3_already_active");
       }
+    } else if (hotmartProduct.type === "creditos_vitalicio") {
+      // Recarga de créditos vitalícios (sem data de validade)
+      // Para usuários existentes: APENAS adiciona os créditos (não toca em senha/perfil).
+      // Para usuários novos: cria conta + adiciona créditos + envia email de boas-vindas.
+      await supabaseAdmin.rpc("arcano_grant_lifetime_credits", {
+        _user_id: userId,
+        _amount: hotmartProduct.credits,
+        _description: `Recarga Hotmart ${hotmartProduct.label} (+${hotmartProduct.credits} créditos vitalícios)`
+      });
+
+      await supabaseAdmin.from("user_pack_purchases").insert({
+        user_id: userId,
+        pack_slug: hotmartProduct.slug,
+        payment_status: "active",
+        gateway: "hotmart",
+        plan_type: "creditos_vitalicio",
+        external_id: String(transactionId),
+        amount: purchaseData.price?.value || purchaseData.original_offer_price?.value || null,
+      });
+
+      actions.push(`lifetime_credits_granted_${hotmartProduct.credits}`);
     } else if (hotmartProduct.type === "unlimited") {
 // ... keep existing code
 
@@ -418,37 +442,49 @@ Deno.serve(async (req) => {
     }
 
     // ── Send welcome email ──
+    // Recarga (creditos_vitalicio) + usuário existente: NÃO envia email — só recarregou créditos.
+    // Usuários novos ou outros tipos de produto: envia welcome email normalmente.
     let emailSent = false;
-    try {
-      const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
-      const htmlContent = buildWelcomeEmailHtml(APP_URL, hotmartProduct.type, hotmartProduct.label);
-      const sendPulseToken = await getSendPulseToken();
-      const htmlBase64 = btoa(unescape(encodeURIComponent(htmlContent)));
+    const skipWelcomeEmail = hotmartProduct.type === "creditos_vitalicio" && !isNewUser;
+    if (skipWelcomeEmail) {
+      console.log(`[hotmart-webhook] Existing user recharge — skipping welcome email`);
+    } else {
+      try {
+        const APP_URL = "https://arcanoapp-es.voxvisual.com.br";
+        const emailType = hotmartProduct.type === "creditos_vitalicio" ? "creditos" : hotmartProduct.type;
+        const htmlContent = buildWelcomeEmailHtml(APP_URL, emailType, hotmartProduct.label);
+        const sendPulseToken = await getSendPulseToken();
+        const htmlBase64 = btoa(unescape(encodeURIComponent(htmlContent)));
 
-      const emailPayload = {
-        email: {
-          html: htmlBase64,
-          text: "",
-          subject: `🎉 ¡Bienvenido a Arcano App! Tu ${hotmartProduct.type === "creditos" ? `pack ${hotmartProduct.label}` : "Upscaler Arcano V3"} está listo`,
-          from: { name: "Arcano App", email: "contato@voxvisual.com.br" },
-          to: [{ name: customerName || customerEmail, email: customerEmail }],
-        },
-      };
+        const subjectProduct = hotmartProduct.type === "vitalicio"
+          ? "Upscaler Arcano V3"
+          : `pack ${hotmartProduct.label}`;
 
-      const emailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${sendPulseToken}`,
-        },
-        body: JSON.stringify(emailPayload),
-      });
+        const emailPayload = {
+          email: {
+            html: htmlBase64,
+            text: "",
+            subject: `🎉 ¡Bienvenido a Arcano App! Tu ${subjectProduct} está listo`,
+            from: { name: "Arcano App", email: "contato@voxvisual.com.br" },
+            to: [{ name: customerName || customerEmail, email: customerEmail }],
+          },
+        };
 
-      emailSent = emailRes.ok;
-      const emailResBody = await emailRes.text();
-      console.log(`[hotmart-webhook] SendPulse: status=${emailRes.status} ok=${emailSent} body=${emailResBody}`);
-    } catch (emailErr: any) {
-      console.error(`[hotmart-webhook] Email error:`, emailErr.message);
+        const emailRes = await fetch("https://api.sendpulse.com/smtp/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sendPulseToken}`,
+          },
+          body: JSON.stringify(emailPayload),
+        });
+
+        emailSent = emailRes.ok;
+        const emailResBody = await emailRes.text();
+        console.log(`[hotmart-webhook] SendPulse: status=${emailRes.status} ok=${emailSent} body=${emailResBody}`);
+      } catch (emailErr: any) {
+        console.error(`[hotmart-webhook] Email error:`, emailErr.message);
+      }
     }
 
     if (emailSent) {

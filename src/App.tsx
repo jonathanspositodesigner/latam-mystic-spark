@@ -64,6 +64,7 @@ const UpgradeUpscalerV3 = React.lazy(() => import("./pages/UpgradeUpscalerV3"));
 const UpscalerArcanoTool = React.lazy(() => import("./pages/UpscalerArcanoTool"));
 const PlanesCreditos = React.lazy(() => import("./pages/PlanesCreditos"));
 const CreditosUpscaler = React.lazy(() => import("./pages/CreditosUpscaler"));
+const RecargaCreditos = React.lazy(() => import("./pages/RecargaCreditos"));
 const FlyerMakerTool = React.lazy(() => import("./pages/FlyerMakerTool"));
 const FlyerMakerLanding = React.lazy(() => import("./pages/FlyerMakerLanding"));
 
@@ -148,6 +149,8 @@ const AppContent = () => {
           <Route path="/upscaler-arcano-tool" element={<ProtectedRoute><UpscalerArcanoTool /></ProtectedRoute>} />
           <Route path="/planes" element={<ProtectedRoute><PlanesCreditos /></ProtectedRoute>} />
           <Route path="/creditos-upscaler" element={<ProtectedRoute><CreditosUpscaler /></ProtectedRoute>} />
+          <Route path="/recarga-creditos" element={<ProtectedRoute><RecargaCreditos /></ProtectedRoute>} />
+          <Route path="/recargacreditos" element={<ProtectedRoute><RecargaCreditos /></ProtectedRoute>} />
           <Route path="/flyer-maker" element={<ProtectedRoute><FlyerMakerTool /></ProtectedRoute>} />
           <Route path="/flyermakerlanding" element={<FlyerMakerLanding />} />
 
