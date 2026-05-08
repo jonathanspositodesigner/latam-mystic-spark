@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogIn, Star, Lock, Settings, LogOut, User, Coins, MessageCircle } from "lucide-react";
+import { LogIn, Star, Lock, Settings, LogOut, User, Coins, MessageCircle, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCredits } from "@/contexts/CreditsContext";
 import CreditsPreviewPopover from "@/components/credits/CreditsPreviewPopover";
@@ -68,6 +68,15 @@ const AppTopBar = ({ user, isPremium, planType, userProfile, onLogout }: AppTopB
         {user && (
           <>
             <CreditsPreviewPopover userId={user.id} variant="desktop" />
+            <Button
+              onClick={() => navigate("/recarga-creditos")}
+              size="sm"
+              className="h-8 px-3 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-xs font-semibold shadow-md shadow-fuchsia-500/20"
+              title="Recargar créditos"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              <span className="hidden sm:inline">Recargar</span>
+            </Button>
             <a
               href="https://api.whatsapp.com/send/?phone=5533988819891&text&type=phone_number&app_absent=0"
               target="_blank"

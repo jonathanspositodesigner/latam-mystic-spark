@@ -12,6 +12,7 @@ import { AIJobProvider } from "./contexts/AIJobContext";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import GlobalTopBar from "./components/layout/GlobalTopBar";
 
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword"));
@@ -91,6 +92,7 @@ const AppContent = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <GlobalTopBar />
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/" element={<Home />} />

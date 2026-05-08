@@ -46,6 +46,7 @@ import { useAIToolSettings } from '@/hooks/useAIToolSettings';
 import RefinePanel from '@/components/arcano-cloner/RefinePanel';
 import RefinementTimeline, { type RefinementVersion } from '@/components/arcano-cloner/RefinementTimeline';
 import { useCollaboratorAttribution } from '@/hooks/useCollaboratorAttribution';
+import { useInsufficientCredits } from '@/hooks/useInsufficientCredits';
 
 
 type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'waiting' | 'completed' | 'error';
@@ -66,6 +67,9 @@ const FlyerMakerTool: React.FC = () => {
   const { balance: credits, isLoading: creditsLoading, refetch: refetchCredits, checkBalance } = useCredits();
   const { getCreditCost } = useAIToolSettings();
   const creditCost = getCreditCost('Flyer Maker', 100);
+
+  // Saldo insuficiente → botão troca pra "Recargar" e leva pra /recarga-creditos
+  const { insufficient: flyerInsufficient, goToRecharge } = useInsufficientCredits(creditCost);
 
   // Flyer Maker test credits
   const [testCredits, setTestCredits] = useState(0);
@@ -1839,12 +1843,12 @@ const FlyerMakerTool: React.FC = () => {
                           if (motionInsufficient) {
                             return (
                               <Button
-                                className="w-full py-4 text-sm font-bold bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl shadow-md"
-                                onClick={() => { setNoCreditsReason('insufficient'); setShowNoCreditsModal(true); }}
+                                className="w-full py-4 text-sm font-bold bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 text-white rounded-xl shadow-md shadow-fuchsia-500/30"
+                                onClick={goToRecharge}
                               >
                                 <div className="flex items-center justify-center gap-2 flex-wrap">
-                                  <Coins className="w-4 h-4" />
-                                  <span>Generar flyer animado (Sin créditos)</span>
+                                  <Plus className="w-4 h-4" />
+                                  <span>Recargar créditos</span>
                                   <span className="text-xs px-2 py-0.5 bg-black/20 rounded-full">
                                     {credits} / {motionCurrentPrice}
                                   </span>
@@ -2108,12 +2112,14 @@ const FlyerMakerTool: React.FC = () => {
                     {/* Generate Button - SEMPRE CLICÁVEL */}
                     {status !== 'completed' && (
                         <Button
-                          className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
+                          className={`w-full py-4 text-sm font-semibold text-white rounded-xl shadow-lg disabled:opacity-50 ${flyerInsufficient ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-fuchsia-500/30' : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600'}`}
                           disabled={isSubmitting || isProcessing}
-                          onClick={handleUnifiedProcess}
+                          onClick={flyerInsufficient ? goToRecharge : handleUnifiedProcess}
                         >
                         {(isSubmitting || isProcessing) ? (
                           <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>{isProcessing ? 'Procesando...' : 'Iniciando...'}</span></div>
+                        ) : flyerInsufficient ? (
+                          <div className="flex items-center justify-center gap-2"><Plus className="w-4 h-4" /><span>Recargar créditos</span></div>
                         ) : (
                           <div className="flex items-center justify-center gap-2 flex-wrap text-center">
                             <Sparkles className="w-4 h-4 shrink-0" />
@@ -2273,12 +2279,14 @@ const FlyerMakerTool: React.FC = () => {
                     {/* Generate Button - SEMPRE CLICÁVEL */}
                     {status !== 'completed' && (
                         <Button
-                          className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
+                          className={`w-full py-4 text-sm font-semibold text-white rounded-xl shadow-lg disabled:opacity-50 ${flyerInsufficient ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-fuchsia-500/30' : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600'}`}
                           disabled={isSubmitting || isProcessing}
-                          onClick={handleUnifiedProcess}
+                          onClick={flyerInsufficient ? goToRecharge : handleUnifiedProcess}
                         >
                         {(isSubmitting || isProcessing) ? (
                           <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>{isProcessing ? 'Procesando...' : 'Iniciando...'}</span></div>
+                        ) : flyerInsufficient ? (
+                          <div className="flex items-center justify-center gap-2"><Plus className="w-4 h-4" /><span>Recargar créditos</span></div>
                         ) : (
                           <div className="flex items-center justify-center gap-2 flex-wrap">
                             <Sparkles className="w-4 h-4" />
@@ -2512,12 +2520,14 @@ const FlyerMakerTool: React.FC = () => {
                         {/* 7. Botón generar - SEMPRE CLICÁVEL */}
                         {status !== 'completed' && (
                         <Button
-                          className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
+                          className={`w-full py-4 text-sm font-semibold text-white rounded-xl shadow-lg disabled:opacity-50 ${flyerInsufficient ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-fuchsia-500/30' : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600'}`}
                           disabled={isSubmitting || isProcessing}
-                          onClick={handleUnifiedProcess}
+                          onClick={flyerInsufficient ? goToRecharge : handleUnifiedProcess}
                         >
                             {(isSubmitting || isProcessing) ? (
                               <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>{isProcessing ? 'Procesando...' : 'Iniciando...'}</span></div>
+                            ) : flyerInsufficient ? (
+                              <div className="flex items-center justify-center gap-2"><Plus className="w-4 h-4" /><span>Recargar créditos</span></div>
                             ) : (
                               <div className="flex items-center justify-center gap-2 flex-wrap text-center">
                                 <Sparkles className="w-4 h-4 shrink-0" />
@@ -2722,12 +2732,14 @@ const FlyerMakerTool: React.FC = () => {
                     {/* Generate Button - SEMPRE CLICÁVEL */}
                     {status !== 'completed' && (
                         <Button
-                          className="w-full py-4 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white rounded-xl shadow-lg disabled:opacity-50"
+                          className={`w-full py-4 text-sm font-semibold text-white rounded-xl shadow-lg disabled:opacity-50 ${flyerInsufficient ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 shadow-fuchsia-500/30' : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600'}`}
                           disabled={isSubmitting || isProcessing}
-                          onClick={handleUnifiedProcess}
+                          onClick={flyerInsufficient ? goToRecharge : handleUnifiedProcess}
                         >
                         {(isSubmitting || isProcessing) ? (
                           <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> <span>{isProcessing ? 'Procesando...' : 'Iniciando...'}</span></div>
+                        ) : flyerInsufficient ? (
+                          <div className="flex items-center justify-center gap-2"><Plus className="w-4 h-4" /><span>Recargar créditos</span></div>
                         ) : (
                           <div className="flex items-center justify-center gap-2 flex-wrap text-center">
                             <Sparkles className="w-4 h-4 shrink-0" />
