@@ -40,6 +40,23 @@ const Dashboard = () => {
   const { hasAccessToPack, isLoading: premiumArtesLoading, packSlugs } = usePremiumArtesStatus();
   const { balance: credits, isLoading: creditsLoading } = useCredits();
   const [userProfile, setUserProfile] = useState<{ name?: string; phone?: string } | null>(null);
+  // Mostra Flyer Maker em "Tus Compras" se user JÁ recebeu QUALQUER crédito alguma vez
+  // (compra de pack/recarga, grant admin, promo, etc) — não só os pacotes flyer-* específicos
+  const [hasEverHadCredit, setHasEverHadCredit] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!user?.id) { setHasEverHadCredit(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { count } = await (supabase as any)
+        .from("upscaler_credit_transactions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gt("amount", 0)
+        .limit(1);
+      if (!cancelled) setHasEverHadCredit((count ?? 0) > 0);
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Centralised purchase state — single source of truth
   const upscalerAccess = useMemo(() => {
@@ -55,19 +72,30 @@ const Dashboard = () => {
     const hasPro = hasAccessToPack("flyer-maker-pro-7k");
     const hasUltimate = hasAccessToPack("flyer-maker-ultimate-14k");
     const hasUnlimited = hasAccessToPack("flyer-maker-unlimited");
-    
+    // Recebeu créditos avulsos (recarga ou admin grant) → também aparece em "Tus Compras"
+    const hasAnyCreditEver = hasEverHadCredit === true;
+
     return {
-      hasAccess: hasPro || hasUltimate || hasUnlimited,
+      hasAccess: hasPro || hasUltimate || hasUnlimited || hasAnyCreditEver,
       isUnlimited: hasUnlimited,
-      label: hasUnlimited ? "Plan Unlimited" : hasUltimate ? "Plan Ultimate" : hasPro ? "Plan Pro" : ""
+      label: hasUnlimited
+        ? "Plan Unlimited"
+        : hasUltimate
+        ? "Plan Ultimate"
+        : hasPro
+        ? "Plan Pro"
+        : hasAnyCreditEver
+        ? "Créditos disponibles"
+        : ""
     };
-  }, [hasAccessToPack]);
+  }, [hasAccessToPack, hasEverHadCredit]);
 
   const purchaseState = useMemo(() => {
-    if (premiumArtesLoading) return "loading" as const;
+    // Espera tanto premiumArtesStatus quanto a query de créditos resolverem
+    if (premiumArtesLoading || hasEverHadCredit === null) return "loading" as const;
     if (upscalerAccess.hasAccess || flyerAccess.hasAccess) return "active" as const;
     return "none" as const;
-  }, [premiumArtesLoading, upscalerAccess, flyerAccess]);
+  }, [premiumArtesLoading, upscalerAccess, flyerAccess, hasEverHadCredit]);
 
   useEffect(() => {
     const fetchProfile = async () => {

@@ -1553,11 +1553,11 @@ const FlyerMakerTool: React.FC = () => {
           </div>
         )}
 
-        <div className="flex-1 max-w-[1400px] w-full mx-auto px-4 py-4 overflow-y-auto lg:overflow-hidden flex flex-col">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 flex-1 lg:min-h-0">
+        <div className="flex-1 max-w-[1400px] w-full mx-auto px-3 sm:px-4 py-3 sm:py-4 overflow-y-auto lg:overflow-hidden flex flex-col">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 lg:gap-6 flex-1 lg:min-h-0">
             {/* INPUTS */}
             <div className="lg:col-span-4 min-h-0 overflow-hidden">
-              <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 overflow-y-auto h-full max-h-full"
+              <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 flex flex-col gap-4 overflow-y-auto h-full max-h-full"
                 style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.15) transparent' }}
               >
                 {/* Title */}
@@ -1904,7 +1904,7 @@ const FlyerMakerTool: React.FC = () => {
                       <ArrowLeft className="w-3.5 h-3.5" /> Volver
                     </button>
                     <p className="text-sm font-semibold text-foreground mb-4">¿Qué tipo de flyer vamos a hacer hoy?</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
                       {[
                         { id: 'evento' as const, label: 'Evento', img: flyerTypeEvento },
                         { id: 'agenda' as const, label: 'Agenda de Artista', img: flyerTypeAgenda },
