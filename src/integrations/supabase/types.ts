@@ -1234,6 +1234,8 @@ export type Database = {
           credit_type: string | null
           description: string | null
           id: string
+          lifetime_deducted: number
+          monthly_deducted: number
           tool_type: string | null
           transaction_type: string
           user_id: string
@@ -1245,6 +1247,8 @@ export type Database = {
           credit_type?: string | null
           description?: string | null
           id?: string
+          lifetime_deducted?: number
+          monthly_deducted?: number
           tool_type?: string | null
           transaction_type: string
           user_id: string
@@ -1256,6 +1260,8 @@ export type Database = {
           credit_type?: string | null
           description?: string | null
           id?: string
+          lifetime_deducted?: number
+          monthly_deducted?: number
           tool_type?: string | null
           transaction_type?: string
           user_id?: string
@@ -1533,11 +1539,11 @@ export type Database = {
       }
       arcano_grant_lifetime_credits: {
         Args: { _amount: number; _description?: string; _user_id: string }
-        Returns: undefined
+        Returns: Json
       }
       arcano_revoke_lifetime_credits: {
         Args: { _amount: number; _description?: string; _user_id: string }
-        Returns: number
+        Returns: Json
       }
       check_device_signup_limit: {
         Args: { p_fingerprint: string }
@@ -1604,7 +1610,7 @@ export type Database = {
         Returns: Json
       }
       consume_upscaler_credits_forced: {
-        Args: { _amount: number; _description: string; _user_id: string }
+        Args: { _amount: number; _description?: string; _user_id: string }
         Returns: Json
       }
       expire_monthly_credits_if_due:
@@ -1630,7 +1636,7 @@ export type Database = {
           _months?: number
           _user_id: string
         }
-        Returns: undefined
+        Returns: Json
       }
       has_role:
         | {
@@ -1681,7 +1687,7 @@ export type Database = {
       }
       revoke_flyer_monthly_credits: {
         Args: { _description?: string; _user_id: string }
-        Returns: undefined
+        Returns: Json
       }
       user_cancel_ai_job: {
         Args: { p_job_id: string; p_table_name: string }
