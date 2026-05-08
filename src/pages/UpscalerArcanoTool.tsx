@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { safeRandomUUID } from '@/lib/uuid';
 import { Upload, Sparkles, Download, RotateCcw, Loader2, ZoomIn, ZoomOut, Info, AlertCircle, Clock, MessageSquare, Crown, Coins } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { useNavigate } from 'react-router-dom';
@@ -139,7 +140,7 @@ const UpscalerArcanoTool: React.FC = () => {
   const beforeTransformRef = useRef<HTMLDivElement>(null);
   const sessionIdRef = useRef<string>('');
 
-  useEffect(() => { sessionIdRef.current = crypto.randomUUID(); }, []);
+  useEffect(() => { sessionIdRef.current = safeRandomUUID(); }, []);
   useQueueSessionCleanup(sessionIdRef.current, status);
 
   // PENDING WATCHDOG
@@ -413,7 +414,7 @@ const UpscalerArcanoTool: React.FC = () => {
       const bytes = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
 
-      const tempId = crypto.randomUUID();
+      const tempId = safeRandomUUID();
       const storagePath = `upscaler/${user.id}/${tempId}.jpg`;
       
       setProgress(20);

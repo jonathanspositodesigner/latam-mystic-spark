@@ -47,6 +47,7 @@ import RefinePanel from '@/components/arcano-cloner/RefinePanel';
 import RefinementTimeline, { type RefinementVersion } from '@/components/arcano-cloner/RefinementTimeline';
 import { useCollaboratorAttribution } from '@/hooks/useCollaboratorAttribution';
 import { useInsufficientCredits } from '@/hooks/useInsufficientCredits';
+import { safeRandomUUID } from '@/lib/uuid';
 
 
 type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'waiting' | 'completed' | 'error';
@@ -379,7 +380,7 @@ const FlyerMakerTool: React.FC = () => {
   const isProcessing = status === 'uploading' || status === 'processing' || status === 'waiting';
 
   useEffect(() => {
-    sessionIdRef.current = crypto.randomUUID();
+    sessionIdRef.current = safeRandomUUID();
   }, []);
 
   // Auto-open refine mode when coming from "Modificar" in My Creations

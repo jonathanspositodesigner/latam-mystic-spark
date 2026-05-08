@@ -11,6 +11,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useAIJobContext } from '@/contexts/AIJobContext';
+import { safeRandomUUID } from '@/lib/uuid';
 import { useJobStatusSync } from '@/hooks/useJobStatusSync';
 import { useQueueSessionCleanup } from '@/hooks/useQueueSessionCleanup';
 import { useProcessingButton } from '@/hooks/useProcessingButton';
@@ -46,7 +47,7 @@ export function useAIJob({ toolId }: UseAIJobOptions) {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
   
-  const sessionIdRef = useRef<string>(crypto.randomUUID());
+  const sessionIdRef = useRef<string>(safeRandomUUID());
   const { isSubmitting, startSubmit, endSubmit } = useProcessingButton();
 
   // Queue cleanup on unmount
@@ -215,7 +216,7 @@ export function useAIJob({ toolId }: UseAIJobOptions) {
     setCurrentStep(null);
     clearGlobalJob();
     endSubmit();
-    sessionIdRef.current = crypto.randomUUID();
+    sessionIdRef.current = safeRandomUUID();
   }, [clearGlobalJob, endSubmit]);
 
   return {
