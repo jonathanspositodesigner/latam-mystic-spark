@@ -169,8 +169,13 @@ serve(async (req) => {
     if (!evolinkKey) return json({ success: false, error: "EVOLINK_API_KEY not configured" }, 500);
 
     if (path === "process") {
+      // Aceita auth via Authorization (Bearer service_role) OU x-internal-key
+      // (necessário pq o gateway do Supabase pode reescrever Authorization em chamadas
+      //  internas entre edge functions)
       const authHeader = req.headers.get("Authorization") || "";
-      if (authHeader !== `Bearer ${supabaseKey}`) return json({ success: false, error: "Unauthorized" }, 401);
+      const internalKey = req.headers.get("x-internal-key") || "";
+      const ok = authHeader === `Bearer ${supabaseKey}` || internalKey === supabaseKey;
+      if (!ok) return json({ success: false, error: "Unauthorized" }, 401);
 
       const { jobId } = await req.json();
       if (!jobId) return json({ success: false, error: "Missing jobId" }, 400);

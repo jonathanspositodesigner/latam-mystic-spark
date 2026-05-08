@@ -1,9 +1,29 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+/**
+ * runninghub-flyer-motion — Pipeline ÚNICA pra geração de flyer animado.
+ *
+ * Arquitetura:
+ *   - Main route retorna 200 imediatamente com `{ success: true, queued: true }`
+ *   - Pipeline completa roda em background via `EdgeRuntime.waitUntil`:
+ *     1. Analisa flyer no RunningHub (WebApp 2048520932163063810) → prompt
+ *     2. Atualiza seedance_jobs.prompt
+ *     3. Chama seedance-generate/process (AWAITED, não fire-and-forget) que:
+ *        - Cobra créditos
+ *        - Chama Evolink Seedance 2.0
+ *        - Atualiza seedance_jobs.task_id + status='running'
+ *
+ * Qualquer falha na pipeline marca o job como 'failed' com error_message,
+ * o frontend (que faz polling) detecta e para o spinner. Se já tiver cobrado,
+ * o seedance-generate é responsável pelo estorno via refund_seedance_job.
+ *
+ * Tudo dentro de waitUntil — não há mais 2 níveis de fire-and-forget.
+ */
+
 const WEBAPP_ID = "2048520932163063810";
 const POLL_INTERVAL_MS = 5000;
-const MAX_POLLS = 48; // ~4min
+const MAX_POLLS = 36; // 3 min (margem pra Evolink dentro do limite de 5min do waitUntil)
 const FETCH_TIMEOUT_MS = 30000;
 
 const corsHeaders = {
@@ -29,64 +49,86 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
+async function markJobFailed(jobId: string, message: string) {
+  try {
+    await supabase
+      .from("seedance_jobs")
+      .update({
+        status: "failed",
+        error_message: (message || "Pipeline failed").substring(0, 500),
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
+  } catch (e: any) {
+    console.error(`[flyer-motion] markJobFailed error for ${jobId}:`, e.message);
+  }
+}
+
+/**
+ * Pipeline completa: análise RH → update prompt → trigger seedance-generate (awaited).
+ * Mantida viva por EdgeRuntime.waitUntil. Qualquer erro marca job como failed.
+ */
+async function runFullPipeline(jobId: string, imageUrl: string) {
+  const t0 = Date.now();
+  console.log(`[flyer-motion] Pipeline START job=${jobId}`);
+
+  try {
+    // ─── Step 1: Analisa flyer no RunningHub ───
+    console.log(`[flyer-motion] Step 1/3: Analyzing flyer...`);
+    const prompt = await analyzeFlyer(imageUrl);
+    console.log(`[flyer-motion] Step 1/3 OK (${Date.now() - t0}ms): prompt=${prompt.substring(0, 80)}...`);
+
+    // ─── Step 2: Atualiza job com prompt ───
+    const { error: upErr } = await supabase
+      .from("seedance_jobs")
+      .update({ prompt, status: "pending" })
+      .eq("id", jobId);
+    if (upErr) throw new Error("DB update prompt failed: " + upErr.message);
+    console.log(`[flyer-motion] Step 2/3 OK: job updated with prompt`);
+
+    // ─── Step 3: Aciona seedance-generate/process (awaited) ───
+    console.log(`[flyer-motion] Step 3/3: Triggering seedance-generate...`);
+    const sgController = new AbortController();
+    const sgTimer = setTimeout(() => sgController.abort(), 90_000); // 90s pra Evolink
+    let sgResp: Response;
+    try {
+      sgResp = await fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${supabaseKey}`,
+          "apikey": supabaseKey, // gateway requer apikey
+          "x-internal-key": supabaseKey, // backup caso gateway reescreva Authorization
+        },
+        body: JSON.stringify({ jobId }),
+        signal: sgController.signal,
+      });
+    } finally {
+      clearTimeout(sgTimer);
+    }
+
+    const sgText = await sgResp.text();
+    console.log(`[flyer-motion] Step 3/3: seedance-generate ${sgResp.status} body=${sgText.substring(0, 300)}`);
+
+    if (!sgResp.ok) {
+      throw new Error(`seedance-generate returned ${sgResp.status}: ${sgText.substring(0, 200)}`);
+    }
+
+    console.log(`[flyer-motion] Pipeline COMPLETE (${Date.now() - t0}ms) job=${jobId}`);
+  } catch (err: any) {
+    console.error(`[flyer-motion] Pipeline FAILED (${Date.now() - t0}ms) job=${jobId}:`, err.message);
+    await markJobFailed(jobId, err.message);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const url = new URL(req.url);
-  const path = url.pathname.split("/").pop();
-
   try {
-    if (!runningHubApiKey) return jsonResponse({ error: "RUNNINGHUB_API_KEY not configured" }, 500);
-
-    // Background process for internal calls
-    if (path === "process") {
-      const authHeader = req.headers.get("Authorization") || "";
-      if (authHeader !== `Bearer ${supabaseKey}`) return jsonResponse({ error: "Unauthorized" }, 401);
-
-      const { jobId, imageUrl } = await req.json();
-      if (!jobId || !imageUrl) return jsonResponse({ error: "Missing jobId or imageUrl" }, 400);
-
-      console.log(`[flyer-motion-bg] Processing Job ${jobId} for Image: ${imageUrl.substring(0, 50)}...`);
-      
-      try {
-        const prompt = await analyzeFlyer(imageUrl);
-        
-        // Update the job with the generated prompt
-        const { error: updateError } = await supabase
-          .from("seedance_jobs")
-          .update({ prompt, status: "pending" })
-          .eq("id", jobId);
-
-        if (updateError) throw updateError;
-
-        // Trigger the next step: seedance-generate/process
-        console.log(`[flyer-motion-bg] Analysis done for Job ${jobId}. Triggering generation...`);
-
-        // EdgeRuntime.waitUntil garante que o fetch sobreviva ao return da função
-        const bgGen = fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${supabaseKey}`,
-          },
-          body: JSON.stringify({ jobId }),
-        }).catch(err => console.error("[flyer-motion-bg] Failed to trigger seedance-generate:", err));
-
-        // @ts-ignore
-        if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any)?.waitUntil) {
-          // @ts-ignore
-          EdgeRuntime.waitUntil(bgGen);
-        }
-
-        return jsonResponse({ success: true });
-      } catch (err: any) {
-        console.error(`[flyer-motion-bg] Error processing job ${jobId}:`, err.message);
-        await supabase.from("seedance_jobs").update({ status: "failed", error_message: err.message }).eq("id", jobId);
-        return jsonResponse({ success: false, error: err.message }, 500);
-      }
+    if (!runningHubApiKey) {
+      return jsonResponse({ error: "RUNNINGHUB_API_KEY not configured" }, 500);
     }
 
-    // Standard request from client
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return jsonResponse({ error: "No auth" }, 401);
 
@@ -98,37 +140,38 @@ serve(async (req) => {
     }
 
     const { imageUrl, jobId } = body;
-    if (!imageUrl || !jobId) return jsonResponse({ error: "imageUrl and jobId are required" }, 400);
+    if (!imageUrl || !jobId) {
+      return jsonResponse({ error: "imageUrl and jobId are required" }, 400);
+    }
 
-    console.log("[flyer-motion-v3] Queuing analysis for Job:", jobId);
+    console.log(`[flyer-motion] Queuing pipeline for jobId=${jobId}`);
 
-    // Background process — usa EdgeRuntime.waitUntil pra garantir que o fetch
-    // não seja morto quando a função retornar (caso contrário o /process nunca roda)
-    const bgFetch = fetch(`${supabaseUrl}/functions/v1/runninghub-flyer-motion/process`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
-      },
-      body: JSON.stringify({ jobId, imageUrl }),
-    }).catch(err => console.error("[flyer-motion-v3] background process trigger failed:", err));
+    // Inicia pipeline em background. EdgeRuntime.waitUntil garante que o runtime
+    // não mate a execução antes da pipeline terminar (até ~5min).
+    const work = runFullPipeline(jobId, imageUrl);
 
     // @ts-ignore — EdgeRuntime existe no Deno Deploy do Supabase
     if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any)?.waitUntil) {
       // @ts-ignore
-      EdgeRuntime.waitUntil(bgFetch);
+      EdgeRuntime.waitUntil(work);
+    } else {
+      // Fallback: roda sem waitUntil (ambiente local/teste)
+      work.catch((e) => console.error("[flyer-motion] no-waitUntil work error:", e));
     }
 
     return jsonResponse({ success: true, queued: true, jobId });
-
   } catch (err: any) {
-    console.error("[flyer-motion-v3] FATAL:", err.message, err.stack);
+    console.error("[flyer-motion] FATAL:", err.message, err.stack);
     return jsonResponse({ error: err.message || "Internal server error" }, 500);
   }
 });
 
+/**
+ * Analisa o flyer no RunningHub via WebApp 2048520932163063810.
+ * Retorna o prompt de animação como string (texto extraído do output).
+ */
 async function analyzeFlyer(imageUrl: string): Promise<string> {
-    console.log("[flyer-motion-v3] Starting Analysis for:", imageUrl.substring(0, 60));
+    console.log("[flyer-motion] analyzeFlyer START:", imageUrl.substring(0, 60));
 
     // ========== 1. START ==========
     const startController = new AbortController();
@@ -155,32 +198,27 @@ async function analyzeFlyer(imageUrl: string): Promise<string> {
         }
       );
     } catch (e: any) {
-      console.error("[flyer-motion-v3] START fetch failed:", e.message);
+      console.error("[flyer-motion] START fetch failed:", e.message);
       throw new Error("Failed to connect to RunningHub: " + e.message);
     } finally {
       clearTimeout(startTimer);
     }
 
     const startText = await startResponse.text();
-    console.log("[flyer-motion-v3] START raw response:", startText.substring(0, 500));
+    console.log("[flyer-motion] START raw:", startText.substring(0, 500));
 
     let startData: any;
     try {
       startData = JSON.parse(startText);
     } catch {
-      console.error("[flyer-motion-v3] START response not JSON:", startText.substring(0, 200));
-      throw new Error("RunningHub returned non-JSON: " + startText.substring(0, 100));
+      throw new Error("RunningHub non-JSON: " + startText.substring(0, 100));
     }
 
-    // queue-manager reads: data.taskId
     const taskId = startData?.taskId || startData?.data?.taskId;
-
     if (!taskId) {
-      console.error("[flyer-motion-v3] No taskId. Full response:", startText.substring(0, 500));
       throw new Error("No taskId from RunningHub: " + (startData?.msg || startData?.message || startText.substring(0, 100)));
     }
-
-    console.log("[flyer-motion-v3] Got taskId:", taskId);
+    console.log("[flyer-motion] Got taskId:", taskId);
 
     // ========== 2. POLLING ==========
     for (let i = 0; i < MAX_POLLS; i++) {
@@ -202,7 +240,7 @@ async function analyzeFlyer(imageUrl: string): Promise<string> {
         clearTimeout(tmr);
         statusText = await statusRes.text();
       } catch (e: any) {
-        console.warn(`[flyer-motion-v3] Poll ${i + 1} network error:`, e.message);
+        console.warn(`[flyer-motion] Poll ${i + 1} network error:`, e.message);
         continue;
       }
 
@@ -210,25 +248,18 @@ async function analyzeFlyer(imageUrl: string): Promise<string> {
       try {
         statusData = JSON.parse(statusText);
       } catch {
-        console.warn(`[flyer-motion-v3] Poll ${i + 1} non-JSON:`, statusText.substring(0, 100));
+        console.warn(`[flyer-motion] Poll ${i + 1} non-JSON:`, statusText.substring(0, 100));
         continue;
       }
 
-      // Log FULL raw response for debugging
-      console.log(`[flyer-motion-v3] Poll ${i + 1} raw:`, statusText.substring(0, 400));
-
-      // queue-manager checks: statusData.code !== 0 → error
       if (statusData.code !== undefined && statusData.code !== 0) {
-        console.warn(`[flyer-motion-v3] Poll ${i + 1} code=${statusData.code} msg=${statusData.msg}`);
-        // Don't continue forever on auth errors
+        console.warn(`[flyer-motion] Poll ${i + 1} code=${statusData.code} msg=${statusData.msg}`);
         if (statusData.code === 401 || statusData.code === 403) {
           throw new Error("RunningHub auth error: " + (statusData.msg || statusData.code));
         }
         continue;
       }
 
-      // RunningHub status endpoint returns `data` as a STRING ("RUNNING" | "SUCCESS" | "FAILED")
-      // Some workflows return an object with .status/.taskStatus — handle both shapes.
       const rawData = statusData.data;
       const taskStatus = (
         typeof rawData === "string"
@@ -242,15 +273,12 @@ async function analyzeFlyer(imageUrl: string): Promise<string> {
           rawData?.errorMessage ||
           statusData.msg ||
           "RunningHub job failed";
-        console.error("[flyer-motion-v3] FAILED:", errMsg);
         throw new Error(errMsg);
       }
 
       if (taskStatus === "SUCCESS" || taskStatus === "COMPLETED") {
-        console.log("[flyer-motion-v3] Job completed! Fetching outputs...");
+        console.log("[flyer-motion] Job completed! Fetching outputs...");
 
-        // When `data` is a string, the status endpoint does NOT include the file list.
-        // Need to call the outputs endpoint to get the actual results.
         let results: any[] = [];
         if (typeof rawData === "string") {
           try {
@@ -267,25 +295,21 @@ async function analyzeFlyer(imageUrl: string): Promise<string> {
             );
             clearTimeout(tmr);
             const outText = await outRes.text();
-            console.log("[flyer-motion-v3] outputs raw:", outText.substring(0, 500));
+            console.log("[flyer-motion] outputs raw:", outText.substring(0, 500));
             const outData = JSON.parse(outText);
             results = outData?.data?.outputFileList || outData?.data || outData?.data?.results || [];
             if (!Array.isArray(results)) results = [results].filter(Boolean);
           } catch (e: any) {
-            console.error("[flyer-motion-v3] outputs fetch failed:", e.message);
             throw new Error("Failed to fetch RunningHub outputs: " + e.message);
           }
         } else {
           results = rawData?.outputFileList || rawData?.results || [];
         }
-        console.log("[flyer-motion-v3] results count:", results.length);
 
         if (results.length === 0) {
-          console.error("[flyer-motion-v3] No results in completed response:", statusText.substring(0, 500));
           throw new Error("No output from RunningHub workflow");
         }
 
-        // Find .txt file, or use first result
         const txtResult = results.find((r: any) => {
           const type = (r?.outputType || r?.fileType || "").toLowerCase();
           const url = (r?.fileUrl || r?.url || "").toLowerCase();
@@ -294,20 +318,17 @@ async function analyzeFlyer(imageUrl: string): Promise<string> {
         const target = txtResult || results[0];
         const fileUrl = target?.fileUrl || target?.url || target?.text || target;
 
-        // If outputs returned plain text directly (not a URL), use it
         if (typeof fileUrl === "string" && !fileUrl.startsWith("http")) {
-          console.log("[flyer-motion-v3] SUCCESS (inline text)");
+          console.log("[flyer-motion] SUCCESS (inline text)");
           return fileUrl.trim();
         }
 
         if (!fileUrl) {
-          console.error("[flyer-motion-v3] No fileUrl in result:", JSON.stringify(target));
           throw new Error("No file URL in RunningHub output");
         }
 
-        console.log("[flyer-motion-v3] Downloading:", fileUrl.substring(0, 100));
+        console.log("[flyer-motion] Downloading:", fileUrl.substring(0, 100));
 
-        // Download with retries — RunningHub CDN frequently throws http2 stream errors
         let prompt = "";
         let lastErr: any = null;
         for (let attempt = 1; attempt <= 4; attempt++) {
@@ -328,22 +349,20 @@ async function analyzeFlyer(imageUrl: string): Promise<string> {
             break;
           } catch (e: any) {
             lastErr = e;
-            console.warn(`[flyer-motion-v3] Download attempt ${attempt} failed:`, e.message);
+            console.warn(`[flyer-motion] Download attempt ${attempt} failed:`, e.message);
             if (attempt < 4) await new Promise((r) => setTimeout(r, 1500 * attempt));
           }
         }
         if (!prompt) {
-          console.error("[flyer-motion-v3] Download failed after retries:", lastErr?.message);
           throw new Error("Failed to download prompt: " + (lastErr?.message || "unknown"));
         }
 
-        console.log("[flyer-motion-v3] SUCCESS! Prompt:", prompt.substring(0, 120));
+        console.log("[flyer-motion] SUCCESS! Prompt:", prompt.substring(0, 120));
         return prompt;
       }
 
-      // Still processing — taskStatus might be RUNNING, QUEUED, etc
-      console.log(`[flyer-motion-v3] Poll ${i + 1}: still ${taskStatus || "unknown"}`);
+      console.log(`[flyer-motion] Poll ${i + 1}: still ${taskStatus || "unknown"}`);
     }
 
-    throw new Error("RunningHub job timed out after 4 minutes");
+    throw new Error(`RunningHub job timed out after ${(MAX_POLLS * POLL_INTERVAL_MS) / 60000} min`);
 }
