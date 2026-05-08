@@ -61,8 +61,9 @@ serve(async (req) => {
 
         // Trigger the next step: seedance-generate/process
         console.log(`[flyer-motion-bg] Analysis done for Job ${jobId}. Triggering generation...`);
-        
-        fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
+
+        // EdgeRuntime.waitUntil garante que o fetch sobreviva ao return da função
+        const bgGen = fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -70,6 +71,12 @@ serve(async (req) => {
           },
           body: JSON.stringify({ jobId }),
         }).catch(err => console.error("[flyer-motion-bg] Failed to trigger seedance-generate:", err));
+
+        // @ts-ignore
+        if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any)?.waitUntil) {
+          // @ts-ignore
+          EdgeRuntime.waitUntil(bgGen);
+        }
 
         return jsonResponse({ success: true });
       } catch (err: any) {
@@ -95,8 +102,9 @@ serve(async (req) => {
 
     console.log("[flyer-motion-v3] Queuing analysis for Job:", jobId);
 
-    // Fire and forget background process
-    fetch(`${supabaseUrl}/functions/v1/runninghub-flyer-motion/process`, {
+    // Background process — usa EdgeRuntime.waitUntil pra garantir que o fetch
+    // não seja morto quando a função retornar (caso contrário o /process nunca roda)
+    const bgFetch = fetch(`${supabaseUrl}/functions/v1/runninghub-flyer-motion/process`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -104,6 +112,12 @@ serve(async (req) => {
       },
       body: JSON.stringify({ jobId, imageUrl }),
     }).catch(err => console.error("[flyer-motion-v3] background process trigger failed:", err));
+
+    // @ts-ignore — EdgeRuntime existe no Deno Deploy do Supabase
+    if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any)?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(bgFetch);
+    }
 
     return jsonResponse({ success: true, queued: true, jobId });
 

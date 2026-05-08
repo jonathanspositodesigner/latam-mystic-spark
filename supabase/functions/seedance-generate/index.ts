@@ -347,7 +347,8 @@ serve(async (req) => {
 
     await supabase.from("seedance_jobs").update({ status: "pending", error_message: null }).eq("id", jobId);
 
-    fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
+    // EdgeRuntime.waitUntil garante que o /process não morra quando essa função retornar
+    const bgProcess = fetch(`${supabaseUrl}/functions/v1/seedance-generate/process`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -355,6 +356,12 @@ serve(async (req) => {
       },
       body: JSON.stringify({ jobId }),
     }).catch((err) => console.error("[seedance-generate] background process failed:", err));
+
+    // @ts-ignore
+    if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any)?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(bgProcess);
+    }
 
     return json({ success: true, queued: true, jobId });
   } catch (error) {
