@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogIn, Star, Lock, Settings, LogOut, User, Coins } from "lucide-react";
+import { LogIn, Star, Lock, Settings, LogOut, User, Coins, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCredits } from "@/contexts/CreditsContext";
+import CreditsPreviewPopover from "@/components/credits/CreditsPreviewPopover";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -66,6 +67,17 @@ const AppTopBar = ({ user, isPremium, planType, userProfile, onLogout }: AppTopB
         )}
         {user && (
           <>
+            <CreditsPreviewPopover userId={user.id} variant="desktop" />
+            <a
+              href="https://api.whatsapp.com/send/?phone=5533988819891&text&type=phone_number&app_absent=0"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Soporte"
+            >
+              <Button variant="ghost" size="icon" className="text-purple-300 hover:text-white hover:bg-purple-500/20 rounded-full">
+                <MessageCircle className="w-5 h-5" />
+              </Button>
+            </a>
             {isPremium && (
               <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs">
                 <Star className="h-3 w-3 mr-1" fill="currentColor" />Premium

@@ -14,6 +14,7 @@ import VideoBanner from "@/components/dashboard/VideoBanner";
 import UpscalerArcanoCard from "@/components/dashboard/UpscalerArcanoCard";
 import UpscalerCreditosCard from "@/components/dashboard/UpscalerCreditosCard";
 import FlyerMakerCard from "@/components/dashboard/FlyerMakerCard";
+import CreditsPreviewPopover from "@/components/credits/CreditsPreviewPopover";
 
 const VITALICIO_SLUGS = [
   "upscaller-arcano-v3",
@@ -96,6 +97,7 @@ const Dashboard = () => {
           ArcanoApp
         </h1>
         <div className="flex items-center gap-3">
+          {user && <CreditsPreviewPopover userId={user.id} variant="desktop" />}
           <a
             href="https://api.whatsapp.com/send/?phone=5533988819891&text&type=phone_number&app_absent=0"
             target="_blank"
