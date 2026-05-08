@@ -233,6 +233,16 @@ Deno.serve(async (req) => {
     const cancelEmail = (
       buyerData.email || purchaseData.buyer?.email || payload.data?.email || ""
     ).trim().toLowerCase();
+    // Identifica o produto cancelado pra estornar o valor CORRETO (não 1 fixo)
+    const cancelProductId = String(
+      productData.id ||
+      purchaseData.product?.id ||
+      payload.data?.product_id ||
+      ""
+    );
+    const cancelProduct = HOTMART_PRODUCTS[cancelProductId];
+    const cancelTransactionId = purchaseData.transaction || purchaseData.transaction_id ||
+      subscriptionData.subscriber?.code || null;
 
     if (cancelEmail) {
       const { data: profileId } = await supabaseAdmin.rpc("arcano_find_user_id_by_email", {
@@ -240,35 +250,60 @@ Deno.serve(async (req) => {
       });
 
       if (profileId) {
-        // Deactivate premium_artes_users
+        // Desativa todos os pacotes Hotmart deste user (premium_artes + user_pack_purchases)
         await supabaseAdmin.from("premium_artes_users")
           .update({ is_active: false })
           .eq("user_id", profileId)
           .eq("payment_gateway", "hotmart");
 
-        // Deactivate user_pack_purchases
-        await supabaseAdmin.from("user_pack_purchases")
-          .update({ payment_status: "cancelled" })
-          .eq("user_id", profileId)
-          .eq("gateway", "hotmart");
+        // Marca o pack ESPECÍFICO como cancelado (não todos) — fallback pra todos se não tiver transactionId
+        if (cancelTransactionId) {
+          await supabaseAdmin.from("user_pack_purchases")
+            .update({ payment_status: "cancelled" })
+            .eq("user_id", profileId)
+            .eq("gateway", "hotmart")
+            .eq("external_id", String(cancelTransactionId));
+        } else if (cancelProduct) {
+          await supabaseAdmin.from("user_pack_purchases")
+            .update({ payment_status: "cancelled" })
+            .eq("user_id", profileId)
+            .eq("gateway", "hotmart")
+            .eq("pack_slug", cancelProduct.slug);
+        }
 
-        // Revoke monthly credits
-        await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
-          _user_id: profileId,
-          _description: `Cancelamento Hotmart (${event})`
-        });
+        // Estorno discriminado por TIPO de produto
+        if (!cancelProduct) {
+          // Produto não mapeado: por segurança, revoga monthly (subscriptions são o caso comum)
+          await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
+            _user_id: profileId,
+            _description: `Cancelamento Hotmart produto desconhecido ${cancelProductId} (${event})`
+          });
+          console.log(`[hotmart-webhook] Unknown product ${cancelProductId} cancelled — only monthly revoked as safety`);
+        } else if (cancelProduct.type === "vitalicio") {
+          // Upscaler V3 (acesso vitalício, 1 unidade marca como ativo)
+          await supabaseAdmin.rpc("arcano_revoke_lifetime_credits", {
+            _user_id: profileId,
+            _amount: 1,
+            _description: `Estorno Hotmart ${cancelProduct.label} (${event})`
+          });
+        } else if (cancelProduct.type === "creditos_vitalicio") {
+          // Recarga de créditos vitalícios — revoga o valor EXATO comprado
+          await supabaseAdmin.rpc("arcano_revoke_lifetime_credits", {
+            _user_id: profileId,
+            _amount: cancelProduct.credits,
+            _description: `Estorno Recarga Hotmart ${cancelProduct.label} -${cancelProduct.credits} créditos (${event})`
+          });
+        } else if (cancelProduct.type === "creditos" || cancelProduct.type === "unlimited") {
+          // Pacote mensal (subscription) — zera mensal
+          await supabaseAdmin.rpc("revoke_flyer_monthly_credits", {
+            _user_id: profileId,
+            _description: `Estorno Hotmart ${cancelProduct.label} (${event})`
+          });
+        }
 
-        // Revoke lifetime credits if it was a lifetime product
-        await supabaseAdmin.rpc("arcano_revoke_lifetime_credits", {
-          _user_id: profileId,
-          _amount: 1, // Assuming 1 unit of "lifetime" or similar
-          _description: `Estorno Hotmart (${event})`
-        });
-
-        console.log(`[hotmart-webhook] Access revoked for user ${profileId} due to ${event}`);
+        console.log(`[hotmart-webhook] Access revoked for user ${profileId} (product=${cancelProduct?.slug ?? cancelProductId}, type=${cancelProduct?.type ?? "unknown"}) due to ${event}`);
       }
     }
-// ... keep existing code
 
 
     await supabaseAdmin.from("webhook_logs")
