@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Coins, Zap, Crown, Infinity, ShieldCheck, Clock, ArrowLeft, TrendingDown, Flame } from "lucide-react";
+import { Coins, Zap, Crown, Sparkles, Check, Infinity, ShieldCheck, Clock, ArrowLeft, TrendingDown, Flame } from "lucide-react";
 
 interface Pack {
   hotmartId: string;
@@ -103,21 +103,31 @@ const RecargaCreditos = () => {
 
       {/* Hero */}
       <section className="relative px-4 pt-12 pb-8 text-center z-10">
-        <div className="inline-flex items-center gap-1.5 bg-fuchsia-500/10 border border-fuchsia-500/25 rounded-full px-3 py-1 mb-4">
+        <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-purple-500/15 to-fuchsia-500/15 border border-purple-500/30 rounded-full px-3 py-1 mb-4 animate-fade-in-delayed">
           <Infinity className="h-3 w-3 text-fuchsia-400" />
-          <span className="text-fuchsia-300 text-[10px] font-semibold uppercase tracking-wider">
-            Sin vencimiento
+          <span className="text-fuchsia-300 text-[10px] font-bold uppercase tracking-wider">
+            Sin vencimiento — Una vez, para siempre
           </span>
         </div>
         <h2 className="text-2xl md:text-4xl font-bold mb-2 leading-tight">
           Recarga tus{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-400 to-pink-400">
-            créditos
+            créditos vitalicios
           </span>
         </h2>
-        <p className="text-muted-foreground max-w-md mx-auto text-sm">
-          Una compra, créditos para siempre. Cuanto más grande el pack, mayor el ahorro.
+        <p className="text-muted-foreground max-w-lg mx-auto text-xs md:text-sm">
+          Compra una sola vez, úsalos cuando quieras. Los créditos <strong className="text-foreground">nunca expiran</strong>.
+          Cuanto más grande el pack, <strong className="text-fuchsia-300">mayor el ahorro</strong>.
         </p>
+
+        {/* Trust badges row */}
+        <div className="mt-4 flex flex-wrap justify-center items-center gap-2.5 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-1"><ShieldCheck className="h-3 w-3 text-green-400" /> Pago seguro Hotmart</div>
+          <div className="hidden sm:block w-px h-3 bg-border" />
+          <div className="flex items-center gap-1"><Clock className="h-3 w-3 text-blue-400" /> Acceso instantáneo</div>
+          <div className="hidden sm:block w-px h-3 bg-border" />
+          <div className="flex items-center gap-1"><Infinity className="h-3 w-3 text-fuchsia-400" /> Sin caducidad</div>
+        </div>
       </section>
 
       {/* Packs Grid */}
@@ -142,39 +152,52 @@ const RecargaCreditos = () => {
                   </div>
                 )}
 
-                {/* Header: icon + créditos */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${pack.gradient} flex items-center justify-center shrink-0`}>
+                {/* Icon + créditos centralizado */}
+                <div className="text-center mb-3">
+                  <div className={`inline-flex w-11 h-11 rounded-xl bg-gradient-to-br ${pack.gradient} items-center justify-center shadow-md mb-2`}>
                     <PackIcon className="h-5 w-5 text-white" />
                   </div>
-                  <div>
-                    <div className="text-2xl font-bold text-foreground tabular-nums leading-none">
-                      {pack.credits.toLocaleString("es-ES")}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">créditos vitalicios</p>
+                  <div className="text-3xl font-extrabold text-foreground tabular-nums tracking-tight leading-none">
+                    {pack.credits.toLocaleString("es-ES")}
                   </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">créditos vitalicios</p>
                 </div>
 
-                {/* Price */}
-                <div className="mb-4">
+                {/* Price + savings */}
+                <div className="text-center mb-3">
                   {savings && (
-                    <p className="text-[11px] text-muted-foreground line-through tabular-nums">
+                    <p className="text-[10px] text-muted-foreground line-through tabular-nums mb-0.5">
                       USD {savings.equivalentPriceAtBaseRate.toFixed(2)}
                     </p>
                   )}
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-baseline justify-center gap-1">
                     <span className="text-xs text-foreground/60">USD</span>
-                    <span className="text-3xl font-bold text-foreground tabular-nums">
+                    <span className="text-3xl font-extrabold text-foreground tabular-nums">
                       {pack.price.toFixed(2).replace(".", ",")}
                     </span>
                   </div>
-                  {savings ? (
-                    <div className="mt-1.5 inline-flex items-center gap-1 text-green-400 text-[11px] font-semibold">
-                      <TrendingDown className="h-3 w-3" />
-                      Ahorras {savings.savedPercent}%
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    pago único · sin renovación
+                  </p>
+                  {savings && (
+                    <div className="mt-2 inline-flex items-center gap-1 bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <TrendingDown className="h-2.5 w-2.5" />
+                      Ahorras {savings.savedPercent}% (USD {savings.savedAmount.toFixed(2)})
                     </div>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground mt-1.5">pago único</p>
+                  )}
+                </div>
+
+                {/* Features */}
+                <div className="space-y-1.5 mb-4 flex-1">
+                  <FeatureRow text={`${pack.credits.toLocaleString("es-ES")} créditos para usar cuando quieras`} />
+                  <FeatureRow text="Sin vencimiento — son tuyos para siempre" />
+                  <FeatureRow text="Todas las herramientas de IA del Arcano App" />
+                  <FeatureRow text="Acreditados al instante en tu cuenta" />
+                  {pack.highlight && (
+                    <FeatureRow text={<><strong className="text-fuchsia-300">2× más créditos</strong> que el pack básico</>} />
+                  )}
+                  {pack.bestValue && (
+                    <FeatureRow text={<><strong className="text-amber-300">Mejor precio por crédito</strong> de todos los packs</>} />
                   )}
                 </div>
 
@@ -183,36 +206,70 @@ const RecargaCreditos = () => {
                   href={pack.hotmartUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full mt-auto"
+                  className="block w-full"
                 >
                   <Button
-                    className={`w-full h-10 text-sm font-semibold bg-gradient-to-r ${pack.gradient} hover:opacity-95 text-white`}
+                    className={`w-full h-10 text-xs font-bold bg-gradient-to-r ${pack.gradient} hover:opacity-95 text-white shadow-md ${pack.shadowColor}`}
                   >
-                    Comprar
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    Comprar Ahora
                   </Button>
                 </a>
 
-                {/* Rodapé sutil */}
-                <p className="text-[10px] text-center text-muted-foreground/70 mt-2.5 tabular-nums">
-                  USD {((pack.price / pack.credits) * 1000).toFixed(2)} / 1.000 créditos
+                {/* Equivalência por crédito (rodapé sutil) */}
+                <p className="text-[9px] text-center text-muted-foreground/70 mt-2 tabular-nums">
+                  USD {((pack.price / pack.credits) * 1000).toFixed(2)} cada 1.000 créditos
                 </p>
               </Card>
             );
           })}
         </div>
 
-        {/* Trust + nota — uma linha discreta */}
-        <div className="max-w-3xl mx-auto mt-10 flex flex-wrap justify-center items-center gap-x-5 gap-y-2 text-[11px] text-muted-foreground">
-          <div className="flex items-center gap-1.5"><ShieldCheck className="h-3 w-3 text-green-400" /> Pago seguro Hotmart</div>
-          <div className="flex items-center gap-1.5"><Clock className="h-3 w-3 text-blue-400" /> Acceso instantáneo</div>
-          <div className="flex items-center gap-1.5"><Infinity className="h-3 w-3 text-fuchsia-400" /> Sin caducidad</div>
+        {/* Footer note */}
+        <div className="max-w-2xl mx-auto mt-8 text-center">
+          <p className="text-[11px] text-muted-foreground">
+            💡 Los créditos comprados aquí <strong className="text-foreground">no expiran nunca</strong>. Si ya tienes una cuenta, basta usar el mismo correo en el checkout — los créditos llegan automáticamente sin tocar tu contraseña.
+          </p>
         </div>
-        <p className="text-center text-[11px] text-muted-foreground/80 mt-3 max-w-md mx-auto">
-          Si ya tienes cuenta, usa el mismo correo en el checkout — créditos llegan automáticamente.
-        </p>
+
+        {/* FAQ minimalista */}
+        <div className="max-w-3xl mx-auto mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FaqCard
+            question="¿Los créditos caducan?"
+            answer="No. Una vez comprados, son tuyos para siempre. Úsalos cuando quieras."
+          />
+          <FaqCard
+            question="¿En qué herramientas puedo usarlos?"
+            answer="En todas las herramientas de IA del Arcano App: Upscaler, Flyer Maker, generación de imágenes y más."
+          />
+          <FaqCard
+            question="¿Ya tengo cuenta, qué pasa?"
+            answer="Solo usa el mismo correo en el checkout. Los créditos se suman a tu cuenta sin alterar tu contraseña."
+          />
+          <FaqCard
+            question="¿Cómo recibo los créditos?"
+            answer="Al instante. En cuanto se aprueba el pago, ya están disponibles en tu cuenta."
+          />
+        </div>
       </section>
     </div>
   );
 };
+
+const FeatureRow = ({ text }: { text: React.ReactNode }) => (
+  <div className="flex items-start gap-1.5">
+    <div className="mt-0.5 w-3.5 h-3.5 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center shrink-0">
+      <Check className="h-2 w-2 text-green-400" strokeWidth={3} />
+    </div>
+    <span className="text-[11px] text-foreground/80 leading-snug">{text}</span>
+  </div>
+);
+
+const FaqCard = ({ question, answer }: { question: string; answer: string }) => (
+  <div className="rounded-lg border border-border bg-card/60 backdrop-blur-sm p-3">
+    <p className="font-semibold text-foreground text-xs mb-0.5">{question}</p>
+    <p className="text-[11px] text-muted-foreground leading-relaxed">{answer}</p>
+  </div>
+);
 
 export default RecargaCreditos;
