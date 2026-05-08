@@ -1694,6 +1694,7 @@ export type Database = {
         Returns: Json
       }
       user_has_unlimited_flyer: { Args: { _user_id: string }; Returns: boolean }
+      watchdog_cleanup_stuck_seedance_jobs: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
