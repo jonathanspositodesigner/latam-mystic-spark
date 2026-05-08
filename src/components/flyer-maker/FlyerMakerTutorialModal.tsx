@@ -8,7 +8,7 @@ interface FlyerMakerTutorialModalProps {
   onClose: () => void;
 }
 
-const YOUTUBE_ID = "uX1oXFs9gNk";
+const YOUTUBE_ID = "Hg4Jxe-vKa0";
 
 const FlyerMakerTutorialModal = ({ open, onClose }: FlyerMakerTutorialModalProps) => {
   const [playing, setPlaying] = useState(false);
